@@ -30,6 +30,7 @@ class LandingGearWeight(om.ExplicitComponent):
         self.add_input("data:mission:sizing:cs23:sizing_factor_ultimate", val=np.nan) # TODO: confirm it's a ratio!, to be added to xml variables        
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:geometry:landing_gear:height", val=np.nan, units="m")
+        
         self.add_output("data:weight:airframe:landing_gear:main:mass", units="kg") # old weight_A51
         self.add_output("data:weight:airframe:landing_gear:front:mass", units="kg") # old weight_A52
 
@@ -40,6 +41,7 @@ class LandingGearWeight(om.ExplicitComponent):
         sizing_factor_ultimate = inputs["data:mission:sizing:cs23:sizing_factor_ultimate"]
         mtow = inputs["data:weight:aircraft:MTOW"]*2.20462 # Takeoff weight in lb
         height = inputs["data:geometry:landing_gear:height"]*3.28084 # conversion to feet
+        
         l_sm = height/3 # Shock strut length for MLG
         a5 = 0.054*l_sm**0.501*(mtow*sizing_factor_ultimate)**0.684
         a51 = a5*2/3 # mass in lb

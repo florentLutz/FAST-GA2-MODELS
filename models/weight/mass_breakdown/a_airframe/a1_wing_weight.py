@@ -36,6 +36,7 @@ class WingWeight(om.ExplicitComponent):
         self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="rad")
         self.add_input("data:TLAR:limit_speed", val=np.nan, units="kn") # TODO: replace vne, to be added to xml variables
+        
         self.add_output("data:weight:airframe:wing:mass", units="kg")
 
         self.declare_partials("*", "*", method="fd")

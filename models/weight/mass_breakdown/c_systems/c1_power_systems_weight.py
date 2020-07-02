@@ -30,7 +30,7 @@ class PowerSystemsWeight(ExplicitComponent):
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:weight:propulsion:fuel_lines:mass", val=np.nan, units="kg")
         self.add_input("data:weight:systems:navigation:mass", val=np.nan, units="kg")
-        self.add_output("data:weight:systems:power:auxiliary_power_unit:mass", units="kg") # old weight_C11
+
         self.add_output("data:weight:systems:power:electric_systems:mass", units="kg") # old weight_C12
         self.add_output("data:weight:systems:power:hydraulic_systems:mass", units="kg") # old weight_C13
 
@@ -42,9 +42,9 @@ class PowerSystemsWeight(ExplicitComponent):
         mtow = inputs["data:weight:aircraft:MTOW"]*2.20462 # Takeoff weight in lb
         m_fuel_lines = inputs["data:weight:propulsion:fuel_lines:mass"]*2.20462 # converted to lb
         m_iae = inputs["data:weight:systems:navigation:mass"]*2.20462 # converted to lb
+        
         c12 = 426*((m_fuel_lines+m_iae)/1000)**0.51 # mass in lb
         c13 = 0.007*mtow # mass in lb
         
-        outputs["data:weight:systems:power:auxiliary_power_unit:mass"] = 0.0 # no APU on general aircraft
         outputs["data:weight:systems:power:electric_systems:mass"] = c12/ 2.20462 # converted to kg
         outputs["data:weight:systems:power:hydraulic_systems:mass"] = c13/ 2.20462 # converted to kg

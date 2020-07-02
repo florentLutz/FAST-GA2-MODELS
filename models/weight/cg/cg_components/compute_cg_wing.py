@@ -29,7 +29,7 @@ class ComputeWingCG(ExplicitComponent):
 
         self.add_output("data:weight:airframe:wing:CG:x", units="m")
 
-        self.declare_partials("data:weight:airframe:wing:CG:x", "*", method="fd")
+        self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
         

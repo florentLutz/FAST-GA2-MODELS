@@ -32,9 +32,13 @@ class EngineWeight(ExplicitComponent):
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
         self.add_input("data:propulsion:engine:fuel_type", val=np.nan)
         self.add_input("data:propulsion:engine:n_strokes", val=np.nan)
+        
         self.add_output("data:weight:propulsion:engine:mass", units="kg")
 
-        self.declare_partials("*", "*", method="fd")
+        self.declare_partials("data:weight:propulsion:engine:mass",
+            ["data:propulsion:engine:power_SL"],
+            method="fd",
+        )
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         

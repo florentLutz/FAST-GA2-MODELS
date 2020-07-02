@@ -33,6 +33,7 @@ class FuselageWeight(om.ExplicitComponent):
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
         self.add_input("data:TLAR:cruise_speed", val=np.nan, units="kn")
+        
         self.add_output("data:weight:airframe:fuselage:mass", units="kg")
 
         self.declare_partials("*", "*", method="fd")
@@ -45,6 +46,7 @@ class FuselageWeight(om.ExplicitComponent):
         maximum_height = inputs["data:geometry:fuselage:maximum_height"]
         length = inputs["data:geometry:fuselage:length"]
         cruise_speed = inputs["data:TLAR:cruise_speed"]
+        
         a2 = (
             200*((mtow*sizing_factor_ultimate/(10**5))**0.286
             *(length*3.28084/10)**0.857

@@ -36,15 +36,8 @@ class LifeSupportSystemsWeight(ExplicitComponent):
         self.add_input("data:TLAR:NPAX", val=np.nan)
         self.add_input("data:weight:systems:navigation:mass", val=np.nan, units="kg")
         self.add_input("data:TLAR:limit_speed", val=np.nan, units="kn") # TODO: replace vne, to be added to xml variables
-        self.add_output("data:weight:systems:life_support:insulation:mass", units="kg") # old weight_C21
+       
         self.add_output("data:weight:systems:life_support:air_conditioning:mass", units="kg") # old weight_C22
-        self.add_output("data:weight:systems:life_support:de-icing:mass", units="kg") # old weight_C23
-        self.add_output("data:weight:systems:life_support:cabin_lighting:mass", units="kg") # old weight_C24
-        self.add_output(
-            "data:weight:systems:life_support:seats_crew_accommodation:mass", units="kg"
-        ) # old weight_C25
-        self.add_output("data:weight:systems:life_support:oxygen:mass", units="kg") # old weight_C26
-        self.add_output("data:weight:systems:life_support:safety_equipment:mass", units="kg") # old weight_C27
 
         self.declare_partials("*", "*", method="fd")
 
@@ -54,13 +47,8 @@ class LifeSupportSystemsWeight(ExplicitComponent):
         npax = inputs["data:TLAR:NPAX"]
         m_iae = inputs["data:weight:systems:navigation:mass"]*2.20462 # converted to lb
         limit_speed = inputs["data:TLAR:limit_speed"]/666.739 # converted to mach
+        
         c22 = 0.261*mtow**.52*npax**0.68*m_iae**0.17*limit_speed**0.08 # mass in lb
        
-        outputs["data:weight:systems:life_support:insulation:mass"] = 0.0
         outputs["data:weight:systems:life_support:air_conditioning:mass"] = c22/ 2.20462 # converted to kg
-        outputs["data:weight:systems:life_support:de-icing:mass"] = 0.0
-        outputs["data:weight:systems:life_support:cabin_lighting:mass"] =0.0
-        outputs["data:weight:systems:life_support:seats_crew_accommodation:mass"] = 0.0
-        outputs["data:weight:systems:life_support:oxygen:mass"] = 0.0
-        outputs["data:weight:systems:life_support:safety_equipment:mass"] = 0.0
         

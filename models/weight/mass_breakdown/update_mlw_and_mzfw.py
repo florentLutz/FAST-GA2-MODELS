@@ -1,5 +1,5 @@
 """
-Estimation of transmissions systems weight
+Main component for mass breakdown
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -14,21 +14,30 @@ Estimation of transmissions systems weight
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import openmdao.api as om
+import numpy as np
+from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class TransmissionSystemsWeight(om.IndepVarComp):
+class UpdateMLWandMZFW(ExplicitComponent):
     """
-    Weight for transmission systems is neglected in general aircraft
-
+    Computes Maximum Landing Weight and Maximum Zero Fuel Weight from
+    Overall Empty Weight and Maximum Payload.
     """
 
     def setup(self):
-        
-        self.add_output("data:weight:systems:transmission:mass", units="kg")
+        self.add_input("data:weight:aircraft:OWE", val=np.nan, units="kg")
+        self.add_input("data:weight:aircraft:max_payload", val=np.nan, units="kg")
+
+        self.add_output("data:weight:aircraft:MZFW", units="kg")
+        self.add_output("data:weight:aircraft:MLW", units="kg")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+        owe = inputs["data:weight:aircraft:OWE"][0]
+        max_pl = inputs["data:weight:aircraft:max_payload"][0]
+        mzfw = owe + max_pl
+        mlw = 1.06 * mzfw
 
-        outputs["data:weight:systems:transmission:mass"] = 0.0
+        outputs["data:weight:aircraft:MZFW"] = mzfw
+        outputs["data:weight:aircraft:MLW"] = mlw

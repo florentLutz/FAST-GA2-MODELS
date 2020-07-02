@@ -1,5 +1,5 @@
 """
-Estimation of food water weight
+Estimation of vertical tail geometry (components)
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -14,21 +14,7 @@ Estimation of food water weight
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import openmdao.api as om
-
-
-class FoodWaterWeight(om.IndepVarComp):
-    """
-    Weight for food and water is neglected for general aircraft
-
-    """
-
-    def setup(self):
-        
-        self.add_output("data:weight:furniture:food_water:mass", units="kg")
-
-        self.declare_partials("*", "*", method="fd")
-
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        outputs["data:weight:furniture:food_water:mass"] = 0.0
+from .compute_vt_chords import ComputeVTChords
+from .compute_vt_distance import ComputeVTDistance
+from .compute_vt_mac import ComputeVTMAC
+from .compute_vt_sweep import ComputeVTSweep

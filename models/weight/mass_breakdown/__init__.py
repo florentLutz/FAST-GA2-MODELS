@@ -1,5 +1,5 @@
 """
-Estimation of flight kit weight
+Estimation of Aircraft Weight
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -14,21 +14,4 @@ Estimation of flight kit weight
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import openmdao.api as om
-
-
-class FlightKitWeight(om.IndepVarComp):
-    """
-    Weight for flight kit (tools that are always on board) is neglected in GA
-
-    """
-
-    def setup(self):
-        
-        self.add_output("data:weight:systems:flight_kit:mass", units="kg")
-
-        self.declare_partials("*", "*", method="fd")
-
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        outputs["data:weight:systems:flight_kit:mass"] = 0
+from .mass_breakdown import MassBreakdown

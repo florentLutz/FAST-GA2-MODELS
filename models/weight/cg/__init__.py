@@ -1,6 +1,3 @@
-"""
-Estimation of toilets weight
-"""
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
 #  FAST is free software: you can redistribute it and/or modify
@@ -13,22 +10,3 @@ Estimation of toilets weight
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-import openmdao.api as om
-
-
-class ToiletsWeight(om.IndepVarComp):
-    """
-    Weight for toilets is not applicable for GA
-
-    """
-
-    def setup(self):
-        
-        self.add_output("data:weight:furniture:toilets:mass", units="kg")
-
-        self.declare_partials("*", "*", method="fd")
-
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-       
-        outputs["data:weight:furniture:toilets:mass"] = 0.0

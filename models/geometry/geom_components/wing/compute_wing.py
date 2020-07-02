@@ -16,6 +16,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from fastoad.models.geometry.geom_components.wing.components.compute_b_50 import ComputeB50
+from fastoad.models.geometry.geom_components.wing.components.compute_wing_cl_alpha import ComputeWINGCLalpha
 from fastoad.models.geometry.geom_components.wing.components.compute_l1_l4 import ComputeL1AndL4Wing
 from fastoad.models.geometry.geom_components.wing.components.compute_l2_l3 import ComputeL2AndL3Wing
 from fastoad.models.geometry.geom_components.wing.components.compute_mac_wing import ComputeMACWing
@@ -47,4 +48,5 @@ class ComputeWingGeometry(Group):
         self.add_subsystem("sweep_wing", ComputeSweepWing(), promotes=["*"])
         self.add_subsystem("toc_wing", ComputeToCWing(), promotes=["*"])
         self.add_subsystem("wetarea_wing", ComputeWetAreaWing(), promotes=["*"])
+        self.add_subsystem("clapha_wing", ComputeWINGCLalpha(), promotes=["*"])
         self.add_subsystem("mfw", ComputeMFW(), promotes=["*"])

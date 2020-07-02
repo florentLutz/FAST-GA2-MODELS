@@ -29,15 +29,17 @@ class FuelLinesWeight(ExplicitComponent):
         
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
         self.add_input("data:mission:sizing:fuel", val=np.nan, units="kg")
+        
         self.add_output("data:weight:propulsion:fuel_lines:mass", units="kg")
 
-        self.declare_partials("*", "*", method="fd")
+        self.declare_partials("data:weight:propulsion:fuel_lines:mass", "data:mission:sizing:fuel", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         tank_nb = 2 # Number of fuel tanks is assumed to be two, 1 per semiwing
         engine_nb = inputs["data:geometry:propulsion:engine:count"]
         fuel_mass = inputs["data:mission:sizing:fuel"]*2.20462 # converted to lb
+        
         b2 = 2.49*((fuel_mass/5.87)**0.6*(0.5)**0.3*tank_nb**0.2*engine_nb**0.13)**1.21 # mass in lb
         
         outputs["data:weight:propulsion:fuel_lines:mass"] = b2/ 2.20462 # converted to kg

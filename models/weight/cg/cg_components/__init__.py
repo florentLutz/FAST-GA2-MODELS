@@ -1,5 +1,5 @@
 """
-Estimation of cargo configuration weight
+Estimation of centers of gravity
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -14,21 +14,15 @@ Estimation of cargo configuration weight
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import openmdao.api as om
-
-
-class CargoConfigurationWeight(om.IndepVarComp):
-    """
-    Weight for equipments for freight transport (applies only for freighters) is negligible in general aviation
-
-    """
-
-    def setup(self):
-        
-        self.add_output("data:weight:furniture:cargo_configuration:mass", units="kg")
-
-        self.declare_partials("*", "*", method="fd")
-
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        outputs["data:weight:furniture:cargo_configuration:mass"] = 0.0
+from .compute_cg_control_surfaces import ComputeControlSurfacesCG
+from .compute_cg_engine import ComputeEngineCG
+from .compute_cg_loadcase import ComputeCGLoadCase
+from .compute_cg_others import ComputeOthersCG
+from .compute_cg_ratio_aft import ComputeCGRatioAft
+from .compute_cg_tanks import ComputeTanksCG
+from .compute_cg_wing import ComputeWingCG
+from .compute_global_cg import ComputeGlobalCG
+from .compute_ht_cg import ComputeHTcg
+from .compute_max_cg_ratio import ComputeMaxCGratio
+from .compute_vt_cg import ComputeVTcg
+from .update_mlg import UpdateMLG

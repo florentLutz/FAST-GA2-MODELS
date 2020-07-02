@@ -1,5 +1,5 @@
 """
-Estimation of security kit weight
+Weight computation (mass and CG)
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -16,21 +16,23 @@ Estimation of security kit weight
 
 import openmdao.api as om
 
+from fastoad.models.weight.cg.cg import CG
+from fastoad.models.weight.mass_breakdown import MassBreakdown
 
-class SecurityKitWeight(om.IndepVarComp):
+
+class Weight(om.Group):
     """
-    Weight for security kit is neglected for GA
+    Computes masses and Centers of Gravity for each part of the empty operating aircraft, among
+    these 5 categories:
+    airframe, propulsion, systems, furniture, crew
 
+    This model uses MTOW as an input, as it allows to size some elements, but resulting OWE do
+    not aim at being consistent with MTOW.
+
+    Consistency between OWE and MTOW can be achieved by cycling with a model that computes MTOW
+    from OWE, which should come from a mission computation that will assess needed block fuel.
     """
-
-    """ Passenger security kit weight estimation (D4) """
 
     def setup(self):
-        
-        self.add_output("data:weight:furniture:security_kit:mass", units="kg")
-
-        self.declare_partials("*", "*", method="fd")
-
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-       
-        outputs["data:weight:furniture:security_kit:mass"] = 0.0
+        self.add_subsystem("cg", CG(), promotes=["*"])
+        self.add_subsystem("mass_breakdown", MassBreakdown(), promotes=["*"])

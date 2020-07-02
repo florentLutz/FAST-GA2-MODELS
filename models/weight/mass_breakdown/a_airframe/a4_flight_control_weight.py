@@ -28,6 +28,7 @@ class FlightControlsWeight(om.ExplicitComponent):
     def setup(self):
         
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
+        
         self.add_output("data:weight:airframe:flight_controls:mass", units="kg")
 
         self.declare_partials("*", "*", method="fd")
@@ -35,6 +36,7 @@ class FlightControlsWeight(om.ExplicitComponent):
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         mtow = inputs["data:weight:aircraft:MTOW"]*2.20462 # Takeoff weight in lb
+        
         a4 = 1.066*mtow**0.626 # mass in lb
 
         outputs["data:weight:airframe:flight_controls:mass"] = a4/ 2.20462 # converted to kg

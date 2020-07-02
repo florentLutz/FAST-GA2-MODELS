@@ -28,6 +28,7 @@ class NavigationSystemsWeight(ExplicitComponent):
     def setup(self):
         
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
+        
         self.add_output("data:weight:systems:navigation:mass", units="kg")
 
         self.declare_partials("*", "*", method="fd")
@@ -35,6 +36,7 @@ class NavigationSystemsWeight(ExplicitComponent):
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         mtow = inputs["data:weight:aircraft:MTOW"]*2.20462 # Takeoff weight in lb
+        
         c3 = 40 +0.008*mtow # mass in lb
 
         outputs["data:weight:systems:navigation:mass"] = c3/ 2.20462 # converted to kg

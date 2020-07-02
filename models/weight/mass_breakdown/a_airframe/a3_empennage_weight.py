@@ -34,6 +34,7 @@ class EmpennageWeight(om.ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:thickness_ratio", val=np.nan) # TODO: replace el, to be added to xml variables
         self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
         self.add_output("data:weight:airframe:horizontal_tail:mass", units="kg") # old weight_A31
+        
         self.add_output("data:weight:airframe:vertical_tail:mass", units="kg") # old weight_A32
 
         self.declare_partials("*", "*", method="fd")
@@ -47,6 +48,7 @@ class EmpennageWeight(om.ExplicitComponent):
         thickness_ratio = inputs["data:geometry:horizontal_tail:thickness_ratio"]
         chord = inputs["data:geometry:horizontal_tail:root:chord"]*3.28084 # conversion to feet
         thickness = chord*thickness_ratio
+        
         a31 = (
             98.5*((mtow*sizing_factor_ultimate/10**5)**0.87
             *(wetted_area/100)**1.2

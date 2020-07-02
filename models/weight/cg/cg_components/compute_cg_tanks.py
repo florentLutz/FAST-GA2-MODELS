@@ -24,10 +24,6 @@ class ComputeTanksCG(ExplicitComponent):
     # TODO: Document equations. Cite sources
     """ Tanks center of gravity estimation """
 
-    def initialize(self):
-        self.options.declare("ratio", default=0.2, types=float)
-        self.ratio = self.options["ratio"]
-
     def setup(self):
 
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
@@ -35,7 +31,7 @@ class ComputeTanksCG(ExplicitComponent):
 
         self.add_output("data:weight:fuel_tank:CG:x", units="m")
 
-        self.declare_partials("data:weight:fuel_tank:CG:x", "*", method="fd")
+        self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
         

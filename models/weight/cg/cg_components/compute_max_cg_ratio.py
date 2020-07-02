@@ -23,6 +23,7 @@ class ComputeMaxCGratio(ExplicitComponent):
     """ Maximum center of gravity ratio estimation """
 
     def setup(self):
+    
         self.add_input("data:weight:aircraft:empty:CG:MAC_position", val=np.nan)
         self.add_input("data:weight:aircraft:load_case_1:CG:MAC_position", val=np.nan)
         self.add_input("data:weight:aircraft:load_case_2:CG:MAC_position", val=np.nan)
@@ -42,6 +43,7 @@ class ComputeMaxCGratio(ExplicitComponent):
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
+    
         outputs["data:weight:aircraft:CG:aft:MAC_position"] = inputs[
             "settings:weight:aircraft:CG:aft:MAC_position:margin"
         ] + max(
