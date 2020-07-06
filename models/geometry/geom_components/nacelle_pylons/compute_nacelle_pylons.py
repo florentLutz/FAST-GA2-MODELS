@@ -25,43 +25,108 @@ class ComputeNacelleAndPylonsGeometry(om.ExplicitComponent):
 
     def setup(self):
         
-        self.add_input("data:geometry:wing:tip:leading_edge:x:local", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:nacelle:diameter", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:nacelle:length", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:engine:y_ratio", val=np.nan)
-        self.add_input("data:geometry:propulsion:layout", val=np.nan)
+        self.add_input("ata:geometry:propulsion:layout", val=np.nan)
+        self.add_input("data:geometry:propulsion:engine:height", val=np.nan, units="m")
+        self.add_input("data:geometry:propulsion:engine:width", val=np.nan, units="m")
+        self.add_input("ata:geometry:propulsion:engine:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
+        self.add_input("data:geometry:propulsion:engine:y_ratio", val=np.nan)
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:leading_edge:x:local", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:y", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:tip:y", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         
+        self.add_output("data:geometry:propulsion:nacelle:length", units="m")
+        self.add_output("data:geometry:propulsion:nacelle:diameter", units="m")
+        self.add_output("data:geometry:propulsion:nacelle:height", units="m")
+        self.add_output("data:geometry:propulsion:nacelle:width", units="m")
+        self.add_output("data:geometry:landing_gear:height", units="m")
+        self.add_output("data:geometry:propulsion:pylon:length", units="m")
+        self.add_output("data:geometry:propulsion:fan:length", units="m")
         self.add_output("data:geometry:propulsion:nacelle:y", units="m")
-        self.add_output("data:weight:propulsion:engine:CG:x", units="m")
         
-        self.declare_partials("*", "*", method="fd") 
+        self.declare_partials("data:geometry:propulsion:nacelle:length",
+                "data:geometry:propulsion:engine:length", method="fd")
+        
+        self.declare_partials(
+                "data:geometry:propulsion:nacelle:diameter",
+                [
+                        "data:geometry:propulsion:engine:height",
+                        "data:geometry:propulsion:engine:width",
+                ],
+                method="fd",
+        )
+        
+        self.declare_partials("data:geometry:propulsion:nacelle:height",
+                "data:geometry:propulsion:engine:height", method="fd")
+        
+        self.declare_partials("data:geometry:propulsion:nacelle:width",
+                "data:geometry:propulsion:engine:width", method="fd")
+        
+        self.declare_partials(
+                "data:geometry:landing_gear:height",
+                [
+                        "data:geometry:propulsion:engine:height",
+                        "data:geometry:propulsion:engine:width",
+                ],
+                method="fd",
+        )
+        
+        self.declare_partials("data:geometry:propulsion:pylon:length",
+                "data:geometry:propulsion:engine:length", method="fd")
+        
+        self.declare_partials(
+                "data:geometry:propulsion:fan:length",
+                [
+                        "data:geometry:propulsion:engine:height",
+                        "data:geometry:propulsion:engine:width",
+                ],
+                method="fd",
+        )
+        
+        self.declare_partials(
+                "data:geometry:propulsion:nacelle:y",
+                [
+                        "data:geometry:propulsion:engine:height",
+                        "data:geometry:propulsion:engine:width",
+                        "data:geometry:propulsion:engine:y_ratio",
+                        "data:geometry:wing:span",
+                        "data:geometry:fuselage:maximum_width",
+                ],
+                method="fd",
+        )
         
 
     def compute(self, inputs, outputs):
         
-        nacelle_diameter = inputs["data:geometry:propulsion:nacelle:diameter"]
-        y_ratio_engine = inputs["data:geometry:propulsion:engine:y_ratio"]
         engine_loc = inputs["data:geometry:propulsion:layout"]
+        engine_height = inputs["data:geometry:propulsion:engine:height"]
+        engine_width = inputs["data:geometry:propulsion:engine:width"]
+        engine_length = inputs["data:geometry:propulsion:engine:length"]
         span = inputs["data:geometry:wing:span"]
+        y_ratio_engine = inputs["data:geometry:propulsion:engine:y_ratio"]
         b_f = inputs["data:geometry:fuselage:maximum_width"]
-        
+
+        nac_dia = 1.1*max(engine_height, engine_width)
+        nac_height = engine_height*1.1
+        nac_width = engine_width*1.1  
+        nac_length = 1.5*engine_length
         if engine_loc == 1.0:
             y_nacell = y_ratio_engine * span / 2
         elif engine_loc == 2.0:
-            y_nacell = b_f / 2 + 0.8 * nacelle_diameter 
+            y_nacell = b_f / 2 + 0.8 * nac_dia
         elif engine_loc == 3.0:
             y_nacell = 0
         else:
             raise ValueError('compute_fuselage model only computes propulsion layout equal to 1, 2 or 3!')
-            
+        
+        lg_height = 1.4 * nac_dia # ???: always?
+        fan_length = 0 * nac_dia
+        pylon_length = 1.1 * nac_length
+        
+        outputs["data:geometry:propulsion:nacelle:length"] = nac_length
+        outputs["data:geometry:propulsion:nacelle:diameter"] = nac_dia
+        outputs["data:geometry:propulsion:nacelle:height"] = nac_height
+        outputs["data:geometry:propulsion:nacelle:width"] = nac_width
+        outputs["data:geometry:landing_gear:height"] = lg_height
+        outputs["data:geometry:propulsion:pylon:length"] = pylon_length
+        outputs["data:geometry:propulsion:fan:length"] = fan_length
         outputs["data:geometry:propulsion:nacelle:y"] = y_nacell
         

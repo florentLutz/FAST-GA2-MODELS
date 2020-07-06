@@ -15,9 +15,11 @@ Estimation of horizontal tail area
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+import math
 import openmdao.api as om
 from fastoad.utils.physics import Atmosphere
 from scipy.constants import g
+from fastoad.models.aerodynamics.components.cl_ht import ClHorizontalTail
 
 
 class ComputeHTArea(om.ExplicitComponent):
@@ -28,96 +30,85 @@ class ComputeHTArea(om.ExplicitComponent):
     """
 
     def setup(self):
-        self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:geometry:has_T_tail", val=np.nan)
-        self.add_input("data:weight:airframe:landing_gear:main:CG:x", val=np.nan, units="m")
-        self.add_input("data:weight:airframe:landing_gear:front:CG:x", val=np.nan, units="m")
-        self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
-        self.add_input("settings:weight:aircraft:CG:range", val=0.3)
-        self.add_input("settings:weight:airframe:landing_gear:front:weight_ratio", val=0.08)
-        self.add_input(
-            "settings:geometry:horizontal_tail:position_ratio_on_fuselage",
-            val=0.91,
-            desc="(does not apply for T-tails) distance to aircraft nose of 25% MAC of "
-            "horizontal tail divided by fuselage length",
-        )
-
-        self.add_output(
-            "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", units="m", ref=30.0
-        )
-        self.add_output("data:geometry:horizontal_tail:wetted_area", units="m**2", ref=100.0)
-        self.add_output("data:geometry:horizontal_tail:area", units="m**2", ref=50.0)
-
-        self.declare_partials("*", "*", method="fd")
-        self.declare_partials(
-            "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
-            ["data:geometry:fuselage:length", "data:geometry:wing:MAC:at25percent:x"],
-            method="fd",
-        )
+        
+        # TODO: complete setup
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        # Area of HTP is computed so its "lift" can counter the moment of weight
-        # on front landing gear w.r.t. main landing gear when the CG is in its
-        # most front position.
+        # Sizing constraints for the horizontal tail (methods from Torenbeek).
+        # Limiting cases: Rotating power at takeoff/landing, with the most 
+        # forward CG position. Returns maximum area.
 
+        n_engines = inputs["data:geometry:propulsion:engine:count"]
         tail_type = np.round(inputs["data:geometry:has_T_tail"])
-        fuselage_length = inputs["data:geometry:fuselage:length"]
-        x_wing_aero_center = inputs["data:geometry:wing:MAC:at25percent:x"]
-        x_main_lg = inputs["data:weight:airframe:landing_gear:main:CG:x"]
-        x_front_lg = inputs["data:weight:airframe:landing_gear:front:CG:x"]
         mtow = inputs["data:weight:aircraft:MTOW"]
+        cl_max_takeoff = inputs["data:aerodynamics:aircraft:landing:CL_max"]
         wing_area = inputs["data:geometry:wing:area"]
+        x_wing_aero_center = inputs["data:geometry:wing:MAC:at25percent:x"]
+        lp_ht = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
         wing_mac = inputs["data:geometry:wing:MAC:length"]
         cg_range = inputs["settings:weight:aircraft:CG:range"]
-        front_lg_weight_ratio = inputs["settings:weight:airframe:landing_gear:front:weight_ratio"]
-        htp_aero_center_ratio = inputs[
-            "settings:geometry:horizontal_tail:position_ratio_on_fuselage"
-        ]
-
-        delta_lg = x_main_lg - x_front_lg
+        x_cg_aft = inputs["data:weight:aircraft:CG:aft:x"]
+        x_wing_aero_center = inputs["data:geometry:wing:MAC:at25percent:x"]
+        thrust_height = inputs["data:geometry:propulsion:engine:z:from_aeroCenter"]
+        cl_max_landing = inputs["data:aerodynamics:aircraft:landing:CL_max"]
+        mlw = inputs["data:weight:aircraft:MLW"]
+        
         atm = Atmosphere(0.0)
         rho = atm.density
-        vspeed = atm.speed_of_sound * 0.2  # assume the corresponding Mach of VR is 0.2
+        
+        # CASE1: TAKE-OFF######################################################
+        
+        # Calculation of landing minimum speed
+        vspeed = math.sqrt(mtow * g / (0.5*rho*wing_area*cl_max_takeoff))
+        # Speed requirement from FAR 23.51 (depends on number of engines)
+        if n_engines==1:
+            vspeed = vspeed * 1.0
+        else:
+            vspeed = vspeed * 1.1
+        
+        # Calculation of gravity center position
+        x_cg = x_cg_aft - cg_range * wing_mac
+        
+        # Calculation of horizontal tail lift coefficient and dynamic pressure
+        cl_ht, _ = ClHorizontalTail(speed=vspeed, flaps_angle=10.0, elevator_angle = -25.0) # TODO: to be completed with necessary data
+        pdyn = (0.5 * rho * vspeed ** 2) * 0.9 # NOTE: typical dynamic pressure reduction at tail
 
-        # Proportion of weight on front landing gear is equal to distance between
-        # main landing gear and center of gravity, divided by distance between landing gears.
-
-        # If CG is in the most front position, the distance between main landing gear
-        # and center of gravity is:
-        distance_cg_to_mlg = front_lg_weight_ratio * delta_lg + wing_mac * cg_range
-
-        # So with this front CG, moment of (weight on front landing gear) w.r.t.
-        # main landing gear is:
-        m_front_lg = mtow * g * distance_cg_to_mlg
-
-        # Moment coefficient
-        pdyn = 0.5 * rho * vspeed ** 2
-        cm_front_lg = m_front_lg / (pdyn * wing_area * wing_mac)
-
-        # # CM of MTOW on main landing gear w.r.t 25% wing MAC
-        # lever_arm = front_lg_weight_ratio * delta_lg  # lever arm wrt CoG
-        # lever_arm += wing_mac * cg_range  # and now wrt 25% wing MAC
-        # cm_wheel = mtow * g * lever_arm / (pdyn * wing_area * wing_mac)
-
-        ht_volume_coeff = cm_front_lg
+        # Calculation of thrust
+        thrust = 0.0 # !!!: neglected for the moment
+        
+        # Moment equilibrium calculation
+        T_ht = ((x_cg-x_wing_aero_center) * mtow * g + thrust * thrust_height)
+        htp_area_1 = T_ht / lp_ht / (cl_ht*pdyn)
+        
+        # CASE2: LANDING#######################################################
+        
+        # Calculation of landing minimum speed
+        vspeed = math.sqrt(mlw * g / (0.5*rho*wing_area*cl_max_landing))
+        # TODOC: Speed requirement ...
+        vspeed = vspeed * 1.3
+        
+        # Calculation of horizontal tail lift coefficient and dynamic pressure
+        cl_ht, _ = ClHorizontalTail(speed=vspeed, flaps_angle=30.0, elevator_angle = -25.0) # TODO: to be completed with necessary data
+        pdyn = (0.5 * rho * vspeed ** 2)
+        
+        # Calculation of thrust
+        thrust = 0.0 # !!!: neglected for the moment
+        
+        # Moment equilibrium calculation
+        T_ht = ((x_cg-x_wing_aero_center) * mtow * g + thrust * thrust_height)
+        htp_area_2 = T_ht / lp_ht / (cl_ht*pdyn)
+        
+        # EVALUATION OF MAXIMUM AREA ##########################################
+        
+        htp_area = max(htp_area_1, htp_area_2)
 
         if tail_type == 1:
-            aero_centers_distance = fuselage_length - x_wing_aero_center
-            wet_area_coeff = 1.6
+            wet_area_coeff = 2.0 * 1.05 #k_b coef from Gudmunnson p.707
         elif tail_type == 0:
-            aero_centers_distance = htp_aero_center_ratio * fuselage_length - x_wing_aero_center
-            wet_area_coeff = 2.0
+            wet_area_coeff = 1.6 * 1.05 #k_b coef from Gudmunnson p.707
         else:
             raise ValueError("Value of data:geometry:has_T_tail can only be 0 or 1")
-
-        htp_area = ht_volume_coeff / aero_centers_distance * wing_area * wing_mac
         wet_area_htp = wet_area_coeff * htp_area
-
-        outputs[
-            "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"
-        ] = aero_centers_distance
+        
         outputs["data:geometry:horizontal_tail:wetted_area"] = wet_area_htp
         outputs["data:geometry:horizontal_tail:area"] = htp_area

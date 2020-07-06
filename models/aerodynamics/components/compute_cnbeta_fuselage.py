@@ -36,7 +36,7 @@ class ComputeCnBetaFuselage(ExplicitComponent):
 
         self.add_output("data:aerodynamics:fuselage:cruise:CnBeta")
 
-        self.declare_partials("data:aerodynamics:fuselage:cruise:CnBeta", "*", method="fd")
+        self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
         fus_length = inputs["data:geometry:fuselage:length"]

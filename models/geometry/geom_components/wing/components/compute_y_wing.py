@@ -25,10 +25,10 @@ class ComputeYWing(ExplicitComponent):
     """ Wing Ys estimation """
 
     def setup(self):
+        
         self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
-        self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:wing:kink:span_ratio", val=np.nan)
+        self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
 
         self.add_output("data:geometry:wing:span", units="m")
         self.add_output("data:geometry:wing:root:y", units="m")
@@ -44,20 +44,13 @@ class ComputeYWing(ExplicitComponent):
             "data:geometry:wing:root:y", "data:geometry:fuselage:maximum_width", method="fd"
         )
         self.declare_partials(
-            "data:geometry:wing:kink:y",
-            [
-                "data:geometry:wing:area",
-                "data:geometry:wing:aspect_ratio",
-                "data:geometry:wing:kink:span_ratio",
-            ],
-            method="fd",
+            "data:geometry:wing:kink:y","data:geometry:fuselage:maximum_width", method="fd"
         )
         self.declare_partials(
             "data:geometry:wing:tip:y",
             [
                 "data:geometry:wing:area",
                 "data:geometry:wing:aspect_ratio",
-                "data:geometry:wing:kink:span_ratio",
             ],
             method="fd",
         )
@@ -66,15 +59,14 @@ class ComputeYWing(ExplicitComponent):
         
         lambda_wing = inputs["data:geometry:wing:aspect_ratio"]
         wing_area = inputs["data:geometry:wing:area"]
-        span_ratio = inputs["data:geometry:wing:kink:span_ratio"]
         width_max = inputs["data:geometry:fuselage:maximum_width"]
 
         span = math.sqrt(lambda_wing * wing_area)
 
         # Wing geometry
-        y4_wing = span / 2.0
         y2_wing = width_max / 2.0
         y3_wing = y2_wing
+        y4_wing = span / 2.0
 
         outputs["data:geometry:wing:span"] = span
         outputs["data:geometry:wing:root:y"] = y2_wing
