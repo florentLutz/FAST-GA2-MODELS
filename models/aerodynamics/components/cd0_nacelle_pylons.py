@@ -39,7 +39,7 @@ class Cd0NacelleAndPylons(ExplicitComponent):
         self.add_input("data:geometry:propulsion:nacelle:wetted_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         
-        self.add_output("cd0_nacelle_pylon")
+        self.add_output("cd0_nac")
 
         self.declare_partials(
                 "cd0_nacelle_pylon",
@@ -76,4 +76,4 @@ class Cd0NacelleAndPylons(ExplicitComponent):
         cd0 = (cf_nac * ff_nac * wet_area_nac / (wing_area) + if_nac) \
             * (engine_number - engine_in_fus)
 
-        outputs["cd0_nacelle_pylon"] = cd0
+        outputs["cd0_nac"] = cd0

@@ -1,0 +1,112 @@
+<!--
+  ~ This file is part of FAST : A framework for rapid Overall Aircraft Design
+  ~ Copyright (C) 2020  ONERA & ISAE-SUPAERO
+  ~ FAST is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<FASTOAD_model>
+  <data>
+    <TLAR>
+      <NPAX>150.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
+      <range units="NM">2750.0<!--top-level requirement: design range--></range>
+    </TLAR>
+	<mission>
+		<sizing>
+			<cs23>
+				<sizing_factor_ultimate>2.0<!--over-sizing coefficient--></sizing_factor_ultimate>
+			</cs23>
+		</sizing>
+	</mission>
+    <geometry>
+      <has_T_tail>0.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
+      <wing>
+        <area units="m**2">124.843<!--wing reference area--></area>
+        <span units="m">31.603<!--wing span--></span>
+		<taper_ratio>2.0<!--wing taper ratio--></taper_ratio>
+        <b_50 units="m">34.166<!--actual length between root and tip along 50% of chord--></b_50>
+        <root>
+          <chord units="m">6.26<!--chord length at wing root--></chord>
+          <thickness_ratio>0.159<!--thickness ratio at wing root--></thickness_ratio>
+        </root>
+        <kink>
+          <thickness_ratio>0.121<!--thickness ratio at wing kink--></thickness_ratio>
+        </kink>
+        <tip>
+          <thickness_ratio>0.11<!--thickness ratio at wing tip--></thickness_ratio>
+        </tip>
+        <sweep_25 units="deg">25.0<!--sweep angle at 25% chord of wing--></sweep_25>
+        <outer_area units="m**2">100.303<!--wing area outside of fuselage--></outer_area>
+        <sweep_0 units="deg">27.554<!--sweep angle at leading edge of wing--></sweep_0>
+      </wing>
+      <fuselage>
+        <length units="m">37.507<!--total fuselage length--></length>
+        <maximum_width units="m">3.92<!--maximum fuselage width--></maximum_width>
+        <maximum_height units="m">4.06<!--maximum fuselage height--></maximum_height>
+        <wetted_area units="m**2">401.956<!--wetted area of fuselage--></wetted_area>
+        <front_length units="m">6.902<!--length of front non-cylindrical part of the fuselage--></front_length>
+        <rear_length units="m">14.616<!--length of rear non-cylindrical part of the fuselage--></rear_length>
+      </fuselage>
+      <cabin>
+        <length units="m">30.0056<!--cabin length--></length>
+        <NPAX1>157.0<!--number of passengers if there are only economical class seats--></NPAX1>
+        <crew_count>
+          <technical>2.0<!--number of technical crew members--></technical>
+          <commercial>4.0<!--number of commercial crew members--></commercial>
+        </crew_count>
+        <seats>
+          <economical>
+            <count_by_row>6.0<!--number of economical class seats along width--></count_by_row>
+          </economical>
+        </seats>
+        <containers>
+          <count_by_row>1.0<!--number of cargo containers along width--></count_by_row>
+          <count>5.0<!--total number of cargo containers--></count>
+        </containers>
+        <pallet_count>10.0<!--number of pallet in cargo hold--></pallet_count>
+      </cabin>
+      <propulsion>
+        <layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage)--></layout>
+        <engine>
+          <count>2.0<!--number of engines--></count>
+        </engine>
+        <pylon>
+          <wetted_area units="m**2">7.563<!--wetted area of pylon--></wetted_area>
+        </pylon>
+        <nacelle>
+          <diameter units="m">2.172<!--nacelle diameter--></diameter>
+        </nacelle>
+      </propulsion>
+      <horizontal_tail>
+        <area units="m**2">35.171<!--horizontal tail area--></area>
+      </horizontal_tail>
+      <vertical_tail>
+        <area units="m**2">25.118<!--vertical tail area--></area>
+      </vertical_tail>
+      <aircraft>
+        <wetted_area units="m**2">784.007<!--total wetted area--></wetted_area>
+      </aircraft>
+    </geometry>
+    <weight>
+      <aircraft>
+        <MTOW units="kg">75797.99<!--maximum takeoff weight--></MTOW>
+        <MFW units="kg">20569.81<!--maximum fuel weight--></MFW>
+        <MLW units="kg">64870.14<!--maximum landing weight--></MLW>
+        <MZFW units="kg">61198.25<!--maximum zero fuel weight--></MZFW>
+        <max_payload units="kg">25000.0<!--max payload weight--></max_payload>
+      </aircraft>
+    </weight>
+  </data>
+  <settings>
+    <weight>
+    </weight>
+  </settings>
+</FASTOAD_model>

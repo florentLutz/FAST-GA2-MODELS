@@ -36,7 +36,7 @@ class Cd0Fuselage(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:wetted_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         
-        self.add_output("cd0_ht")
+        self.add_output("cd0_fus")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -64,4 +64,4 @@ class Cd0Fuselage(ExplicitComponent):
         #Cockpit window (Gudmunsson p727)
         cd0_window = 0.002 * (height*width)/wing_area
 
-        outputs["cd0_fuselage"] = cd0_fuselage + cd0_window
+        outputs["cd0_fus"] = cd0_fuselage + cd0_window

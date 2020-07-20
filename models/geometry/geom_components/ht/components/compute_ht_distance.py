@@ -27,20 +27,28 @@ class ComputeHTDistance(om.ExplicitComponent):
 
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:layout", val=np.nan)
+        self.add_input("data:geometry:has_T_tail", val=np.nan)
 
         self.add_output("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", units="m")
+        self.add_output("data:geometry:horizontal_tail:height", units="m")
 
         self.declare_partials(
             "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
             ["data:geometry:fuselage:length", "data:geometry:wing:MAC:length"],
             method="fd",
         )
+        
+        self.declare_partials("data:geometry:horizontal_tail:height", "data:geometry:horizontal_tail:span", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+    
+        tail_type = inputs["data:geometry:has_T_tail"]
         engine_loc = inputs["data:geometry:propulsion:layout"]
         fus_length = inputs["data:geometry:fuselage:length"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
+        span = inputs["data:geometry:horizontal_tail:span"]
 
         if engine_loc == 1.0:
             lp_ht = 0.5 * fus_length
@@ -48,5 +56,11 @@ class ComputeHTDistance(om.ExplicitComponent):
             lp_ht = 3.0 * l0_wing
         else: # FIXME: no equation for configuration 2.0
             raise ValueError("Value of data:geometry:propulsion:layout can only be 0 or 3")
+        
+        if tail_type == 0.0:
+            height_ht = 0
+        else:
+            height_ht = 0 + span
 
         outputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"] = lp_ht
+        outputs["data:geometry:horizontal_tail:height"] = height_ht

@@ -26,6 +26,7 @@ class ComputeCnBetaFuselage(ExplicitComponent):
     """ Yawing moment due to sideslip estimation """
 
     def setup(self):
+        
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
@@ -39,6 +40,7 @@ class ComputeCnBetaFuselage(ExplicitComponent):
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
+        
         fus_length = inputs["data:geometry:fuselage:length"]
         lav = inputs["data:geometry:fuselage:front_length"]
         lar = inputs["data:geometry:fuselage:rear_length"]
@@ -52,6 +54,6 @@ class ComputeCnBetaFuselage(ExplicitComponent):
         # estimation of fuselage volume
         volume_fus = math.pi * l_f ** 2 / 4 * (0.7 * lav + 0.5 * lar + l_cyc)
         # equation from raymer book eqn. 16.47
-        cn_beta_fus = -1.3 * volume_fus / wing_area / span * (l_f / width_max)
+        cn_beta = -1.3 * volume_fus / wing_area / span * (l_f / width_max)
 
-        outputs["data:aerodynamics:fuselage:cruise:CnBeta"] = cn_beta_fus
+        outputs["data:aerodynamics:fuselage:cruise:CnBeta"] = cn_beta

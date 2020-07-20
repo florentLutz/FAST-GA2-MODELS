@@ -42,6 +42,7 @@ class ComputeWINGCLalpha(ExplicitComponent):
         self.declare_partials("data:aerodynamics:aircraft:cruise:CL_alpha", "*", method="fd")
 
     def compute(self, inputs, outputs):
+        
         cruise_mach = inputs["data:TLAR:cruise_mach"]
         width_max = inputs["data:geometry:fuselage:maximum_width"]
         height_max = inputs["data:geometry:fuselage:maximum_height"]
