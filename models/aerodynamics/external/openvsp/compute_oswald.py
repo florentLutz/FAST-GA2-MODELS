@@ -36,14 +36,14 @@ OPTION_OPENVSP_EXE_PATH = "openvsp_exe_path"
 
 _INPUT_SCRIPT_FILE_NAME = "polar_session_1.vspscript"
 _INPUT_AERO_FILE_NAME = "polar_session.vspaero"
-_INPUT_AOAList = [0.0, 5.0] # !!!: arround 0° calculation
+_INPUT_AOAList = [7.0] # ???: why such value chosen?
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
 _AIRFOIL_2_FILE_NAME = "naca23012.af"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
 
-class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
+class ComputeOSWALDopenvsp(ExternalCodeComp):
 
     def initialize(self):
         
@@ -66,8 +66,7 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         self.add_input("openvsp:altitude", val=np.nan, units="ft")
         self.add_input("openvsp:mach", val=np.nan)
         
-        self.add_output("openvsp:cl_0")
-        self.add_output("openvsp:cl_alpha_wing")
+        self.add_output("openvsp:coef_k")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -208,17 +207,15 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         super().compute(inputs, outputs)
         
         # Post-processing --------------------------------------------------------------------------
-        result_cl = self._read_polar_file(tmp_result_file_path, AOAList)
+        result_oswald = self._read_polar_file(tmp_result_file_path, AOAList)
         # Fuselage correction
-        k_fus = 1 + 0.025*width_max/span_wing - 0.025*(width_max/span_wing)**2
-        cl_0 = result_cl[0] * k_fus
-        cl_5 = result_cl[1] * k_fus
-        # Calculate derivative
-        cl_alpha_wing = (cl_5 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)
+        k_fus = 1 - 2*(width_max/span_wing)**2
+        # Full aircraft correction: Wing lift is 105% of total lift.
+        # This means CDind = (CL*1.05)^2/(piAe) -> e' = e/1.05^2
+        coef_e = result_oswald[0] * k_fus / 1.05**2
+        coef_k = 1. / (math.pi * span_wing**2 / Sref_wing * coef_e)
         
-        
-        outputs["openvsp:cl_0"] = cl_0
-        outputs["openvsp:cl_alpha_wing"] = cl_alpha_wing
+        outputs["openvsp:coef_k"] = coef_k
             
         # Delete temporary directory    
         tmp_directory.cleanup()                
@@ -250,7 +247,7 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
                 result = result.replace(' ', '')
                 result_cm.append(float(result))
                 
-        return np.array(result_cl)
+        return np.array(result_oswald)
     
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:

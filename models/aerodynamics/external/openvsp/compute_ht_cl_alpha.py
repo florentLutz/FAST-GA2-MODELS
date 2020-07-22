@@ -1,5 +1,5 @@
 """
-    Estimation of wing lift coefficient using OPENVSP
+    Estimation of HTP lift coefficient using OPENVSP
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -34,16 +34,16 @@ from . import openvsp3201
 
 OPTION_OPENVSP_EXE_PATH = "openvsp_exe_path"
 
-_INPUT_SCRIPT_FILE_NAME = "polar_session_1.vspscript"
+_INPUT_SCRIPT_FILE_NAME = "polar_session_2.vspscript"
 _INPUT_AERO_FILE_NAME = "polar_session.vspaero"
-_INPUT_AOAList = [0.0, 5.0] # !!!: arround 0° calculation
+_INPUT_AOAList = [2.0, 4.0] # ???: why mid point is 3° ?
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
 _AIRFOIL_2_FILE_NAME = "naca23012.af"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
 
-class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
+class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
 
     def initialize(self):
         
@@ -63,11 +63,18 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
+        self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:tip:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
+        self.add_input("ata:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:local", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:height", val=np.nan, units="m")
         self.add_input("openvsp:altitude", val=np.nan, units="ft")
         self.add_input("openvsp:mach", val=np.nan)
         
-        self.add_output("openvsp:cl_0")
-        self.add_output("openvsp:cl_alpha_wing")
+        self.add_output("openvsp:cl_alpha_htp")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -87,11 +94,20 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         Sref_wing = inputs['data:geometry:wing:area']
         span_wing = inputs['data:geometry:wing:span']
         height_max = inputs["data:geometry:fuselage:maximum_height"]
+        sweep_25_htp = inputs["data:geometry:horizontal_tail:sweep_25"]
+        span_htp = inputs["data:geometry:horizontal_tail:span"]/2.0
+        root_chord_htp = inputs["data:geometry:horizontal_tail:root:chord"]
+        tip_chord_htp = inputs["data:geometry:horizontal_tail:tip:chord"]
+        lp_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"] 
+        l0_htp = inputs["data:geometry:horizontal_tail:MAC:length"] 
+        x0_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"]
+        height_htp = inputs["data:geometry:horizontal_tail:height"]
         altitude = inputs["openvsp:altitude"]
         mach = inputs["openvsp:mach"]
         x_wing = fa_length-x0_wing-0.25*l0_wing
         z_wing = -(height_max - 0.12*l2_wing)*0.5
         span2_wing = y4_wing - y2_wing
+        distance_htp = fa_length + lp_htp - 0.25 * l0_htp - x0_htp
         AOAList = str(_INPUT_AOAList)
         AOAList = AOAList[1:len(AOAList)-1]
         atm = Atmosphere(altitude)
@@ -152,6 +168,18 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
             parser.transfer_var(self.stdin3, 1, 1)
             parser.mark_anchor("airfoil_2_file")
             parser.transfer_var(self.stdin4, 1, 1)
+            parser.mark_anchor("distance_htp")
+            parser.transfer_var(float(distance_htp), 1, 1)
+            parser.mark_anchor("height_htp")
+            parser.transfer_var(float(height_htp), 1, 1)
+            parser.mark_anchor("span_htp")
+            parser.transfer_var(float(span_htp), 1, 1)
+            parser.mark_anchor("root_chord_htp")
+            parser.transfer_var(float(root_chord_htp), 1, 1)
+            parser.mark_anchor("tip_chord_htp")
+            parser.transfer_var(float(tip_chord_htp), 1, 1)
+            parser.mark_anchor("sweep_25_htp")
+            parser.transfer_var(float(sweep_25_htp), 1, 1)
             parser.generate()
             
         # Run SCRIPT --------------------------------------------------------------------------------
@@ -175,7 +203,7 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
             self.options["command"] = [pth.join(tmp_directory.name, VSPAERO_EXE_NAME) + " " + self.stdin2]
         
         # standard AERO input file -----------------------------------------------------------------
-        tmp_result_file_path = pth.join(tmp_directory.name, pth.splitext(self.stdin1)[0], '.polar')
+        tmp_result_file_path = pth.join(tmp_directory.name, pth.splitext(self.stdin1)[0], '.lod')
         parser = InputFileGenerator()
         with path(resources, _INPUT_AERO_FILE_NAME) as input_template_path:
             parser.set_template_file(input_template_path)
@@ -208,49 +236,33 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         super().compute(inputs, outputs)
         
         # Post-processing --------------------------------------------------------------------------
-        result_cl = self._read_polar_file(tmp_result_file_path, AOAList)
-        # Fuselage correction
-        k_fus = 1 + 0.025*width_max/span_wing - 0.025*(width_max/span_wing)**2
-        cl_0 = result_cl[0] * k_fus
-        cl_5 = result_cl[1] * k_fus
+        cl_htp = self._read_lod_file(tmp_result_file_path, AOAList)
         # Calculate derivative
-        cl_alpha_wing = (cl_5 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)
+        cl_alpha_htp = (cl_htp[2] + cl_htp[3] - cl_htp[0] - cl_htp[1]) \
+                        / ((_INPUT_AOAList[1]-_INPUT_AOAList[0]) * math.pi/180)
         
-        
-        outputs["openvsp:cl_0"] = cl_0
-        outputs["openvsp:cl_alpha_wing"] = cl_alpha_wing
+        outputs["openvsp:cl_alpha_htp"] = cl_alpha_htp
             
         # Delete temporary directory    
         tmp_directory.cleanup()                
         
     @staticmethod
-    def _read_polar_file(tmp_result_file_path: str, AOAList: list) -> np.ndarray:
-        result_cl = []
-        result_cdi = []
-        result_oswald = []
-        result_cm = []
-        # Colect data from .polar file
-        with open(tmp_result_file_path, 'r') as hf:
-            line = hf.readlines()
-            for i in range(len(AOAList)):
-                #Cl
-                result = line[i+1][40:50]
-                result = result.replace(' ', '')
-                result_cl.append(float(result))
-                #Cdi
-                result = line[i+1][60:70]
-                result = result.replace(' ', '')
-                result_cdi.append(float(result))
-                #Oswald
-                result = line[i+1][100:110]
-                result = result.replace(' ', '')
-                result_oswald.append(float(result))
-                #Cm
-                result = line[i+1][150:160]
-                result = result.replace(' ', '')
-                result_cm.append(float(result))
+    def _read_lod_file(tmp_result_file_path: str) -> np.ndarray:
+        cl_htp = []
+        cm_wing = []
+        # Colect data from .lod file
+        with open(tmp_result_file_path, 'r') as lf:
+            data = lf.readlines()
+            for i in range(len(data)):
+                line = data[i].split()
+                line.append('**')
+                if line[0] == 'Comp':
+                    cl_htp.append(float(data[i+3].split()[5]))
+                    cl_htp.append(float(data[i+4].split()[5]))
+                    cm_wing.append(float(data[i+1].split()[12]))
+                    cm_wing.append(float(data[i+2].split()[12]))
                 
-        return np.array(result_cl)
+        return np.array(cl_htp)
     
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:

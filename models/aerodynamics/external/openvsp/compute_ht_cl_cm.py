@@ -1,5 +1,5 @@
 """
-    Estimation of wing lift coefficient using OPENVSP
+    Estimation of HTP lift and induced moment using OPENVSP
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -23,6 +23,7 @@ from tempfile import TemporaryDirectory
 
 import math
 import numpy as np
+from scipy import interpolate
 from fastoad.utils.physics import Atmosphere
 from fastoad.utils.resource_management.copy import copy_resource
 from importlib_resources import path
@@ -34,16 +35,16 @@ from . import openvsp3201
 
 OPTION_OPENVSP_EXE_PATH = "openvsp_exe_path"
 
-_INPUT_SCRIPT_FILE_NAME = "polar_session_1.vspscript"
+_INPUT_SCRIPT_FILE_NAME = "polar_session_2.vspscript"
 _INPUT_AERO_FILE_NAME = "polar_session.vspaero"
-_INPUT_AOAList = [0.0, 5.0] # !!!: arround 0° calculation
+_LIFT_EFFECIVESS_FILE_NAME = "lift_effectiveness.txt"
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
 _AIRFOIL_2_FILE_NAME = "naca23012.af"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
 
-class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
+class ComputeHTPCLCMopenvsp(ExternalCodeComp):
 
     def initialize(self):
         
@@ -63,11 +64,27 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
+        self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:tip:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
+        self.add_input("ata:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:local", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:height", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:flap:chord_ratio", val=np.nan)
+        self.add_input("data:geometry:flap:span_ratio", val=np.nan)
+        self.add_input("data:geometry:flap:type", val=1.0)
         self.add_input("openvsp:altitude", val=np.nan, units="ft")
         self.add_input("openvsp:mach", val=np.nan)
+        self.add_input("openvsp:alpha", val=np.nan, units="deg")
+        self.add_input("openvsp:elevator_angle", val=-25.0, units="deg")
+        self.add_input("openvsp:flaps_angle", val=10.0, units="deg")
+        self.add_input("openvsp:cl_alpha_wing", val=np.nan)
         
-        self.add_output("openvsp:cl_0")
-        self.add_output("openvsp:cl_alpha_wing")
+        self.add_output("openvsp:cl_htp")
+        self.add_output("openvsp:cm_wing")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -86,14 +103,27 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         Sref_wing = inputs['data:geometry:wing:area']
         span_wing = inputs['data:geometry:wing:span']
+        taper_ratio = inputs['data:geometry:wing:taper_ratio']
         height_max = inputs["data:geometry:fuselage:maximum_height"]
+        sweep_25_htp = inputs["data:geometry:horizontal_tail:sweep_25"]
+        span_htp = inputs["data:geometry:horizontal_tail:span"]/2.0
+        root_chord_htp = inputs["data:geometry:horizontal_tail:root:chord"]
+        tip_chord_htp = inputs["data:geometry:horizontal_tail:tip:chord"]
+        lp_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"] 
+        l0_htp = inputs["data:geometry:horizontal_tail:MAC:length"] 
+        x0_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"]
+        height_htp = inputs["data:geometry:horizontal_tail:height"]
+        Sref_htp = inputs['data:geometry:horizontal_tail:area']
         altitude = inputs["openvsp:altitude"]
         mach = inputs["openvsp:mach"]
+        alpha = inputs["openvsp:alpha"]
+        elevator_angle = inputs["openvsp:elevator_angle"]
+        flaps_angle = inputs["openvsp:flaps_angle"]
         x_wing = fa_length-x0_wing-0.25*l0_wing
         z_wing = -(height_max - 0.12*l2_wing)*0.5
         span2_wing = y4_wing - y2_wing
-        AOAList = str(_INPUT_AOAList)
-        AOAList = AOAList[1:len(AOAList)-1]
+        distance_htp = fa_length + lp_htp - 0.25 * l0_htp - x0_htp
+        AOAList = str(alpha)
         atm = Atmosphere(altitude)
         speed_of_sound = atm.speed_of_sound
         viscosity = atm.kinematic_viscosity
@@ -152,6 +182,18 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
             parser.transfer_var(self.stdin3, 1, 1)
             parser.mark_anchor("airfoil_2_file")
             parser.transfer_var(self.stdin4, 1, 1)
+            parser.mark_anchor("distance_htp")
+            parser.transfer_var(float(distance_htp), 1, 1)
+            parser.mark_anchor("height_htp")
+            parser.transfer_var(float(height_htp), 1, 1)
+            parser.mark_anchor("span_htp")
+            parser.transfer_var(float(span_htp), 1, 1)
+            parser.mark_anchor("root_chord_htp")
+            parser.transfer_var(float(root_chord_htp), 1, 1)
+            parser.mark_anchor("tip_chord_htp")
+            parser.transfer_var(float(tip_chord_htp), 1, 1)
+            parser.mark_anchor("sweep_25_htp")
+            parser.transfer_var(float(sweep_25_htp), 1, 1)
             parser.generate()
             
         # Run SCRIPT --------------------------------------------------------------------------------
@@ -175,7 +217,7 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
             self.options["command"] = [pth.join(tmp_directory.name, VSPAERO_EXE_NAME) + " " + self.stdin2]
         
         # standard AERO input file -----------------------------------------------------------------
-        tmp_result_file_path = pth.join(tmp_directory.name, pth.splitext(self.stdin1)[0], '.polar')
+        tmp_result_file_path = pth.join(tmp_directory.name, pth.splitext(self.stdin1)[0], '.lod')
         parser = InputFileGenerator()
         with path(resources, _INPUT_AERO_FILE_NAME) as input_template_path:
             parser.set_template_file(input_template_path)
@@ -208,49 +250,56 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         super().compute(inputs, outputs)
         
         # Post-processing --------------------------------------------------------------------------
-        result_cl = self._read_polar_file(tmp_result_file_path, AOAList)
-        # Fuselage correction
-        k_fus = 1 + 0.025*width_max/span_wing - 0.025*(width_max/span_wing)**2
-        cl_0 = result_cl[0] * k_fus
-        cl_5 = result_cl[1] * k_fus
-        # Calculate derivative
-        cl_alpha_wing = (cl_5 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)
+        cl_htp, cm_wing = self._read_lod_file(tmp_result_file_path, AOAList)
+        # Calculate totals
+        cl_htp = cl_htp[0] + cl_htp[1]
+        cm_wing = cm_wing[0] + cm_wing[1]
+        # Corrections due to elevators. Default: maximum deflection (-25deg)
+        cldelta_theory = 4.5 #Fig 8.14, for t/c=0.10 and cf/c=0.3
+        if abs(elevator_angle)<=12: #Fig 8.13. Quick linear approximation of graph (not intended to be used)
+            k = 1.0 
+        elif abs(elevator_angle)<=20:
+            k = 1.0 - 0.0263*(abs(elevator_angle) - 12)
+        elif abs(elevator_angle)<=25:
+            k = 0.79 - 0.024* (abs(elevator_angle)-20)
+        else:
+            k = 0.67 - 0.008 * (abs(elevator_angle) - 25) 
+        k1 = 1.05 #cf/c = 0.3 (Roskam 3D flap parameters)
+        if abs(elevator_angle)<=15: #Fig 8.33. Quick linear approximation of graph (not intended to be used)
+            k2 = 0.46 / 15 * abs(elevator_angle) 
+        else:
+            k2 = 0.46 + 0.22/10 * (abs(elevator_angle) - 15)
+        delta_cl_elev = (cldelta_theory * k*k1*k2 * elevator_angle * math.pi/180) \
+                        * Sref_htp/Sref_wing
+        # Corrections due to flaps : method from Roskam (sweep=0, flaps 60%, simple slotted and not extensible,
+        # at 25% MAC, cf/c+0.25)
+        k_p = interpolate.interp1d([0.,0.2,0.33,0.5,1.],[0.65,0.75,0.7,0.63,0.5]) # Figure 8.105, interpolated function of taper ratio (span ratio fixed)
+        delta_cl_wing = self.compute_delta_cz_highlift(flaps_angle, 0., mach=0.1)
+        delta_cm = k_p(taper_ratio) * (-0.27)*(delta_cl_wing) #-0.27: Figure 8.106
         
-        
-        outputs["openvsp:cl_0"] = cl_0
-        outputs["openvsp:cl_alpha_wing"] = cl_alpha_wing
+        outputs["openvsp:cl_htp"] = cl_htp + delta_cl_elev
+        outputs["openvsp:cm_wing"] = cm_wing + delta_cm
             
         # Delete temporary directory    
         tmp_directory.cleanup()                
         
     @staticmethod
-    def _read_polar_file(tmp_result_file_path: str, AOAList: list) -> np.ndarray:
-        result_cl = []
-        result_cdi = []
-        result_oswald = []
-        result_cm = []
-        # Colect data from .polar file
-        with open(tmp_result_file_path, 'r') as hf:
-            line = hf.readlines()
-            for i in range(len(AOAList)):
-                #Cl
-                result = line[i+1][40:50]
-                result = result.replace(' ', '')
-                result_cl.append(float(result))
-                #Cdi
-                result = line[i+1][60:70]
-                result = result.replace(' ', '')
-                result_cdi.append(float(result))
-                #Oswald
-                result = line[i+1][100:110]
-                result = result.replace(' ', '')
-                result_oswald.append(float(result))
-                #Cm
-                result = line[i+1][150:160]
-                result = result.replace(' ', '')
-                result_cm.append(float(result))
+    def _read_lod_file(tmp_result_file_path: str):
+        cl_htp = []
+        cm_wing = []
+        # Colect data from .lod file
+        with open(tmp_result_file_path, 'r') as lf:
+            data = lf.readlines()
+            for i in range(len(data)):
+                line = data[i].split()
+                line.append('**')
+                if line[0] == 'Comp':
+                    cl_htp.append(float(data[i+3].split()[5]))
+                    cl_htp.append(float(data[i+4].split()[5]))
+                    cm_wing.append(float(data[i+1].split()[12]))
+                    cm_wing.append(float(data[i+2].split()[12]))
                 
-        return np.array(result_cl)
+        return np.array(cl_htp), np.array(cm_wing)
     
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:
@@ -264,3 +313,86 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
             break
             
         return tmp_directory
+    
+    @staticmethod
+    def _compute_alpha_flap(flap_angle, ratio_cf_flap):
+        """Method to use a Roskam graph to calculate the effectiveness of a 
+        simple slotted flap
+        """
+        temp_array = []
+        fichier = open(path(resources, _LIFT_EFFECIVESS_FILE_NAME), "r")
+        for line in fichier:
+            temp_array.append([float(x) for x in line.split(',')])
+        fichier.close()
+        x1 = []
+        y1 = []
+        x2 = []
+        y2 = []
+        x3 = []
+        y3 = []
+        x4 = []
+        y4 = []
+        x5 = []
+        y5 = []
+        for arr in temp_array:
+            x1.append(arr[0])
+            y1.append(arr[1])
+            x2.append(arr[2])
+            y2.append(arr[3])
+            x3.append(arr[4])
+            y3.append(arr[5])
+            x4.append(arr[6])
+            y4.append(arr[7])
+            x5.append(arr[8])
+            y5.append(arr[9])
+        tck1 = interpolate.splrep(x1, y1, s=0)
+        tck2 = interpolate.splrep(x2, y2, s=0)
+        tck3 = interpolate.splrep(x3, y3, s=0)
+        tck4 = interpolate.splrep(x4, y4, s=0)
+        tck5 = interpolate.splrep(x5, y5, s=0)
+        ynew1 = interpolate.splev(flap_angle, tck1, der=0)
+        ynew2 = interpolate.splev(flap_angle, tck2, der=0)
+        ynew3 = interpolate.splev(flap_angle, tck3, der=0)
+        ynew4 = interpolate.splev(flap_angle, tck4, der=0)
+        ynew5 = interpolate.splev(flap_angle, tck5, der=0)
+        zs = [0.15, 0.20, 0.25, 0.30, 0.40]
+        y_final = [ynew1, ynew2, ynew3, ynew4, ynew5]
+        tck6 = interpolate.splrep(zs, y_final, s=0)
+        
+        alpha_flap = interpolate.splev(ratio_cf_flap, tck6, der=0)
+        
+        return alpha_flap
+    
+    def compute_delta_cl_flaps(self, inputs, flaps_angle):
+        """  Calculates the Cz produced by flap and slat based on Roskam book and Raymer book."""
+        
+        flap_chord_ratio = inputs['data:geometry:flap:chord_ratio']
+        flap_span_ratio = inputs['data:geometry:flap:span_ratio']
+        flap_type = inputs['data:geometry:flap:type']
+        mach = inputs['openvsp:mach']
+        cl_alpha_wing = inputs['openvsp:cl_alpha_wing']
+
+        #2D flap lift coefficient
+        if flap_type == 1.0: #Slotted flap
+        #Roskam vol6 efficiency factor for single slotted flaps
+            alpha_flap = self._compute_alpha_flap(flaps_angle, flap_chord_ratio)
+            delta_cl_airfoil = 2*math.pi / math.sqrt(1 - mach**2)* alpha_flap * (flaps_angle / 180 * math.pi)
+        else: #Plain flap
+            cldelta_theory = 4.1 #Fig 8.14, for t/c=0.12 and cf/c=0.25
+            if flaps_angle <= 13: #Fig 8.13. Quick linear approximation of graph (not intended to be used)
+                k = 1.0 
+            elif flaps_angle <= 20:
+                k = 0.83
+            elif flaps_angle <= 30:
+                k = 0.83 - 0.018* (flaps_angle-20)
+            else:
+                k = 0.65 - 0.008 * (flaps_angle - 30) 
+            delta_cl_airfoil = cldelta_theory * k * (flaps_angle / 180 * math.pi)
+        #Roskam 3D flap parameters
+        kb = 1.25*flap_span_ratio #PROVISIONAL (fig 8.52)
+        effect  = 1.04 #fig 8.53 (cf/c=0.25, small effect of AR)
+        
+        delta_cl_flap = kb * delta_cl_airfoil * (cl_alpha_wing/(2*math.pi)) * effect
+
+        return delta_cl_flap   # Cz due to high lift devices
+    
