@@ -1,5 +1,5 @@
 """
-    Estimation of wing drag coefficient using VLM-XFOIL
+    Estimation of wing lift coefficient using VLM-XFOIL
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -41,7 +41,7 @@ OPTION_ITER_LIMIT = "iter_limit"
 DEFAULT_CDP = 0.0
 
 _INPUT_FILE_NAME = "polar_session.txt"
-_INPUT_AOAList = [14.0] # ???: why such angle choosen ?
+_INPUT_AOAList = [2.0, 7.0] # ???: why such angles choosen ?
 _STDOUT_FILE_NAME = "polar_calc.log"
 _STDERR_FILE_NAME = "polar_calc.err"
 _TMP_RESULT_FILE_NAME = "out"  # as short as possible to avoid problems of path length
@@ -52,7 +52,7 @@ _LOGGER = logging.getLogger(__name__)
 
 _XFOIL_PATH_LIMIT = 64
 
-class ComputeOSWALDvlm(VLM):
+class ComputeWINGCLALPHAvlm(VLM):
     """
     Runs a polar computation with XFOIL and returns the drag coefficient using VLM
     """
@@ -99,8 +99,6 @@ class ComputeOSWALDvlm(VLM):
         b_f = inputs['data:geometry:fuselage:maximum_width']
         span = inputs['data:geometry:wing:span']
         l0_wing = inputs["data:geometry:wing:MAC:length"]
-        aspect_ratio = inputs['data:geometry:wing:aspect_ratio']
-        wing_area = inputs['data:geometry:wing:area']
         atm = Atmosphere(altitude)
         speed_of_sound = atm.speed_of_sound
         viscosity = atm.kinematic_viscosity
@@ -109,12 +107,7 @@ class ComputeOSWALDvlm(VLM):
         
         # Launch VLM internal functions ------------------------------------------------------------
         super()._run()
-        Cl, Cdi, Oswald, _ = super().compute_wing(self, inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
-        k_fus = 1 - 2*(b_f/span)**2
-        oswald = Oswald[0] * k_fus #Fuselage correction
-        if mach>0.4:
-            oswald = oswald * (-0.001521 * ((mach - 0.05) / 0.3 - 1)**10.82 + 1) # Mach correction
-
+        Cl, Cdi, Oswald, Cm = super().compute_wing(self, inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
 
         # Pre-processing (populating temp directory) -----------------------------------------------
         # XFoil exe
@@ -163,14 +156,16 @@ class ComputeOSWALDvlm(VLM):
 
         # Post-processing --------------------------------------------------------------------------
         result_array = self._read_polar(tmp_result_file_path)
-        cdp_foil = self._interpolate_cdp(result_array["CL"], result_array["CDp"], Cl[0])
+        alpha_0 = self._interpolate_cdp(result_array["CL"], result_array["CDp"], Cl[0])
         
         # Ends the VLM calculation -----------------------------------------------------------------
-        cdi = (1.05*Cl[0])**2/(math.pi * aspect_ratio * oswald) + cdp_foil # Full aircraft correction: Wing lift is 105% of total lift.
-        coef_e = Cl[0]**2/(math.pi * aspect_ratio * cdi)
-        coef_k = 1. / (math.pi * span**2 / wing_area * coef_e)
+        k_fus = 1 + 0.025*b_f/span - 0.025*(b_f/span)**2 # Fuselage correction
+        beta = math.sqrt(1 - mach**2) # Prandtl-Glauert
+        cl_alpha = (Cl[1] - Cl[0]) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180) * k_fus / beta
+        cl_0 = -alpha_0 * cl_alpha
         
-        outputs['vlm:coef_k'] = coef_k
+        outputs['vlm:cl_0'] = cl_0
+        outputs['vlm:cl_alpha'] = cl_alpha
 
     @staticmethod
     def _read_polar(xfoil_result_file_path: str) -> np.ndarray:
@@ -179,7 +174,7 @@ class ComputeOSWALDvlm(VLM):
         :return: numpy array with XFoil polar results
         """
         if os.path.isfile(xfoil_result_file_path):
-            dtypes = [(name, "f8") for name in ComputeOSWALDvlm._xfoil_output_names]
+            dtypes = [(name, "f8") for name in ComputeWINGCLALPHAvlm._xfoil_output_names]
             result_array = np.genfromtxt(xfoil_result_file_path, skip_header=12, dtype=dtypes)
             return result_array
 

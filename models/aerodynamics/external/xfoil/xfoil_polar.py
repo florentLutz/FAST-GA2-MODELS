@@ -1,5 +1,5 @@
 """
-    Estimation of wing drag coefficient using VLM-XFOIL
+This module launches XFOIL computations
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -17,16 +17,17 @@
 import logging
 import os
 import os.path as pth
+import shutil
 import tempfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import numpy as np
-import math
-from fastoad.utils.physics import Atmosphere
-from fastoad.models.aerodynamics.external.xfoil import xfoil699, VLM
+from fastoad.models.aerodynamics.external.xfoil import xfoil699
+from fastoad.models.geometry.profiles.get_profile import get_profile
 from fastoad.utils.resource_management.copy import copy_resource
 from importlib_resources import path
+from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
 
 from . import resources
@@ -38,83 +39,59 @@ OPTION_XFOIL_EXE_PATH = "xfoil_exe_path"
 OPTION_ALPHA_START = "alpha_start"
 OPTION_ALPHA_END = "alpha_end"
 OPTION_ITER_LIMIT = "iter_limit"
-DEFAULT_CDP = 0.0
+DEFAULT_2D_CL_MAX = 1.9
 
 _INPUT_FILE_NAME = "polar_session.txt"
-_INPUT_AOAList = [14.0] # ???: why such angle choosen ?
 _STDOUT_FILE_NAME = "polar_calc.log"
 _STDERR_FILE_NAME = "polar_calc.err"
+_TMP_PROFILE_FILE_NAME = "in"  # as short as possible to avoid problems of path length
 _TMP_RESULT_FILE_NAME = "out"  # as short as possible to avoid problems of path length
 XFOIL_EXE_NAME = "xfoil.exe"  # name of embedded XFoil executable
-DEFAULT_PROFILE_FILENAME = "naca23012.txt"
+DEFAULT_PROFILE_FILENAME = "BACJ.txt"
 
 _LOGGER = logging.getLogger(__name__)
 
 _XFOIL_PATH_LIMIT = 64
 
-class ComputeOSWALDvlm(VLM):
+
+class XfoilPolar(ExternalCodeComp):
     """
-    Runs a polar computation with XFOIL and returns the drag coefficient using VLM
+    Runs a polar computation with XFOIL and returns the 2D max lift coefficient
     """
-    
+
     _xfoil_output_names = ["alpha", "CL", "CD", "CDp", "CM", "Top_Xtr", "Bot_Xtr"]
     """Column names in XFOIL polar result"""
 
     def initialize(self):
-        
         self.options.declare(OPTION_XFOIL_EXE_PATH, default="", types=str, allow_none=True)
-        self.options.declare(OPTION_PROFILE_NAME, default=DEFAULT_PROFILE_FILENAME, types=str)
+        self.options.declare(OPTION_PROFILE_NAME, default="BACJ.txt", types=str)
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_RESULT_POLAR_FILENAME, default="polar_result.txt", types=str)
         self.options.declare(OPTION_ALPHA_START, default=0.0, types=float)
         self.options.declare(OPTION_ALPHA_END, default=30.0, types=float)
         self.options.declare(OPTION_ITER_LIMIT, default=500, types=int)
-        
+
     def setup(self):
-        
-        super().setup()
-        
-        self.add_input("xfoil:altitude", val=np.nan, units='ft')
+
+        self.add_input("xfoil:reynolds", val=np.nan)
         self.add_input("xfoil:mach", val=np.nan)
-        self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units='m')
-        self.add_input("data:geometry:wing:span", val=np.nan, units='m')
-        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units='m')
-        self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
-        self.add_input("data:geometry:wing:area", val=np.nan, units='m**2')
-        
-        self.add_output("vlm:coef_k")
-        
-        self.declare_partials("*", "*", method="fd")        
-    
+        self.add_input("data:geometry:wing:thickness_ratio", val=np.nan)
+
+        self.add_output("xfoil:CL_max_2D")
+
+        self.declare_partials("*", "*", method="fd")
+
     def compute(self, inputs, outputs):
-        
+
         # Create result folder first (if it must fail, let it fail as soon as possible)
         result_folder_path = self.options[OPTION_RESULT_FOLDER_PATH]
         if result_folder_path != "":
             os.makedirs(result_folder_path, exist_ok=True)
 
         # Get inputs
+        reynolds = inputs["xfoil:reynolds"]
         mach = inputs["xfoil:mach"]
-        altitude = inputs["xfoil:altitude"]
-        b_f = inputs['data:geometry:fuselage:maximum_width']
-        span = inputs['data:geometry:wing:span']
-        l0_wing = inputs["data:geometry:wing:MAC:length"]
-        aspect_ratio = inputs['data:geometry:wing:aspect_ratio']
-        wing_area = inputs['data:geometry:wing:area']
-        atm = Atmosphere(altitude)
-        speed_of_sound = atm.speed_of_sound
-        viscosity = atm.kinematic_viscosity
-        V_inf = min(speed_of_sound * mach, 0.1) # avoid V=0 m/s crashes
-        reynolds = V_inf * l0_wing / viscosity
-        
-        # Launch VLM internal functions ------------------------------------------------------------
-        super()._run()
-        Cl, Cdi, Oswald, _ = super().compute_wing(self, inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
-        k_fus = 1 - 2*(b_f/span)**2
-        oswald = Oswald[0] * k_fus #Fuselage correction
-        if mach>0.4:
-            oswald = oswald * (-0.001521 * ((mach - 0.05) / 0.3 - 1)**10.82 + 1) # Mach correction
-
+        thickness_ratio = inputs["data:geometry:wing:thickness_ratio"]
 
         # Pre-processing (populating temp directory) -----------------------------------------------
         # XFoil exe
@@ -124,7 +101,7 @@ class ComputeOSWALDvlm(VLM):
             self.options["command"] = [self.options[OPTION_XFOIL_EXE_PATH]]
         else:
             # otherwise, copy the embedded resource in tmp dir
-            copy_resource(xfoil699, XFOIL_EXE_NAME, DEFAULT_PROFILE_FILENAME, tmp_directory.name)
+            copy_resource(xfoil699, XFOIL_EXE_NAME, tmp_directory.name)
             self.options["command"] = [pth.join(tmp_directory.name, XFOIL_EXE_NAME)]
 
         # I/O files
@@ -133,7 +110,18 @@ class ComputeOSWALDvlm(VLM):
         self.stderr = pth.join(tmp_directory.name, _STDERR_FILE_NAME)
 
         # profile file
-        tmp_profile_file_path = pth.join(tmp_directory.name, DEFAULT_PROFILE_FILENAME)
+        tmp_profile_file_path = pth.join(tmp_directory.name, _TMP_PROFILE_FILE_NAME)
+        profile = get_profile(
+            file_name=self.options[OPTION_PROFILE_NAME], thickness_ratio=thickness_ratio
+        )
+        np.savetxt(
+            tmp_profile_file_path,
+            profile.to_numpy(),
+            fmt="%.15f",
+            delimiter=" ",
+            header="Wing",
+            comments="",
+        )
 
         # standard input file
         tmp_result_file_path = pth.join(tmp_directory.name, _TMP_RESULT_FILE_NAME)
@@ -163,14 +151,25 @@ class ComputeOSWALDvlm(VLM):
 
         # Post-processing --------------------------------------------------------------------------
         result_array = self._read_polar(tmp_result_file_path)
-        cdp_foil = self._interpolate_cdp(result_array["CL"], result_array["CDp"], Cl[0])
-        
-        # Ends the VLM calculation -----------------------------------------------------------------
-        cdi = (1.05*Cl[0])**2/(math.pi * aspect_ratio * oswald) + cdp_foil # Full aircraft correction: Wing lift is 105% of total lift.
-        coef_e = Cl[0]**2/(math.pi * aspect_ratio * cdi)
-        coef_k = 1. / (math.pi * span**2 / wing_area * coef_e)
-        
-        outputs['vlm:coef_k'] = coef_k
+        outputs["xfoil:CL_max_2D"] = self._get_max_cl(result_array["alpha"], result_array["CL"])
+
+        # Getting output files if needed
+        if self.options[OPTION_RESULT_FOLDER_PATH] != "":
+            if pth.exists(tmp_result_file_path):
+                polar_file_path = pth.join(
+                    result_folder_path, self.options[OPTION_RESULT_POLAR_FILENAME]
+                )
+                shutil.move(tmp_result_file_path, polar_file_path)
+
+            if pth.exists(self.stdout):
+                stdout_file_path = pth.join(result_folder_path, _STDOUT_FILE_NAME)
+                shutil.move(self.stdout, stdout_file_path)
+
+            if pth.exists(self.stderr):
+                stderr_file_path = pth.join(result_folder_path, _STDERR_FILE_NAME)
+                shutil.move(self.stderr, stderr_file_path)
+
+        tmp_directory.cleanup()
 
     @staticmethod
     def _read_polar(xfoil_result_file_path: str) -> np.ndarray:
@@ -179,29 +178,27 @@ class ComputeOSWALDvlm(VLM):
         :return: numpy array with XFoil polar results
         """
         if os.path.isfile(xfoil_result_file_path):
-            dtypes = [(name, "f8") for name in ComputeOSWALDvlm._xfoil_output_names]
+            dtypes = [(name, "f8") for name in XfoilPolar._xfoil_output_names]
             result_array = np.genfromtxt(xfoil_result_file_path, skip_header=12, dtype=dtypes)
             return result_array
 
         _LOGGER.error("XFOIL results file not found")
         return np.array([])
-    
+
     @staticmethod
-    def _interpolate_cdp(lift_coeff: np.ndarray, drag_coeff: np.ndarray, ojective:float) -> float:
+    def _get_max_cl(alpha: np.ndarray, lift_coeff: np.ndarray) -> float:
         """
 
-        :param drag_coeff: CDp array
-        :param lift_coeff: CL array
-        :param ojective: CL objective value
-        :return: CD if enough alpha computed, or default value otherwise
+        :param alpha:
+        :param lift_coeff: CL
+        :return: max CL if enough alpha computed, or default value otherwise
         """
-        if ojective >= min(lift_coeff) and ojective <= max(lift_coeff):
-            idx_max = np.where(lift_coeff == max(lift_coeff))
-            return np.interp(ojective, lift_coeff[0:idx_max+1], drag_coeff[0:idx_max+1])
+        if len(alpha) > 0 and max(alpha) >= 5.0:
+            return max(lift_coeff)
 
-        _LOGGER.warning("CL not found. Using default value (%s)", DEFAULT_CDP)
-        return DEFAULT_CDP
-    
+        _LOGGER.warning("2D CL max not found. Using default value (%s)", DEFAULT_2D_CL_MAX)
+        return DEFAULT_2D_CL_MAX
+
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:
         # Dev Note: XFOIL fails if length of provided file path exceeds 64 characters.
@@ -217,7 +214,7 @@ class ComputeOSWALDvlm(VLM):
                 os.makedirs(tmp_base_path, exist_ok=True)
             tmp_directory = tempfile.TemporaryDirectory(prefix="x", dir=tmp_base_path)
             tmp_candidates.append(tmp_directory.name)
-            tmp_profile_file_path = pth.join(tmp_directory.name, DEFAULT_PROFILE_FILENAME)
+            tmp_profile_file_path = pth.join(tmp_directory.name, _TMP_PROFILE_FILE_NAME)
             tmp_result_file_path = pth.join(tmp_directory.name, _TMP_RESULT_FILE_NAME)
 
             if max(len(tmp_profile_file_path), len(tmp_result_file_path)) <= _XFOIL_PATH_LIMIT:
