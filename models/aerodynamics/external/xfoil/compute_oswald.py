@@ -193,7 +193,7 @@ class ComputeOSWALDvlm(VLM):
         :param drag_coeff: CDp array
         :param lift_coeff: CL array
         :param ojective: CL objective value
-        :return: CD if enough alpha computed, or default value otherwise
+        :return: CD if CL ref encountered, or default value otherwise
         """
         if ojective >= min(lift_coeff) and ojective <= max(lift_coeff):
             idx_max = np.where(lift_coeff == max(lift_coeff))

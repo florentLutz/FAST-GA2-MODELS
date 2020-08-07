@@ -38,7 +38,7 @@ OPTION_XFOIL_EXE_PATH = "xfoil_exe_path"
 OPTION_ALPHA_START = "alpha_start"
 OPTION_ALPHA_END = "alpha_end"
 OPTION_ITER_LIMIT = "iter_limit"
-DEFAULT_CDP = 0.0
+DEFAULT_ALPHA = 0.0
 
 _INPUT_FILE_NAME = "polar_session.txt"
 _INPUT_AOAList = [2.0, 7.0] # ???: why such angles choosen ?
@@ -156,15 +156,15 @@ class ComputeWINGCLALPHAvlm(VLM):
 
         # Post-processing --------------------------------------------------------------------------
         result_array = self._read_polar(tmp_result_file_path)
-        alpha_0 = self._interpolate_cdp(result_array["CL"], result_array["CDp"], Cl[0])
+        alpha_0 = self._interpolate_alpha(result_array["CL"], result_array["alpha"], Cl[0])
         
         # Ends the VLM calculation -----------------------------------------------------------------
         k_fus = 1 + 0.025*b_f/span - 0.025*(b_f/span)**2 # Fuselage correction
         beta = math.sqrt(1 - mach**2) # Prandtl-Glauert
         cl_alpha = (Cl[1] - Cl[0]) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180) * k_fus / beta
         cl_0 = -alpha_0 * cl_alpha
-        
-        outputs['vlm:cl_0'] = cl_0
+
+        outputs['vlm:cl_0_clean'] = cl_0
         outputs['vlm:cl_alpha'] = cl_alpha
 
     @staticmethod
@@ -182,20 +182,20 @@ class ComputeWINGCLALPHAvlm(VLM):
         return np.array([])
     
     @staticmethod
-    def _interpolate_cdp(lift_coeff: np.ndarray, drag_coeff: np.ndarray, ojective:float) -> float:
+    def _interpolate_alpha(lift_coeff: np.ndarray, alpha: np.ndarray, ojective:float) -> float:
         """
 
         :param drag_coeff: CDp array
         :param lift_coeff: CL array
         :param ojective: CL objective value
-        :return: CD if enough alpha computed, or default value otherwise
+        :return: alpha if if CL ref encountered, or default value otherwise
         """
-        if ojective >= min(lift_coeff) and ojective <= max(lift_coeff):
+        if len(alpha) > 0 and max(alpha) >= 5.0:
             idx_max = np.where(lift_coeff == max(lift_coeff))
-            return np.interp(ojective, lift_coeff[0:idx_max+1], drag_coeff[0:idx_max+1])
+            return alpha[idx_max]
 
-        _LOGGER.warning("CL not found. Using default value (%s)", DEFAULT_CDP)
-        return DEFAULT_CDP
+        _LOGGER.warning("CL_0 not found. Using default value (%s) for alpha_0", DEFAULT_ALPHA)
+        return DEFAULT_ALPHA
     
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:

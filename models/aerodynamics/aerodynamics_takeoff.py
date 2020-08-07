@@ -1,5 +1,5 @@
 """
-Aero computation for landing phase altitude=sea level, delta_t=15°C
+Aero computation for take-off phase altitude=sea level, delta_t=15°C
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -24,9 +24,12 @@ from fastoad.models.aerodynamics.external.xfoil.xfoil_polar import OPTION_XFOIL_
 from fastoad.models.options import OpenMdaoOptionDispatcherGroup
 from fastoad.utils.physics import Atmosphere
 
+
+
+
 class AerodynamicsLanding(OpenMdaoOptionDispatcherGroup):
     """
-    Computes maximum CL of the aircraft in landing conditions.
+    Computes maximum CL of the aircraft in take-off conditions.
 
     Maximum 2D CL without high-lift is computed using XFoil (or provided as input if option
     use_xfoil is set to False). 3D CL is deduced using sweep angle.
@@ -72,10 +75,10 @@ class AerodynamicsLanding(OpenMdaoOptionDispatcherGroup):
         self.add_subsystem("compute_max_cl_landing", ComputeMaxClLanding(), promotes=["*"])
 
         if self.options["use_xfoil"]:
-            self.connect("data:aerodynamics:aircraft:landing:mach", "xfoil_run.xfoil:mach")
-            self.connect("data:aerodynamics:aircraft:landing:reynolds", "xfoil_run.xfoil:reynolds")
+            self.connect("data:aerodynamics:aircraft:takeoff:mach", "xfoil_run.xfoil:mach")
+            self.connect("data:aerodynamics:aircraft:takeoff:reynolds", "xfoil_run.xfoil:reynolds")
             self.connect(
-                "xfoil_run.xfoil:CL_max_2D", "data:aerodynamics:aircraft:landing:CL_max_clean_2D"
+                "xfoil_run.xfoil:CL_max_2D", "data:aerodynamics:aircraft:takeoff:CL_max_clean_2D"
             )
 
 
@@ -86,22 +89,22 @@ class ComputeMachReynolds(om.ExplicitComponent):
 
     def setup(self):
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:TLAR:approach_speed", val=np.nan, units="m/s")
-        self.add_output("data:aerodynamics:aircraft:landing:mach")
-        self.add_output("data:aerodynamics:aircraft:landing:reynolds")
+        self.add_input("data:TLAR:takeoff_speed", val=np.nan, units="m/s")
+        self.add_output("data:aerodynamics:aircraft:takeoff:mach")
+        self.add_output("data:aerodynamics:aircraft:takeoff:reynolds")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         l0_wing = inputs["data:geometry:wing:MAC:length"]
-        speed = inputs["data:TLAR:approach_speed"]
+        speed = inputs["data:TLAR:takeoff_speed"]
 
         atm = Atmosphere(0.0, 15.0)
         mach = speed / atm.speed_of_sound
         reynolds = atm.get_unitary_reynolds(mach) * l0_wing
 
-        outputs["data:aerodynamics:aircraft:landing:mach"] = mach
-        outputs["data:aerodynamics:aircraft:landing:reynolds"] = reynolds
+        outputs["data:aerodynamics:aircraft:takeoff:mach"] = mach
+        outputs["data:aerodynamics:aircraft:takeoff:reynolds"] = reynolds
 
 
 class Compute3DMaxCL(om.ExplicitComponent):
@@ -111,15 +114,15 @@ class Compute3DMaxCL(om.ExplicitComponent):
 
     def setup(self):
         self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="rad")
-        self.add_input("data:aerodynamics:aircraft:landing:CL_max_clean_2D", val=np.nan)
+        self.add_input("data:aerodynamics:aircraft:takeoff:CL_max_clean_2D", val=np.nan)
 
-        self.add_output("data:aerodynamics:aircraft:landing:CL_max_clean")
+        self.add_output("data:aerodynamics:aircraft:takeoff:CL_max_clean")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         sweep_25 = inputs["data:geometry:wing:sweep_25"]
-        cl_max_2d = inputs["data:aerodynamics:aircraft:landing:CL_max_clean_2D"]
-        outputs["data:aerodynamics:aircraft:landing:CL_max_clean"] = (
+        cl_max_2d = inputs["data:aerodynamics:aircraft:takeoff:CL_max_clean_2D"]
+        outputs["data:aerodynamics:aircraft:takeoff:CL_max_clean"] = (
             cl_max_2d * 0.9 * np.cos(sweep_25)
         )
