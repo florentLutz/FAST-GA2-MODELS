@@ -129,7 +129,7 @@ class ComputeVTArea(om.ExplicitComponent):
 
         required_cnbeta_vtp = cn_beta_goal - cn_beta_fuselage
         distance_to_cg = wing_htp_distance + 0.25 * l0_wing - cg_mac_position * l0_wing
-        vt_area_1 = required_cnbeta_vtp / (distance_to_cg / wing_area / span * cn_beta_vt)
+        area_1 = required_cnbeta_vtp / (distance_to_cg / wing_area / span * cn_beta_vt)
         
         # CASE2: ENGINE FAILURE COMPENSATION###################################
         
@@ -147,15 +147,11 @@ class ComputeVTArea(om.ExplicitComponent):
             Tmot = engine_power / MC_speed
             Dnac = 0.07 * math.pi * (nac_diam / 2) **2
             # Torque compensation
-            vt_area_2 = 2 * (y_nacelle / wing_htp_distance) * (Tmot + Dnac) \
+            area_2 = 2 * (y_nacelle / wing_htp_distance) * (Tmot + Dnac) \
                         / (pressure * MC_mach**2 * 0.9 * 0.42 * 10)
         else:
-            vt_area_2 = 0.0
+            area_2 = 0.0
         
-        vt_area = max(vt_area_1, vt_area_2)
-        wet_vt_area = 2.1 * vt_area
-
-        outputs["data:geometry:vertical_tail:wetted_area"] = wet_vt_area
-        outputs["data:geometry:vertical_tail:area"] = vt_area
+        outputs["data:geometry:vertical_tail:area"] = max(area_1, area_2)
         outputs["data:aerodynamics:vertical_tail:cruise:CnBeta"] = required_cnbeta_vtp
         

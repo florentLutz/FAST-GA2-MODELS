@@ -23,7 +23,7 @@ class ComputeCGLoadCase(ExplicitComponent):
     """ Center of gravity estimation for all load cases"""
 
     def initialize(self):
-        self.options.declare('load_case', types=int)
+        self.options.declare('load_case', val=1, types=int)
     
     def setup(self):
     

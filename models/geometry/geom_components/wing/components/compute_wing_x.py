@@ -19,7 +19,7 @@ import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeXWing(ExplicitComponent):
+class ComputeWingX(ExplicitComponent):
     # TODO: Document equations. Cite sources
     """ Wing Xs estimation """
 

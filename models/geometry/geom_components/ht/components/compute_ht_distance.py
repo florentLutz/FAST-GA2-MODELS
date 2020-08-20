@@ -26,7 +26,7 @@ class ComputeHTDistance(om.ExplicitComponent):
     def setup(self):
 
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:geometry:has_T_tail", val=np.nan)
@@ -44,11 +44,11 @@ class ComputeHTDistance(om.ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
     
-        tail_type = inputs["data:geometry:has_T_tail"]
-        engine_loc = inputs["data:geometry:propulsion:layout"]
         fus_length = inputs["data:geometry:fuselage:length"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         span = inputs["data:geometry:horizontal_tail:span"]
+        engine_loc = inputs["data:geometry:propulsion:layout"]
+        tail_type = inputs["data:geometry:has_T_tail"]
 
         if engine_loc == 1.0:
             lp_ht = 0.5 * fus_length

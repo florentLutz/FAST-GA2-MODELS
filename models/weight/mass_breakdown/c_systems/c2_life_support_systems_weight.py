@@ -35,7 +35,7 @@ class LifeSupportSystemsWeight(ExplicitComponent):
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:TLAR:NPAX", val=np.nan)
         self.add_input("data:weight:systems:navigation:mass", val=np.nan, units="kg")
-        self.add_input("data:TLAR:limit_speed", val=np.nan, units="kn") # TODO: replace vne, to be added to xml variables
+        self.add_input("data:TLAR:v_limit", val=np.nan, units="kn") # TODO: replace vne, to be added to xml variables
        
         self.add_output("data:weight:systems:life_support:air_conditioning:mass", units="kg") # old weight_C22
 
@@ -46,7 +46,7 @@ class LifeSupportSystemsWeight(ExplicitComponent):
         mtow = inputs["data:weight:aircraft:MTOW"]*2.20462 # Takeoff weight in lb
         npax = inputs["data:TLAR:NPAX"]
         m_iae = inputs["data:weight:systems:navigation:mass"]*2.20462 # converted to lb
-        limit_speed = inputs["data:TLAR:limit_speed"]/666.739 # converted to mach
+        limit_speed = inputs["data:TLAR:v_limit"]/666.739 # converted to mach
         
         c22 = 0.261*mtow**.52*npax**0.68*m_iae**0.17*limit_speed**0.08 # mass in lb
        

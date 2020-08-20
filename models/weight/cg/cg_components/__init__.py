@@ -16,13 +16,13 @@ Estimation of centers of gravity
 
 from .compute_cg_control_surfaces import ComputeControlSurfacesCG
 from .compute_cg_engine import ComputeEngineCG
+from .compute_cg_ht import ComputeHTcg
 from .compute_cg_loadcase import ComputeCGLoadCase
 from .compute_cg_others import ComputeOthersCG
 from .compute_cg_ratio_aft import ComputeCGRatioAft
 from .compute_cg_tanks import ComputeTanksCG
 from .compute_cg_wing import ComputeWingCG
+from .compute_cg_vt import ComputeVTcg
 from .compute_global_cg import ComputeGlobalCG
-from .compute_ht_cg import ComputeHTcg
 from .compute_max_cg_ratio import ComputeMaxCGratio
-from .compute_vt_cg import ComputeVTcg
 from .update_mlg import UpdateMLG

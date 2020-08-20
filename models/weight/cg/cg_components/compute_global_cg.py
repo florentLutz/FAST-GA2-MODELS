@@ -15,9 +15,9 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastoad.models.weight.cg.cg_components import ComputeCGLoadCase
-from fastoad.models.weight.cg.cg_components.compute_cg_ratio_aft import ComputeCGRatioAft
-from fastoad.models.weight.cg.cg_components.compute_max_cg_ratio import ComputeMaxCGratio
+from ..cg_components.compute_cg_loadcase import ComputeCGLoadCase
+from ..cg_components.compute_cg_ratio_aft import ComputeCGRatioAft
+from ..cg_components.compute_max_cg_ratio import ComputeMaxCGratio
 
 from openmdao.api import Group
 

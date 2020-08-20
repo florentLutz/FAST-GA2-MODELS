@@ -39,7 +39,6 @@ class ComputeHTArea(om.ExplicitComponent):
         # forward CG position. Returns maximum area.
 
         n_engines = inputs["data:geometry:propulsion:engine:count"]
-        tail_type = np.round(inputs["data:geometry:has_T_tail"])
         mtow = inputs["data:weight:aircraft:MTOW"]
         cl_max_takeoff = inputs["data:aerodynamics:aircraft:landing:CL_max"]
         wing_area = inputs["data:geometry:wing:area"]
@@ -97,7 +96,7 @@ class ComputeHTArea(om.ExplicitComponent):
         coef_vol = cl_max/(n_h * n_q * cl_ht) * (cm_wing/cl_max - fact_wheel) \
                     + cl_r/cl_ht *(x_lg - ac_wing)/wing_mac
         # Calulation of equivalent area
-        htp_area_1 = coef_vol * wing_area * wing_mac / lp_ht
+        area_1 = coef_vol * wing_area * wing_mac / lp_ht
         
         # CASE2: LANDING#######################################################
         
@@ -127,19 +126,6 @@ class ComputeHTArea(om.ExplicitComponent):
         coef_vol = cl_max/(n_h * n_q * cl_ht) * (cm_wing/cl_max - fact_wheel) \
                     + cl_r/cl_ht *(x_lg - ac_wing)/wing_mac
         # Calulation of equivalent area
-        htp_area_2 = coef_vol * wing_area * wing_mac / lp_ht
+        area_2 = coef_vol * wing_area * wing_mac / lp_ht
         
-        # EVALUATION OF MAXIMUM AREA ##########################################
-        
-        htp_area = max(htp_area_1, htp_area_2)
-
-        if tail_type == 1:
-            wet_area_coeff = 2.0 * 1.05 #k_b coef from Gudmunnson p.707
-        elif tail_type == 0:
-            wet_area_coeff = 1.6 * 1.05 #k_b coef from Gudmunnson p.707
-        else:
-            raise ValueError("Value of data:geometry:has_T_tail can only be 0 or 1")
-        wet_area_htp = wet_area_coeff * htp_area
-        
-        outputs["data:geometry:horizontal_tail:wetted_area"] = wet_area_htp
-        outputs["data:geometry:horizontal_tail:area"] = htp_area
+        outputs["data:geometry:horizontal_tail:area"] = max(area_1, area_2)

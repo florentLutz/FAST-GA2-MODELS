@@ -67,16 +67,16 @@ class ComputeHTSweep(ExplicitComponent):
         b_h = inputs["data:geometry:horizontal_tail:span"]
         root_chord = inputs["data:geometry:horizontal_tail:root:chord"]
         tip_chord = inputs["data:geometry:horizontal_tail:tip:chord"]
-        sweep_25_ht = inputs["data:geometry:horizontal_tail:sweep_25"]
+        sweep_25 = inputs["data:geometry:horizontal_tail:sweep_25"]
         tail_conf = inputs["data:geometry:has_T_tail"]
         
         if tail_conf == 1.0:
-            lambda_ht = 5.9 * math.cos(sweep_25_ht / 180.0 * math.pi)**2
+            aspect_ratio = 5.9 * math.cos(sweep_25 / 180.0 * math.pi)**2
         else:
-            lambda_ht = 5.5 * math.cos(sweep_25_ht / 180.0 * math.pi)**2
+            aspect_ratio = 5.5 * math.cos(sweep_25 / 180.0 * math.pi)**2
         half_span = b_h / 2.0
         # TODO: The unit conversion can be handled by OpenMDAO
-        sweep_0_ht = (
+        sweep_0 = (
             (
                 math.pi / 2
                 - math.atan(
@@ -84,20 +84,20 @@ class ComputeHTSweep(ExplicitComponent):
                     / (
                         0.25 * root_chord
                         - 0.25 * tip_chord
-                        + half_span * math.tan(sweep_25_ht / 180.0 * math.pi)
+                        + half_span * math.tan(sweep_25 / 180.0 * math.pi)
                     )
                 )
             )
             / math.pi
             * 180.0
         )
-        sweep_100_ht = (
+        sweep_100 = (
             (
                 math.pi / 2
                 - math.atan(
                     half_span
                     / (
-                        half_span * math.tan(sweep_25_ht / 180.0 * math.pi)
+                        half_span * math.tan(sweep_25 / 180.0 * math.pi)
                         - 0.75 * root_chord
                         + 0.75 * tip_chord
                     )
@@ -107,6 +107,6 @@ class ComputeHTSweep(ExplicitComponent):
             * 180.0
         )
 
-        outputs["data:geometry:horizontal_tail:sweep_0"] = sweep_0_ht
-        outputs["data:geometry:horizontal_tail:sweep_100"] = sweep_100_ht
-        outputs["data:geometry:horizontal_tail:aspect_ratio"] = lambda_ht
+        outputs["data:geometry:horizontal_tail:sweep_0"] = sweep_0
+        outputs["data:geometry:horizontal_tail:sweep_100"] = sweep_100
+        outputs["data:geometry:horizontal_tail:aspect_ratio"] = aspect_ratio

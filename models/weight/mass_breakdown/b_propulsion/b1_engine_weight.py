@@ -16,7 +16,7 @@ Estimation of engine weight
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-from fastoad.models.propulsion.fuel_engine.basicIC_engine import FastBasicICEngineInconsistentInputParametersError
+from models.propulsion.fuel_engine.basicIC_engine.exceptions import FastBasicICEngineInconsistentInputParametersError
 
 
 # FIXME:  the weight estimation of the engine should be defined within the engine model (handle hybrid architecture)
@@ -57,7 +57,7 @@ class EngineWeight(ExplicitComponent):
             b1 = (0.8755*power_sl/n_engines + 46.469)*n_engines
         else:
             raise FastBasicICEngineInconsistentInputParametersError(
-                "Bad motor configuration: only 2 or 4-strokes and fuel type 1/2 available."
+                "Bad engine configuration: only 2 or 4-strokes and fuel type 1/2 available."
             )
             
         outputs["data:weight:propulsion:engine:mass"] = b1

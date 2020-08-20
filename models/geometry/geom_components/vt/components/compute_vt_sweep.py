@@ -40,10 +40,10 @@ class ComputeVTSweep(ExplicitComponent):
     def compute(self, inputs, outputs):
         root_chord = inputs["data:geometry:vertical_tail:root:chord"]
         tip_chord = inputs["data:geometry:vertical_tail:tip:chord"]
-        sweep_25_vt = inputs["data:geometry:vertical_tail:sweep_25"]
+        sweep_25 = inputs["data:geometry:vertical_tail:sweep_25"]
         b_v = inputs["data:geometry:vertical_tail:span"]
 
-        sweep_0_vt = (
+        sweep_0 = (
             (
                 math.pi / 2
                 - math.atan(
@@ -51,20 +51,20 @@ class ComputeVTSweep(ExplicitComponent):
                     / (
                         0.25 * root_chord
                         - 0.25 * tip_chord
-                        + b_v * math.tan(sweep_25_vt / 180.0 * math.pi)
+                        + b_v * math.tan(sweep_25 / 180.0 * math.pi)
                     )
                 )
             )
             / math.pi
             * 180.0
         )
-        sweep_100_vt = (
+        sweep_100 = (
             (
                 math.pi / 2
                 - math.atan(
                     b_v
                     / (
-                        b_v * math.tan(sweep_25_vt / 180.0 * math.pi)
+                        b_v * math.tan(sweep_25 / 180.0 * math.pi)
                         - 0.75 * root_chord
                         + 0.75 * tip_chord
                     )
@@ -74,5 +74,5 @@ class ComputeVTSweep(ExplicitComponent):
             * 180.0
         )
 
-        outputs["data:geometry:vertical_tail:sweep_0"] = sweep_0_vt
-        outputs["data:geometry:vertical_tail:sweep_100"] = sweep_100_vt
+        outputs["data:geometry:vertical_tail:sweep_0"] = sweep_0
+        outputs["data:geometry:vertical_tail:sweep_100"] = sweep_100

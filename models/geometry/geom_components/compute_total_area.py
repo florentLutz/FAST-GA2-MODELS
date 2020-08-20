@@ -23,25 +23,25 @@ class ComputeTotalArea(ExplicitComponent):
     """ Total aircraft wet area estimation """
 
     def setup(self):
-        self.add_input("data:geometry:wing:wetted_area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:fuselage:wetted_area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:horizontal_tail:wetted_area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:vertical_tail:wetted_area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:propulsion:nacelle:wetted_area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:propulsion:pylon:wetted_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:wing:wet_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:fuselage:wet_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:horizontal_tail:wet_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:vertical_tail:wet_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:propulsion:nacelle:wet_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:propulsion:pylon:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
 
-        self.add_output("data:geometry:aircraft:wetted_area", units="m**2")
+        self.add_output("data:geometry:aircraft:wet_area", units="m**2")
 
-        self.declare_partials("data:geometry:aircraft:wetted_area", "*", method="fd")
+        self.declare_partials("data:geometry:aircraft:wet_area", "*", method="fd")
 
     def compute(self, inputs, outputs):
-        wet_area_wing = inputs["data:geometry:wing:wetted_area"]
-        wet_area_fus = inputs["data:geometry:fuselage:wetted_area"]
-        wet_area_ht = inputs["data:geometry:horizontal_tail:wetted_area"]
-        wet_area_vt = inputs["data:geometry:vertical_tail:wetted_area"]
-        wet_area_nac = inputs["data:geometry:propulsion:nacelle:wetted_area"]
-        wet_area_pylon = inputs["data:geometry:propulsion:pylon:wetted_area"]
+        wet_area_wing = inputs["data:geometry:wing:wet_area"]
+        wet_area_fus = inputs["data:geometry:fuselage:wet_area"]
+        wet_area_ht = inputs["data:geometry:horizontal_tail:wet_area"]
+        wet_area_vt = inputs["data:geometry:vertical_tail:wet_area"]
+        wet_area_nac = inputs["data:geometry:propulsion:nacelle:wet_area"]
+        wet_area_pylon = inputs["data:geometry:propulsion:pylon:wet_area"]
         n_engines = inputs["data:geometry:propulsion:engine:count"]
 
         wet_area_total = (
@@ -52,4 +52,4 @@ class ComputeTotalArea(ExplicitComponent):
             + n_engines * (wet_area_nac + wet_area_pylon)
         )
 
-        outputs["data:geometry:aircraft:wetted_area"] = wet_area_total
+        outputs["data:geometry:aircraft:wet_area"] = wet_area_total

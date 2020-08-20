@@ -35,7 +35,7 @@ class WingWeight(om.ExplicitComponent):
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="rad")
-        self.add_input("data:TLAR:limit_speed", val=np.nan, units="kn") # TODO: replace vne, to be added to xml variables
+        self.add_input("data:TLAR:v_limit", val=np.nan, units="kn") # TODO: replace vne, to be added to xml variables
         
         self.add_output("data:weight:airframe:wing:mass", units="kg")
 
@@ -50,7 +50,7 @@ class WingWeight(om.ExplicitComponent):
         mtow = inputs["data:weight:aircraft:MTOW"]*2.20462 # Takeoff weight in lb
         aspect_ratio = inputs["data:geometry:wing:aspect_ratio"]
         sweep_25 = inputs["data:geometry:wing:sweep_25"]
-        limit_speed = inputs["data:TLAR:limit_speed"]
+        limit_speed = inputs["data:TLAR:v_limit"]
         a1 = (
             96.948*((mtow*sizing_factor_ultimate/10**5)**0.65
             *(aspect_ratio/math.cos(sweep_25* math.pi/180))**0.57

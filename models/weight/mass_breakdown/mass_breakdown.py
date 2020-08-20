@@ -17,36 +17,27 @@ Main components for mass breakdown
 import openmdao.api as om
 
 from fastoad.models.options import PAYLOAD_FROM_NPAX
-from fastoad.models.weight.mass_breakdown.a_airframe import (
+from .a_airframe import (
     WingWeight,
     FuselageWeight,
     EmpennageWeight,
     FlightControlsWeight,
     LandingGearWeight,
-    PylonsWeight,
-    PaintWeight,
 )
-from fastoad.models.weight.mass_breakdown.b_propulsion import (
+from .b_propulsion import (
     EngineWeight,
     FuelLinesWeight,
 )
-from fastoad.models.weight.mass_breakdown.c_systems import (
+from .c_systems import (
     PowerSystemsWeight,
     LifeSupportSystemsWeight,
     NavigationSystemsWeight,
-    TransmissionSystemsWeight,
-    FixedOperationalSystemsWeight,
-    FlightKitWeight,
 )
-from fastoad.models.weight.mass_breakdown.d_furniture import (
+from .d_furniture import (
     PassengerSeatsWeight,
-    FoodWaterWeight,
-    SecurityKitWeight,
-    ToiletsWeight,
 )
-from fastoad.models.weight.mass_breakdown.e_crew import CrewWeight
-from fastoad.models.weight.mass_breakdown.payload import ComputePayload
-from fastoad.models.weight.mass_breakdown.update_mlw_and_mzfw import UpdateMLWandMZFW
+from .payload import ComputePayload
+from .update_mlw_and_mzfw import UpdateMLWandMZFW
 
 
 class MassBreakdown(om.Group):
@@ -100,9 +91,7 @@ class OperatingWeightEmpty(om.Group):
         self.add_subsystem("engine_weight", EngineWeight(), promotes=["*"])
         self.add_subsystem("fuel_lines_weight", FuelLinesWeight(), promotes=["*"])
         self.add_subsystem("power_systems_weight", PowerSystemsWeight(), promotes=["*"])
-        self.add_subsystem(
-            "life_support_systems_weight", LifeSupportSystemsWeight(), promotes=["*"]
-        )
+        self.add_subsystem("life_support_systems_weight", LifeSupportSystemsWeight(), promotes=["*"])
         self.add_subsystem("navigation_systems_weight", NavigationSystemsWeight(), promotes=["*"])
         self.add_subsystem("passenger_seats_weight", PassengerSeatsWeight(), promotes=["*"])
 

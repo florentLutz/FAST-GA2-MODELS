@@ -17,21 +17,23 @@
 
 import openmdao.api as om
 
-from fastoad.models.aerodynamics.components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
-from fastoad.models.geometry.geom_components.vt.components import ComputeVTChords
-from fastoad.models.aerodynamics.components.compute_cnbeta_vt import ComputeCnBetaVT
-from fastoad.models.geometry.geom_components.vt.components import ComputeVTDistance
-from fastoad.models.geometry.geom_components.vt.components import ComputeVTMAC
-from fastoad.models.geometry.geom_components.vt.components import ComputeVTSweep
-
+from .components import ComputeVTChords
+from .components import ComputeVTDistance
+from .components import ComputeVTMAC
+from .components import ComputeVTSweep
+from .components import ComputeVTWetArea
+from fastoad2.models.aerodynamics.components.compute_cnbeta_vt import ComputeCnBetaVT # FIXME: change fastoad2 to fastoad
+from fastoad2.models.aerodynamics.components.compute_cnbeta_fuselage import ComputeCnBetaFuselage # FIXME: change fastoad2 to fastoad
 
 class ComputeVerticalTailGeometry(om.Group):
     """ Vertical tail geometry estimation """
 
     def setup(self):
-        self.add_subsystem("fuselage_cnbeta", ComputeCnBetaFuselage(), promotes=["*"])
-        self.add_subsystem("vt_aspect_ratio", ComputeVTDistance(), promotes=["*"])
-        self.add_subsystem("vt_cnbeta", ComputeCnBetaVT(), promotes=["*"])
+        
+        self.add_subsystem("vt_distance", ComputeVTDistance(), promotes=["*"])
         self.add_subsystem("vt_chords", ComputeVTChords(), promotes=["*"])
         self.add_subsystem("vt_mac", ComputeVTMAC(), promotes=["*"])
         self.add_subsystem("vt_sweep", ComputeVTSweep(), promotes=["*"])
+        self.add_subsystem("vt_wet_area", ComputeVTWetArea(), promotes=["*"])
+        self.add_subsystem("vt_cnbeta", ComputeCnBetaVT(), promotes=["*"])
+        self.add_subsystem("fuselage_cnbeta", ComputeCnBetaFuselage(), promotes=["*"])

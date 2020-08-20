@@ -18,3 +18,4 @@ from .compute_ht_chords import ComputeHTChord
 from .compute_ht_distance import ComputeHTDistance
 from .compute_ht_mac import ComputeHTMAC
 from .compute_ht_sweep import ComputeHTSweep
+from .compute_ht_wet_area import ComputeHTWetArea

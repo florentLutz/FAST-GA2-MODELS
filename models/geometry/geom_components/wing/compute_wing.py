@@ -15,21 +15,17 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastoad.models.geometry.geom_components.wing.components.compute_b_50 import ComputeB50
-from fastoad.models.geometry.geom_components.wing.components.compute_wing_cl_alpha import ComputeWINGCLalpha
-from fastoad.models.geometry.geom_components.wing.components.compute_l1_l4 import ComputeL1AndL4Wing
-from fastoad.models.geometry.geom_components.wing.components.compute_l2_l3 import ComputeL2AndL3Wing
-from fastoad.models.geometry.geom_components.wing.components.compute_mac_wing import ComputeMACWing
-from fastoad.models.geometry.geom_components.wing.components.compute_mfw import ComputeMFW
-from fastoad.models.geometry.geom_components.wing.components.compute_sweep_wing import (
-    ComputeSweepWing,
-)
-from fastoad.models.geometry.geom_components.wing.components.compute_toc_wing import ComputeToCWing
-from fastoad.models.geometry.geom_components.wing.components.compute_wet_area_wing import (
-    ComputeWetAreaWing,
-)
-from fastoad.models.geometry.geom_components.wing.components.compute_x_wing import ComputeXWing
-from fastoad.models.geometry.geom_components.wing.components.compute_y_wing import ComputeYWing
+from .components import ComputeMFW
+from .components import ComputeWingB50
+from .components import ComputeWingL1AndL4
+from .components import ComputeWingL2AndL3
+from .components import ComputeWingMAC
+from .components import ComputeWingSweep
+from .components import ComputeWingToc
+from .components import ComputeWingWetArea
+from .components import ComputeWingX
+from .components import ComputeWingY
+from fastoad2.models.aerodynamics.components.compute_wing_cl_alpha import ComputeWINGCLalpha # FIXME: change fastoad2 to fastoad
 
 from openmdao.api import Group
 
@@ -39,14 +35,15 @@ class ComputeWingGeometry(Group):
     """ Wing geometry estimation """
 
     def setup(self):
-        self.add_subsystem("y_wing", ComputeYWing(), promotes=["*"])
-        self.add_subsystem("l14_wing", ComputeL1AndL4Wing(), promotes=["*"])
-        self.add_subsystem("l2l3_wing", ComputeL2AndL3Wing(), promotes=["*"])
-        self.add_subsystem("x_wing", ComputeXWing(), promotes=["*"])
-        self.add_subsystem("mac_wing", ComputeMACWing(), promotes=["*"])
-        self.add_subsystem("b50_wing", ComputeB50(), promotes=["*"])
-        self.add_subsystem("sweep_wing", ComputeSweepWing(), promotes=["*"])
-        self.add_subsystem("toc_wing", ComputeToCWing(), promotes=["*"])
-        self.add_subsystem("wetarea_wing", ComputeWetAreaWing(), promotes=["*"])
-        self.add_subsystem("clapha_wing", ComputeWINGCLalpha(), promotes=["*"])
         self.add_subsystem("mfw", ComputeMFW(), promotes=["*"])
+        self.add_subsystem("wing_b50", ComputeWingB50(), promotes=["*"])
+        self.add_subsystem("wing_l14", ComputeWingL1AndL4(), promotes=["*"])
+        self.add_subsystem("wing_l2l3", ComputeWingL2AndL3(), promotes=["*"])
+        self.add_subsystem("wing_mac", ComputeWingMAC(), promotes=["*"])
+        self.add_subsystem("wing_sweep_", ComputeWingSweep(), promotes=["*"])
+        self.add_subsystem("wing_toc_", ComputeWingToc(), promotes=["*"])
+        self.add_subsystem("wing_wet_area", ComputeWingWetArea(), promotes=["*"])
+        self.add_subsystem("wing_x", ComputeWingX(), promotes=["*"])
+        self.add_subsystem("wing_y", ComputeWingY(), promotes=["*"])
+        self.add_subsystem("wing_cl_apha", ComputeWINGCLalpha(), promotes=["*"])
+        

@@ -27,11 +27,11 @@ class ComputeHTChord(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:horizontal_tail:taper_ratio", val=np.nan)
-
+        
         self.add_output("data:geometry:horizontal_tail:span", units="m")
         self.add_output("data:geometry:horizontal_tail:root:chord", units="m")
         self.add_output("data:geometry:horizontal_tail:tip:chord", units="m")
-
+        
         self.declare_partials(
             "data:geometry:horizontal_tail:span",
             ["data:geometry:horizontal_tail:area", "data:geometry:horizontal_tail:aspect_ratio"],

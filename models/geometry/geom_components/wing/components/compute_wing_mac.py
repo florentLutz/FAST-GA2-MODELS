@@ -1,5 +1,5 @@
 """
-    Estimation of wing sweeps
+    Estimation of wing mean aerodynamic chord
 """
 
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
@@ -14,74 +14,88 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import math
-
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeSweepWing(ExplicitComponent):
+
+class ComputeWingMAC(ExplicitComponent):
     # TODO: Document equations. Cite sources
-    """ Wing sweeps estimation """
+    """ Wing mean aerodynamic chord estimation """
 
     def setup(self):
-
+    
+        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:tip:leading_edge:x:local", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:y", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
 
-        self.add_output("data:geometry:wing:sweep_0", units="deg")
-        self.add_output("data:geometry:wing:sweep_100_inner", units="deg")
-        self.add_output("data:geometry:wing:sweep_100_outer", units="deg")
+        self.add_output("data:geometry:wing:MAC:length", units="m")
+        self.add_output("data:geometry:wing:MAC:leading_edge:x:local", units="m")
+        self.add_output("data:geometry:wing:MAC:y", units="m")
 
         self.declare_partials(
-            "data:geometry:wing:sweep_0",
+            "data:geometry:wing:MAC:length",
             [
-                "data:geometry:wing:tip:leading_edge:x:local",
                 "data:geometry:wing:root:y",
                 "data:geometry:wing:tip:y",
+                "data:geometry:wing:root:chord",
+                "data:geometry:wing:tip:chord",
+                "data:geometry:wing:area",
             ],
             method="fd",
         )
         self.declare_partials(
-            "data:geometry:wing:sweep_100_inner",
+            "data:geometry:wing:MAC:leading_edge:x:local",
             [
                 "data:geometry:wing:tip:leading_edge:x:local",
                 "data:geometry:wing:root:y",
                 "data:geometry:wing:tip:y",
                 "data:geometry:wing:root:chord",
                 "data:geometry:wing:tip:chord",
+                "data:geometry:wing:area",
             ],
             method="fd",
         )
         self.declare_partials(
-            "data:geometry:wing:sweep_100_outer",
+            "data:geometry:wing:MAC:y",
             [
-                "data:geometry:wing:tip:leading_edge:x:local",
                 "data:geometry:wing:root:y",
                 "data:geometry:wing:tip:y",
                 "data:geometry:wing:root:chord",
                 "data:geometry:wing:tip:chord",
+                "data:geometry:wing:area",
             ],
             method="fd",
         )
 
     def compute(self, inputs, outputs):
     
+        wing_area = inputs["data:geometry:wing:area"]
         x4_wing = inputs["data:geometry:wing:tip:leading_edge:x:local"]
         y2_wing = inputs["data:geometry:wing:root:y"]
         y4_wing = inputs["data:geometry:wing:tip:y"]
         l2_wing = inputs["data:geometry:wing:root:chord"]
         l4_wing = inputs["data:geometry:wing:tip:chord"]
-        
-        outputs["data:geometry:wing:sweep_0"] = (
-            math.atan(x4_wing / (y4_wing - y2_wing)) / math.pi * 180.0
-        )
-        outputs["data:geometry:wing:sweep_100_inner"] = (
-            math.atan((x4_wing + l4_wing - l2_wing) / (y4_wing - y2_wing)) / math.pi * 180
-        )
-        outputs["data:geometry:wing:sweep_100_outer"] = (
-            math.atan((x4_wing + l4_wing - l2_wing) / (y4_wing - y2_wing)) / math.pi * 180
-        )
+
+        l0_wing = (
+            3 * y2_wing * l2_wing ** 2
+            + (y4_wing - y2_wing) * (l2_wing ** 2 + l4_wing ** 2 + l2_wing * l4_wing)
+        ) * (2 / (3 * wing_area))
+
+        x0_wing = (
+            x4_wing
+            * ((y4_wing - y2_wing) * (2 * l4_wing + l2_wing))
+        ) / (3 * wing_area)
+
+        y0_wing = (
+            3 * y2_wing ** 2 * l2_wing
+            + (y4_wing - y2_wing)
+            * (l4_wing * (y2_wing + 2 * y4_wing) + l2_wing * (y4_wing + 2 * y2_wing))
+        ) / (3 * wing_area)
+
+        outputs["data:geometry:wing:MAC:length"] = l0_wing
+        outputs["data:geometry:wing:MAC:leading_edge:x:local"] = x0_wing
+        outputs["data:geometry:wing:MAC:y"] = y0_wing

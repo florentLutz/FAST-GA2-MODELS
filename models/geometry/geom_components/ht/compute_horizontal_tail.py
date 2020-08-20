@@ -16,19 +16,20 @@
 
 import openmdao.api as om
 
-from fastoad.models.geometry.geom_components.ht.components import ComputeHTChord
-from fastoad.models.aerodynamics.components.compute_ht_cl_alpha import ComputeHTClalpha
-from fastoad.models.geometry.geom_components.ht.components import ComputeHTDistance
-from fastoad.models.geometry.geom_components.ht.components import ComputeHTMAC
-from fastoad.models.geometry.geom_components.ht.components import ComputeHTSweep
-
+from .components import ComputeHTChord
+from .components import ComputeHTDistance
+from .components import ComputeHTMAC
+from .components import ComputeHTSweep
+from .components import ComputeHTWetArea
+from fastoad2.models.aerodynamics.components.compute_ht_cl_alpha import ComputeHTClalpha # FIXME: change fastoad2 to fastoad
 
 class ComputeHorizontalTailGeometry(om.Group):
     """ Horizontal tail geometry estimation """
 
     def setup(self):
         self.add_subsystem("ht_chord", ComputeHTChord(), promotes=["*"])
-        self.add_subsystem("ht_aspect_ratio", ComputeHTDistance(), promotes=["*"])
+        self.add_subsystem("ht_distance", ComputeHTDistance(), promotes=["*"])
         self.add_subsystem("ht_mac", ComputeHTMAC(), promotes=["*"])
         self.add_subsystem("ht_sweep", ComputeHTSweep(), promotes=["*"])
+        self.add_subsystem("ht_wet_area", ComputeHTWetArea(), promotes=["*"])
         self.add_subsystem("ht_cl_alpha", ComputeHTClalpha(), promotes=["*"])

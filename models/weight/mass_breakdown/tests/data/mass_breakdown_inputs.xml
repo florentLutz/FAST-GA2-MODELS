@@ -14,99 +14,67 @@
   -->
 
 <FASTOAD_model>
-  <data>
-    <TLAR>
-      <NPAX>150.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
-      <range units="NM">2750.0<!--top-level requirement: design range--></range>
-    </TLAR>
-	<mission>
-		<sizing>
-			<cs23>
-				<sizing_factor_ultimate>2.0<!--over-sizing coefficient--></sizing_factor_ultimate>
-			</cs23>
-		</sizing>
-	</mission>
-    <geometry>
-      <has_T_tail>0.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
-      <wing>
-        <area units="m**2">124.843<!--wing reference area--></area>
-        <span units="m">31.603<!--wing span--></span>
-		<taper_ratio>2.0<!--wing taper ratio--></taper_ratio>
-        <b_50 units="m">34.166<!--actual length between root and tip along 50% of chord--></b_50>
-        <root>
-          <chord units="m">6.26<!--chord length at wing root--></chord>
-          <thickness_ratio>0.159<!--thickness ratio at wing root--></thickness_ratio>
-        </root>
-        <kink>
-          <thickness_ratio>0.121<!--thickness ratio at wing kink--></thickness_ratio>
-        </kink>
-        <tip>
-          <thickness_ratio>0.11<!--thickness ratio at wing tip--></thickness_ratio>
-        </tip>
-        <sweep_25 units="deg">25.0<!--sweep angle at 25% chord of wing--></sweep_25>
-        <outer_area units="m**2">100.303<!--wing area outside of fuselage--></outer_area>
-        <sweep_0 units="deg">27.554<!--sweep angle at leading edge of wing--></sweep_0>
-      </wing>
-      <fuselage>
-        <length units="m">37.507<!--total fuselage length--></length>
-        <maximum_width units="m">3.92<!--maximum fuselage width--></maximum_width>
-        <maximum_height units="m">4.06<!--maximum fuselage height--></maximum_height>
-        <wetted_area units="m**2">401.956<!--wetted area of fuselage--></wetted_area>
-        <front_length units="m">6.902<!--length of front non-cylindrical part of the fuselage--></front_length>
-        <rear_length units="m">14.616<!--length of rear non-cylindrical part of the fuselage--></rear_length>
-      </fuselage>
-      <cabin>
-        <length units="m">30.0056<!--cabin length--></length>
-        <NPAX1>157.0<!--number of passengers if there are only economical class seats--></NPAX1>
-        <crew_count>
-          <technical>2.0<!--number of technical crew members--></technical>
-          <commercial>4.0<!--number of commercial crew members--></commercial>
-        </crew_count>
-        <seats>
-          <economical>
-            <count_by_row>6.0<!--number of economical class seats along width--></count_by_row>
-          </economical>
-        </seats>
-        <containers>
-          <count_by_row>1.0<!--number of cargo containers along width--></count_by_row>
-          <count>5.0<!--total number of cargo containers--></count>
-        </containers>
-        <pallet_count>10.0<!--number of pallet in cargo hold--></pallet_count>
-      </cabin>
-      <propulsion>
-        <layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage)--></layout>
-        <engine>
-          <count>2.0<!--number of engines--></count>
-        </engine>
-        <pylon>
-          <wetted_area units="m**2">7.563<!--wetted area of pylon--></wetted_area>
-        </pylon>
-        <nacelle>
-          <diameter units="m">2.172<!--nacelle diameter--></diameter>
-        </nacelle>
-      </propulsion>
-      <horizontal_tail>
-        <area units="m**2">35.171<!--horizontal tail area--></area>
-      </horizontal_tail>
-      <vertical_tail>
-        <area units="m**2">25.118<!--vertical tail area--></area>
-      </vertical_tail>
-      <aircraft>
-        <wetted_area units="m**2">784.007<!--total wetted area--></wetted_area>
-      </aircraft>
-    </geometry>
-    <weight>
-      <aircraft>
-        <MTOW units="kg">75797.99<!--maximum takeoff weight--></MTOW>
-        <MFW units="kg">20569.81<!--maximum fuel weight--></MFW>
-        <MLW units="kg">64870.14<!--maximum landing weight--></MLW>
-        <MZFW units="kg">61198.25<!--maximum zero fuel weight--></MZFW>
-        <max_payload units="kg">25000.0<!--max payload weight--></max_payload>
-      </aircraft>
-    </weight>
-  </data>
-  <settings>
-    <weight>
-    </weight>
-  </settings>
+	<data>
+		<geometry>
+			<fuselage>
+				<length units="m">37.507<!--total fuselage length--></length>
+				<maximum_height units="m">4.06<!--maximum fuselage height--></maximum_height>
+				<maximum_width units="m">3.92<!--maximum fuselage width--></maximum_width>
+			</fuselage>
+			<horizontal_tail>
+				<root>
+					<chord units="m">0.8<!--horizontal tail root chord--></chord>
+				</root>
+				<span units="m">1.5<!--horizontal tail span--></span>
+				<thickness_ratio>0.1<!--horizontal tail thickness ratio--></thickness_ratio>
+				<wetted_area units="m**2">35.171<!--horizontal tail wetted area--></wetted_area>
+			</horizontal_tail>
+			<landing_gear>
+				<height units="m">0.5<!--height of landing gear--></height>
+			</landing_gear>
+			<propulsion>
+				<engine>
+					<count>2.0<!--number of engines--></count>
+				</engine>
+			</propulsion>
+			<wing>
+				<area units="m**2">124.843<!--wing reference area--></area>
+				<aspect_ratio>9.48<!--wing aspect ratio--></aspect_ratio>
+				<root>
+					<thickness_ratio>0.159<!--thickness ratio at wing root--></thickness_ratio>
+				</root>
+				<sweep_25 units="deg">25.0<!--sweep angle at 25% chord of wing--></sweep_25>
+				<taper_ratio>2.0<!--wing taper ratio--></taper_ratio>
+			</wing>
+		</geometry>
+		<mission>
+			<sizing>
+				<cs23>
+					<sizing_factor_ultimate>2.0<!--over-sizing coefficient--></sizing_factor_ultimate>
+				</cs23>
+				<fuel units="kg">800.0<!--consumed fuel mass during whole mission--></fuel>
+			</sizing>
+		</mission>
+		<propulsion>
+			<engine>
+				<power_SL units="W">3000.0<!--maximum power of one engine at sea level--></power_SL>
+				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
+				<n_strokes>4.0<!--2=2-strokes engine / 4=4-strokes engine--></n_strokes>
+			</engine>
+		</propulsion>
+		<TLAR>
+			<NPAX>10.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
+			<v_limit units="kt">400.0<!--top-level requirement: limit speed--></v_limit>
+			<v_cruise units="kt">200.0<!--top-level requirement: cruise speed--></v_cruise>
+		</TLAR>
+		<weight>
+			<aircraft>
+				<max_payload units="kg">500.0<!--max payload weight--></max_payload>
+				<MFW units="kg">20569.81<!--maximum fuel weight--></MFW>
+				<MLW units="kg">64870.14<!--maximum landing weight--></MLW>
+				<MTOW units="kg">75797.99<!--maximum takeoff weight--></MTOW>
+				<MZFW units="kg">61198.25<!--maximum zero fuel weight--></MZFW>
+			</aircraft>
+		</weight>
+	</data>
 </FASTOAD_model>

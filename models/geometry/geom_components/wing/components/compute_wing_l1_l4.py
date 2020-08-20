@@ -19,7 +19,7 @@ import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeL1AndL4Wing(ExplicitComponent):
+class ComputeWingL1AndL4(ExplicitComponent):
     # TODO: Document equations. Cite sources
     """ Wing chords (l1 and l4) estimation """
 
@@ -33,7 +33,7 @@ class ComputeL1AndL4Wing(ExplicitComponent):
         self.add_output("data:geometry:wing:root:virtual_chord", units="m")
         self.add_output("data:geometry:wing:tip:chord", units="m")
 
-        self.declare_partials("", "", method="fd")
+        self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
     

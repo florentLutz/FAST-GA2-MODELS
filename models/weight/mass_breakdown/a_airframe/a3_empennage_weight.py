@@ -43,7 +43,7 @@ class EmpennageWeight(om.ExplicitComponent):
         
         sizing_factor_ultimate = inputs["data:mission:sizing:cs23:sizing_factor_ultimate"]
         mtow = inputs["data:weight:aircraft:MTOW"]
-        wetted_area = inputs["data:geometry:vertical_tail:wetted_area"]*(3.28084**2) # conversion to feet²
+        wetted_area = inputs["data:geometry:horizontal_tail:wetted_area"]*(3.28084**2) # conversion to feet²
         span = inputs["data:geometry:horizontal_tail:span"]*3.28084 # conversion to foot
         thickness_ratio = inputs["data:geometry:horizontal_tail:thickness_ratio"]
         chord = inputs["data:geometry:horizontal_tail:root:chord"]*3.28084 # conversion to feet

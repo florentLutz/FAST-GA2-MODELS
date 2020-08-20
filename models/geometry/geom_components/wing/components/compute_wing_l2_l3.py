@@ -1,5 +1,5 @@
 """
-    Estimation of wing B50
+    Estimation of wing chords (l2 and l3)
 """
 
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
@@ -14,37 +14,40 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import math
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeB50(ExplicitComponent):
+class ComputeWingL2AndL3(ExplicitComponent):
     # TODO: Document equations. Cite sources
-    """ Wing B50 estimation """
+    """ Wing chords (l2 and l3) estimation """
 
     def setup(self):
-        self.add_input("data:geometry:wing:tip:leading_edge:x:local", val=np.nan, units="m")
+    
+        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:y", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:root:virtual_chord", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:span", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:taper_ratio", val=np.nan)
 
-        self.add_output("data:geometry:wing:b_50", units="m")
+        self.add_output("data:geometry:wing:root:chord", units="m")
+        self.add_output("data:geometry:wing:kink:chord", units="m")
 
-        self.declare_partials("data:geometry:wing:b_50", "*", method="fd")
+        self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
-        x4_wing = inputs["data:geometry:wing:tip:leading_edge:x:local"]
+        
+        wing_area = inputs["data:geometry:wing:area"]
         y2_wing = inputs["data:geometry:wing:root:y"]
         y4_wing = inputs["data:geometry:wing:tip:y"]
-        l1_wing = inputs["data:geometry:wing:root:virtual_chord"]
-        l4_wing = inputs["data:geometry:wing:tip:chord"]
-        span = inputs["data:geometry:wing:span"]
+        taper_ratio = inputs["data:geometry:wing:taper_ratio"]
 
-        sweep_50 = math.atan((x4_wing + l4_wing * 0.5 - 0.5 * l1_wing) / (y4_wing - y2_wing))
-        b_50 = span / math.cos(sweep_50)
+        l2_wing = (
+            wing_area
+            / (2.0 * y2_wing + (y4_wing - y2_wing) * (1.0 + taper_ratio))
+        )
 
-        outputs["data:geometry:wing:b_50"] = b_50
+        l3_wing = l2_wing
+
+        outputs["data:geometry:wing:root:chord"] = l2_wing
+        outputs["data:geometry:wing:kink:chord"] = l3_wing

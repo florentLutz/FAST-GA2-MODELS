@@ -17,28 +17,29 @@
 import numpy as np
 import openmdao.api as om
 
-from fastoad.models.weight.cg.cg_components import ComputeControlSurfacesCG
-from fastoad.models.weight.cg.cg_components import ComputeGlobalCG
-from fastoad.models.weight.cg.cg_components import ComputeHTcg
-from fastoad.models.weight.cg.cg_components import ComputeOthersCG
-from fastoad.models.weight.cg.cg_components import ComputeTanksCG
-from fastoad.models.weight.cg.cg_components import ComputeVTcg
-from fastoad.models.weight.cg.cg_components import ComputeWingCG
-from fastoad.models.weight.cg.cg_components import UpdateMLG
+from .cg_components import ComputeControlSurfacesCG
+from .cg_components import ComputeEngineCG
+from .cg_components import ComputeHTcg
+from .cg_components import ComputeOthersCG
+from .cg_components import ComputeTanksCG
+from .cg_components import ComputeVTcg
+from .cg_components import ComputeWingCG
+from .cg_components import ComputeGlobalCG
+from .cg_components import UpdateMLG
 
 
 class CG(om.Group):
     """ Model that computes the global center of gravity """
 
     def setup(self):
-    
-        self.add_subsystem("ht_cg", ComputeHTcg(), promotes=["*"])
-        self.add_subsystem("vt_cg", ComputeVTcg(), promotes=["*"])
-        self.add_subsystem("compute_cg_wing", ComputeWingCG(), promotes=["*"])
-        self.add_subsystem("compute_cg_control_surface", ComputeControlSurfacesCG(), promotes=["*"])
-        self.add_subsystem("compute_cg_engine", ComputeEngineCG(), promotes=["*"])
-        self.add_subsystem("compute_cg_tanks", ComputeTanksCG(), promotes=["*"])
+        
+        self.add_subsystem("compute_control_surface_cg", ComputeControlSurfacesCG(), promotes=["*"])
+        self.add_subsystem("compute_engine_cg", ComputeEngineCG(), promotes=["*"])
+        self.add_subsystem("compute_ht_cg", ComputeHTcg(), promotes=["*"])
         self.add_subsystem("compute_cg_others", ComputeOthersCG(), promotes=["*"])
+        self.add_subsystem("compute_cg_tanks", ComputeTanksCG(), promotes=["*"])
+        self.add_subsystem("compute_vt_cg", ComputeVTcg(), promotes=["*"])
+        self.add_subsystem("compute_wing_cg", ComputeWingCG(), promotes=["*"])
         self.add_subsystem("compute_cg", ComputeGlobalCG(), promotes=["*"])
         self.add_subsystem("update_mlg", UpdateMLG(), promotes=["*"])
         self.add_subsystem("aircraft", ComputeAircraftCG(), promotes=["*"])

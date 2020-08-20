@@ -13,16 +13,16 @@ Estimation of wing geometry (components)
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from .compute_b_50 import ComputeB50
-from .compute_l1_l4 import ComputeL1AndL4Wing
-from .compute_l2_l3 import ComputeL2AndL3Wing
-from .compute_mac_wing import ComputeMACWing
 from .compute_mfw import ComputeMFW
-from .compute_sweep_wing import ComputeSweepWing
-from .compute_toc_wing import ComputeToCWing
-from .compute_wet_area_wing import ComputeWetAreaWing
-from .compute_x_wing import ComputeXWing
-from .compute_y_wing import ComputeYWing
+from .compute_wing_b50 import ComputeWingB50
+from .compute_wing_l1_l4 import ComputeWingL1AndL4
+from .compute_wing_l2_l3 import ComputeWingL2AndL3
+from .compute_wing_mac import ComputeWingMAC
+from .compute_wing_sweep import ComputeWingSweep
+from .compute_wing_toc import ComputeWingToc
+from .compute_wing_wet_area import ComputeWingWetArea
+from .compute_wing_x import ComputeWingX
+from .compute_wing_y import ComputeWingY
 
 # TODO: Determine wether wing drawing shall be included or not
 # from .wing_drawing import WingDrawing
