@@ -82,10 +82,23 @@ def list_inputs(group):
 def test_compute_fuselage_cabin_sizing():
     """ Tests computation of the fuselage with cabin sizing """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeFuselageGeometryCabinSizing(), promotes=["*"])
-    input_list = list_inputs(group)
+    # Input list from model (not generated because of npax1 crash error for NaN values)
+    input_list = [
+        "data:TLAR:NPAX",
+        "data:geometry:cabin:seats:pilot:length",
+        "data:geometry:cabin:seats:pilot:width",
+        "data:geometry:cabin:seats:passenger:length",
+        "data:geometry:cabin:seats:passenger:width",
+        "data:geometry:cabin:seats:passenger:count_by_row",
+        "data:geometry:cabin:aisle_width",
+        "data:geometry:propulsion:layout",
+        "data:geometry:propulsion:length",
+        "data:geometry:wing:MAC:at25percent:x",
+        "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
+        "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
+        "data:geometry:horizontal_tail:span",
+        "data:geometry:vertical_tail:span",
+    ]
 
     # Research independent input value in .xml file and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
@@ -97,24 +110,26 @@ def test_compute_fuselage_cabin_sizing():
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuselageGeometryCabinSizing(), ivc)
+    npax_1 = problem["data:geometry:cabin:NPAX"]
+    assert npax_1 == pytest.approx(4.0, abs=1)
     fuselage_length = problem["data:geometry:fuselage:length"]
     assert fuselage_length == pytest.approx(47.16, abs=1e-2)
     fuselage_width_max = problem["data:geometry:fuselage:maximum_width"]
-    assert fuselage_width_max == pytest.approx(1.20, abs=1e-2)
+    assert fuselage_width_max == pytest.approx(1.99, abs=1e-2)
     fuselage_height_max = problem["data:geometry:fuselage:maximum_height"]
-    assert fuselage_height_max == pytest.approx(1.34, abs=1e-2)
+    assert fuselage_height_max == pytest.approx(2.13, abs=1e-2)
     fuselage_lav = problem["data:geometry:fuselage:front_length"]
-    assert fuselage_lav == pytest.approx(2.27, abs=1e-2)
+    assert fuselage_lav == pytest.approx(3.62, abs=1e-2)
     fuselage_lar = problem["data:geometry:fuselage:rear_length"]
-    assert fuselage_lar == pytest.approx(37.66, abs=1e-1)
+    assert fuselage_lar == pytest.approx(40.2, abs=1e-1)
     fuselage_lpax = problem["data:geometry:fuselage:PAX_length"]
-    assert fuselage_lpax == pytest.approx(4.75, abs=1e-2)
+    assert fuselage_lpax == pytest.approx(2.35, abs=1e-2)
     fuselage_lcabin = problem["data:geometry:cabin:length"]
-    assert fuselage_lcabin == pytest.approx(7.22, abs=1e-2)
+    assert fuselage_lcabin == pytest.approx(3.30, abs=1e-2)
     fuselage_wet_area = problem["data:geometry:fuselage:wet_area"]
-    assert fuselage_wet_area == pytest.approx(145.45, abs=1e-1)
+    assert fuselage_wet_area == pytest.approx(230.5, abs=1e-1)
     luggage_length = problem["data:geometry:fuselage:luggage_length"]
-    assert luggage_length == pytest.approx(1.77, abs=1e-1)
+    assert luggage_length == pytest.approx(0.25, abs=1e-1)
 
 
 def test_compute_fuselage_basic():

@@ -23,10 +23,11 @@ class ComputeCGLoadCase(ExplicitComponent):
     """ Center of gravity estimation for all load cases"""
 
     def initialize(self):
-        self.options.declare('load_case', val=1, types=int)
+        self.options.declare('load_case', default=1, types=int)
     
     def setup(self):
     
+        self.load_case = self.options['load_case']
         self.add_input("data:TLAR:NPAX", val=np.nan)
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
@@ -35,13 +36,13 @@ class ComputeCGLoadCase(ExplicitComponent):
         self.add_input("data:weight:payload:front_fret:CG:x", val=np.nan, units="m")
         self.add_input("data:weight:aircraft_empty:CG:x", val=np.nan, units="m")
         self.add_input("data:weight:aircraft_empty:mass", val=np.nan, units="m")
-        self.add_input("data:weight:aircraft_empty:CG:x", val=np.nan, units="m")
-        self.add_input("data:weight:aircraft_empty:mass", val=np.nan, units="m")
+        self.add_input("data:weight:aircraft:MFW", val=np.nan, units="kg")
+        self.add_input("data:weight:fuel_tank:CG:x", val=np.nan, units="m")
 
-        self.add_output("data:weight:aircraft:load_case_"+str(load_case)+":CG:MAC_position")
+        self.add_output("data:weight:aircraft:load_case_"+str(self.load_case)+":CG:MAC_position")
 
         self.declare_partials(
-            "data:weight:aircraft:load_case_"+str(load_case)+":CG:MAC_position", 
+            "data:weight:aircraft:load_case_"+str(self.load_case)+":CG:MAC_position", 
             [
                 "data:geometry:wing:MAC:length",
                 "data:geometry:wing:MAC:at25percent:x",
@@ -57,9 +58,8 @@ class ComputeCGLoadCase(ExplicitComponent):
         )
 
     def compute(self, inputs, outputs):
-        
-        load_case = self.options['load_case']
-        npax = inputs["data:TLAR:NPAX"]
+         
+        npax = inputs["data:TLAR:NPAX"] + 2.0 # ???: addition of the 2 pilots
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         cg_pax = inputs["data:weight:payload:PAX:CG:x"]
@@ -70,28 +70,28 @@ class ComputeCGLoadCase(ExplicitComponent):
         mfw = inputs["data:weight:aircraft:MFW"]
         cg_tank = inputs["data:weight:fuel_tank:CG:x"]
         
-        if load_case == 1: 
+        if self.load_case == 1: 
             weight_pax = npax * 80.0;
             weight_rear_fret = 1.0;
             weight_front_fret = 0.0;
-        elif load_case == 2: 
+        elif self.load_case == 2: 
             weight_pax = npax * 80.0;
             weight_rear_fret = npax * 20.0;
             weight_front_fret = 0.0;
-        elif load_case == 3:
+        elif self.load_case == 3:
             weight_pax = npax * 80.0;
             weight_rear_fret = npax * 20.0;
             weight_front_fret = 0.0;
             mfw = 0.0;
-        elif load_case == 4:
+        elif self.load_case == 4:
             weight_pax = npax * 90.0;
             weight_rear_fret = 0.0;
             weight_front_fret = 0.0;
-        elif load_case == 5:
+        elif self.load_case == 5:
             weight_pax = 80;
             weight_rear_fret = 0.0;
             weight_front_fret = 0.0;
-        elif load_case == 6:
+        elif self.load_case == 6:
             weight_pax = 160;
             weight_rear_fret = 0.0;
             weight_front_fret = 0.0;
@@ -110,4 +110,4 @@ class ComputeCGLoadCase(ExplicitComponent):
         cg_ratio_pl = (x_cg_plane_pl - fa_length + 0.25 * l0_wing) / l0_wing
         
         
-        outputs["data:weight:aircraft:load_case_"+str(load_case)+":CG:MAC_position"] = cg_ratio_pl
+        outputs["data:weight:aircraft:load_case_"+str(self.load_case)+":CG:MAC_position"] = cg_ratio_pl

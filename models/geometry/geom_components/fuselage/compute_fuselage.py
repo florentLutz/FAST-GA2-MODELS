@@ -66,6 +66,12 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
     def setup(self):
 
         self.add_input("data:TLAR:NPAX", val=np.nan)
+        self.add_input("data:geometry:cabin:seats:pilot:length", val=np.nan, units="m")
+        self.add_input("data:geometry:cabin:seats:pilot:width", val=np.nan, units="m")
+        self.add_input("data:geometry:cabin:seats:passenger:length", val=np.nan, units="m")
+        self.add_input("data:geometry:cabin:seats:passenger:width", val=np.nan, units="m")
+        self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
+        self.add_input("data:geometry:cabin:aisle_width", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:geometry:propulsion:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
@@ -74,6 +80,7 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:span", val=np.nan, units="m")
 
+        self.add_output("data:geometry:cabin:NPAX", units="m")
         self.add_output("data:geometry:fuselage:length", units="m")
         self.add_output("data:geometry:fuselage:maximum_width", units="m")
         self.add_output("data:geometry:fuselage:maximum_height", units="m")
@@ -89,6 +96,12 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
     def compute(self, inputs, outputs):
         
         npax = inputs["data:TLAR:NPAX"]
+        l_pilot_seats = inputs["data:geometry:cabin:seats:pilot:length"]
+        w_pilot_seats = inputs["data:geometry:cabin:seats:pilot:width"]
+        l_pass_seats = inputs["data:geometry:cabin:seats:passenger:length"]
+        w_pass_seats = inputs["data:geometry:cabin:seats:passenger:width"]
+        seats_p_row = inputs["data:geometry:cabin:seats:passenger:count_by_row"]
+        w_aisle = inputs["data:geometry:cabin:aisle_width"]
         engine_loc = inputs["data:geometry:propulsion:layout"]
         propulsion_length = inputs["data:geometry:propulsion:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
@@ -99,10 +112,12 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         
         # Length of instrument panel
         l_instr = 0.7
-        # Length of pax cabin = Length between instrument pannel and first seats (0.75m) + Length of 2 seat row (0.8m)
-        lpax = 0.75 + (npax/2)*0.8
+        # Length of pax cabin
+        npax_1 = math.ceil(npax/seats_p_row)*seats_p_row
+        n_rows = npax_1 / seats_p_row
+        lpax = l_pilot_seats + n_rows*l_pass_seats
         # Cabin width considered is for side by side seaters
-        wcabin = 1.13
+        wcabin = max(2*w_pilot_seats, seats_p_row*w_pass_seats + w_aisle)
         r_i = wcabin / 2
         radius = 1.06 * r_i 
         # Cylindrical fuselage
@@ -110,11 +125,11 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         # 0.14m is the distance between both lobe centers of the fuselage
         h_f = b_f + 0.14
         # Lugage length
-        l_lug = npax * 0.20 / ( math.pi * radius**2)
+        l_lug = npax_1 * 0.20 / ( math.pi * radius**2)
         # Cabine total length
         cabin_length = l_instr + lpax + l_lug
         # Calculate nose length
-        if engine_loc == 3.0:
+        if engine_loc == 3.0: # engine in nose
             lav = propulsion_length
         else:
             lav = 1.7 * h_f 
@@ -129,6 +144,7 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         wet_area_tail = 2.3 * fus_dia * lar
         wet_area_fus = (wet_area_nose + wet_area_cyl + wet_area_tail)
         
+        outputs["data:geometry:cabin:NPAX"] = npax_1
         outputs["data:geometry:fuselage:length"] = fus_length
         outputs["data:geometry:fuselage:maximum_width"] = b_f
         outputs["data:geometry:fuselage:maximum_height"] = h_f
