@@ -75,8 +75,8 @@ def test_compute_payload():
     # Run problem and check obtained value(s) is/(are) correct
     ivc.add_output("data:TLAR:NPAX", val=5.0)
     problem = run_system(ComputePayload(), ivc)
-    assert problem["data:weight:aircraft:payload"] == pytest.approx(453.6, abs=0.1)
-    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(653.6, abs=0.1)
+    assert problem["data:weight:aircraft:payload"] == pytest.approx(635, abs=0.1)
+    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(915, abs=0.1)
 
     ivc = om.IndepVarComp()
 
@@ -85,8 +85,8 @@ def test_compute_payload():
     ivc.add_output("settings:weight:aircraft:payload:design_mass_per_passenger", val=1.0, units="kg")
     ivc.add_output("settings:weight:aircraft:payload:max_mass_per_passenger", val=2.0, units="kg")
     problem = run_system(ComputePayload(), ivc)
-    assert problem["data:weight:aircraft:payload"] == pytest.approx(10.0, abs=0.1)
-    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(20.0, abs=0.1)
+    assert problem["data:weight:aircraft:payload"] == pytest.approx(12.0, abs=0.1)
+    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(24.0, abs=0.1)
 
 def test_compute_wing_weight():
     """ Tests wing weight computation from sample XML data """
@@ -285,7 +285,7 @@ def test_compute_passenger_seats_weight():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(PassengerSeatsWeight(), ivc)
     val = problem["data:weight:furniture:passenger_seats:mass"]
-    assert val == pytest.approx(934, abs=1)
+    assert val == pytest.approx(1151, abs=1)
 
 
 def test_evaluate_oew():
@@ -298,7 +298,7 @@ def test_evaluate_oew():
     mass_computation = run_system(OperatingWeightEmpty(), input_vars, setup_mode="fwd")
 
     oew = mass_computation["data:weight:aircraft:OWE"]
-    assert oew == pytest.approx(14975, abs=1)
+    assert oew == pytest.approx(15192, abs=1)
 
 
 def test_loop_compute_oew():
@@ -317,7 +317,7 @@ def test_loop_compute_oew():
 
     mass_computation_1 = run_system(MassBreakdown(payload_from_npax=True), input_vars)
     oew = mass_computation_1["data:weight:aircraft:OWE"]
-    assert oew == pytest.approx(15782, abs=1)
+    assert oew == pytest.approx(15999, abs=1)
 
     # with payload as input
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", "mass_breakdown_inputs.xml"))
@@ -330,4 +330,4 @@ def test_loop_compute_oew():
     ).to_ivc()
     mass_computation_2 = run_system(MassBreakdown(payload_from_npax=False), input_vars)
     oew = mass_computation_2["data:weight:aircraft:OWE"]
-    assert oew == pytest.approx(15782, abs=1) # FIXME: the problem is that result remain the same whereas max_payload differs by 150kg
+    assert oew == pytest.approx(15999, abs=1) # FIXME: the problem is that result remain the same whereas max_payload differs by 150kg

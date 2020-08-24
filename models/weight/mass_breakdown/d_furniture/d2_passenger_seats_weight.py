@@ -28,7 +28,7 @@ class PassengerSeatsWeight(om.ExplicitComponent):
 
     def setup(self):
         
-        self.add_input("data:TLAR:NPAX", val=np.nan) # ??? Does it includes pilots seats ?
+        self.add_input("data:TLAR:NPAX", val=np.nan)
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         
         self.add_output("data:weight:furniture:passenger_seats:mass", units="kg")
@@ -37,7 +37,7 @@ class PassengerSeatsWeight(om.ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        npax = inputs["data:TLAR:NPAX"]
+        npax = inputs["data:TLAR:NPAX"] + 2.0 # includes 2 pilots seats
         mtow = inputs["data:weight:aircraft:MTOW"]*2.20462 # Takeoff weight in lb
         
         d2 = 0.412*npax**1.145*mtow**0.489 # mass in lb

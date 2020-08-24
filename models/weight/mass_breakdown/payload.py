@@ -42,7 +42,7 @@ class ComputePayload(om.ExplicitComponent):
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        npax = inputs["data:TLAR:NPAX"]
+        npax = inputs["data:TLAR:NPAX"] + 2.0 # addition of 2 pilots
         mass_per_pax = inputs["settings:weight:aircraft:payload:design_mass_per_passenger"]
         max_mass_per_pax = inputs["settings:weight:aircraft:payload:max_mass_per_passenger"]
 

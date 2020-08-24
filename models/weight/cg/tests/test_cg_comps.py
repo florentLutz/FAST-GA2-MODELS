@@ -33,7 +33,6 @@ from ..cg_components import ComputeCGRatioAft
 from ..cg_components import ComputeTanksCG
 from ..cg_components import ComputeWingCG
 from ..cg_components import ComputeVTcg
-from ..cg_components import ComputeGlobalCG
 from ..cg_components import ComputeMaxCGratio
 from ..cg_components import UpdateMLG
 
@@ -180,7 +179,7 @@ def test_compute_cg_loadcase():
     group.add_subsystem("my_model", ComputeCGLoadCase(), promotes=["*"])
     input_list = list_inputs(group)
 
-    # Research independent input value in .xml file
+    # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:weight:payload:PAX:CG:x", 22.1)
     ivc.add_output("data:weight:payload:rear_fret:CG:x", 22.1)
@@ -225,7 +224,7 @@ def test_compute_cg_others():
         "data:geometry:cabin:seats:passenger:length",
     ]
 
-    # Research independent input value in .xml file
+    # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:weight:propulsion:engine:CG:x", 22.1)
 
@@ -265,7 +264,7 @@ def test_compute_cg_ratio_aft():
     group.add_subsystem("my_model", ComputeCGRatioAft(), promotes=["*"])
     input_list = list_inputs(group)
 
-    # Research independent input value in .xml file
+    # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:weight:airframe:wing:CG:x", 2.3)
     ivc.add_output("data:weight:airframe:fuselage:CG:x", 2.3)
@@ -292,43 +291,57 @@ def test_compute_cg_ratio_aft():
     assert cg_mac_pos == pytest.approx(-2.9, abs=1e-1)
 
 
-def test_compute_global_cg():
-    """ Tests computation of global center of gravity """
-
-    print("Warning: not tested!")
-
-
-def test_compute_max_cg_ratio(input_xml):
+def test_compute_max_cg_ratio():
     """ Tests computation of maximum center of gravity ratio """
 
-    input_list = []
+    # Define the independent input values that should be filled if basic function is choosen
+    ivc = om.IndepVarComp()
+    ivc.add_output("data:weight:aircraft:empty:CG:MAC_position", 0.387846)
+    ivc.add_output("data:weight:aircraft:load_case_1:CG:MAC_position", 0.364924)
+    ivc.add_output("data:weight:aircraft:load_case_2:CG:MAC_position", 0.285139)
+    ivc.add_output("data:weight:aircraft:load_case_3:CG:MAC_position", 0.386260)
+    ivc.add_output("data:weight:aircraft:load_case_4:CG:MAC_position", 0.388971)
+    ivc.add_output("data:weight:aircraft:load_case_5:CG:MAC_position", 0.388971)
+    ivc.add_output("data:weight:aircraft:load_case_6:CG:MAC_position", 0.388971)
 
-    input_vars = input_xml.read(only=input_list).to_ivc()
-
-    input_vars.add_output("data:weight:aircraft:empty:CG:MAC_position", 0.387846)
-    input_vars.add_output("data:weight:aircraft:load_case_1:CG:MAC_position", 0.364924)
-    input_vars.add_output("data:weight:aircraft:load_case_2:CG:MAC_position", 0.285139)
-    input_vars.add_output("data:weight:aircraft:load_case_3:CG:MAC_position", 0.386260)
-    input_vars.add_output("data:weight:aircraft:load_case_4:CG:MAC_position", 0.388971)
-
-    problem = run_system(ComputeMaxCGratio(), input_vars)
-
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeMaxCGratio(), ivc)
     cg_ratio = problem["data:weight:aircraft:CG:aft:MAC_position"]
     assert cg_ratio == pytest.approx(0.438971, abs=1e-6)
 
 
-def test_compute_aircraft_cg(input_xml):
+def test_compute_aircraft_cg():
     """ Tests computation of static margin """
 
-    input_list = [
-        "data:geometry:wing:MAC:length",
-        "data:geometry:wing:MAC:at25percent:x",
-    ]
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", ComputeAircraftCG(), promotes=["*"])
+    input_list = list_inputs(group)
 
-    input_vars = input_xml.read(only=input_list).to_ivc()
-    input_vars.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.388971)
+    # Research independent input value in .xml file  and add values calculated from other modules
+    ivc = get_indep_var_comp(input_list)
+    ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.388971)
 
-    problem = run_system(ComputeAircraftCG(), input_vars)
-
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeAircraftCG(), ivc)
     cg_global = problem["data:weight:aircraft:CG:aft:x"]
     assert cg_global == pytest.approx(17.1, abs=1e-1)
+
+
+def test_update_mlg():
+    """ Tests computation of MLG update """
+
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", UpdateMLG(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file  and add values calculated from other modules
+    ivc = get_indep_var_comp(input_list)
+    ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.388971)
+    ivc.add_output("data:weight:airframe:landing_gear:front:CG:x", 1.453)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(UpdateMLG(), ivc)
+    cg_a51 = problem["data:weight:airframe:landing_gear:main:CG:x"]
+    assert cg_a51 == pytest.approx(23.7, abs=1e-1)
