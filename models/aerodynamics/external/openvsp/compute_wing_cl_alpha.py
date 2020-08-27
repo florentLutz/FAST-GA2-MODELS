@@ -43,10 +43,10 @@ _AIRFOIL_2_FILE_NAME = "naca23012.af"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
 
-class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
+class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
 
     def initialize(self):
-        
+        self.options.declare("low_speed_aero", default=False, types=bool)
         self.options.declare(OPTION_OPENVSP_EXE_PATH, default="", types=str, allow_none=True)
         
     def setup(self):
@@ -63,11 +63,15 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
-        self.add_input("openvsp:altitude", val=np.nan, units="ft")
-        self.add_input("openvsp:mach", val=np.nan)
-        
-        self.add_output("openvsp:cl_0")
-        self.add_output("openvsp:cl_alpha_wing")
+        if self.options["low_speed_aero"]:
+            self.add_input("Mach_low_speed", val=np.nan)
+            self.add_output("data:aerodynamics:aircraft:low_speed:cl_0_clean")
+            self.add_output("data:aerodynamics:aircraft:low_speed:cl_alpha")
+        else:
+            self.add_input("data:TLAR:v_cruise", val=np.nan)
+            self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
+            self.add_output("data:aerodynamics:aircraft:cruise:cl_0_clean")
+            self.add_output("data:aerodynamics:aircraft:cruise:cl_alpha")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -87,8 +91,14 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         Sref_wing = inputs['data:geometry:wing:area']
         span_wing = inputs['data:geometry:wing:span']
         height_max = inputs["data:geometry:fuselage:maximum_height"]
-        altitude = inputs["openvsp:altitude"]
-        mach = inputs["openvsp:mach"]
+        if self.options["low_speed_aero"]:
+            altitude = 0.0
+            atm = Atmosphere(altitude)
+            mach = inputs["Mach_low_speed"]
+        else:
+            altitude = inputs["data:mission:sizing:cruise:altitude"]
+            atm = Atmosphere(altitude)
+            mach = inputs["data:TLAR:v_cruise"]/atm.speed_of_sound
         x_wing = fa_length-x0_wing-0.25*l0_wing
         z_wing = -(height_max - 0.12*l2_wing)*0.5
         span2_wing = y4_wing - y2_wing
@@ -214,14 +224,16 @@ class ComputeWINGCLALPHAopenvsp(ExternalCodeComp):
         cl_0 = result_cl[0] * k_fus
         cl_5 = result_cl[1] * k_fus
         # Calculate derivative
-        cl_alpha_wing = (cl_5 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)
-        
-        
-        outputs["openvsp:cl_0"] = cl_0
-        outputs["openvsp:cl_alpha_wing"] = cl_alpha_wing
-            
+        cl_alpha = (cl_5 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)           
         # Delete temporary directory    
-        tmp_directory.cleanup()                
+        tmp_directory.cleanup()              
+        
+        if self.options["low_speed_aero"]:
+            outputs['data:aerodynamics:aircraft:low_speed:cl_0_clean'] = cl_0
+            outputs['data:aerodynamics:aircraft:low_speed:cl_alpha'] = cl_alpha
+        else:
+            outputs['data:aerodynamics:aircraft:cruise:cl_0_clean'] = cl_0
+            outputs['data:aerodynamics:aircraft:cruise:cl_alpha'] = cl_alpha
         
     @staticmethod
     def _read_polar_file(tmp_result_file_path: str, AOAList: list) -> np.ndarray:

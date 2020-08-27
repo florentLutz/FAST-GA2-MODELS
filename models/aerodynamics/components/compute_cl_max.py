@@ -16,22 +16,19 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+from openmdao.core.explicitcomponent import ExplicitComponent
 import openmdao.api as om
 
-from fastoad.models.aerodynamics.components.compute_max_cl_landing import ComputeMaxClLanding
-from fastoad.models.aerodynamics.components.high_lift_aero import ComputeDeltaHighLift
-from fastoad.models.aerodynamics.external.xfoil import XfoilPolar
-from fastoad.models.aerodynamics.external.xfoil.xfoil_polar import OPTION_XFOIL_EXE_PATH
+from high_lift_aero import ComputeDeltaHighLift
+from ..external.xfoil import XfoilPolar
+from ..external.xfoil.xfoil_polar import OPTION_XFOIL_EXE_PATH
 from fastoad.models.options import OpenMdaoOptionDispatcherGroup
 from fastoad.utils.physics import Atmosphere
 
 
-from openmdao.core.group import Group
-from openmdao.core.indepvarcomp import IndepVarComp
-
-class AerodynamicsLanding(OpenMdaoOptionDispatcherGroup):
+class ComputeMaxCL(OpenMdaoOptionDispatcherGroup):
     """
-    Computes maximum CL of the aircraft in landing conditions.
+    Computes maximum CL of the aircraft in landing/take-off conditions.
 
     Maximum 2D CL without high-lift is computed using XFoil (or provided as input if option
     use_xfoil is set to False). 3D CL is deduced using sweep angle.
@@ -53,6 +50,7 @@ class AerodynamicsLanding(OpenMdaoOptionDispatcherGroup):
     """
 
     def initialize(self):
+        
         self.options.declare("use_xfoil", default=True, types=bool)
         self.options.declare("xfoil_alpha_min", default=0.0, types=float)
         self.options.declare("xfoil_alpha_max", default=30.0, types=float)
@@ -60,6 +58,7 @@ class AerodynamicsLanding(OpenMdaoOptionDispatcherGroup):
         self.options.declare(OPTION_XFOIL_EXE_PATH, default="", types=str, allow_none=True)
 
     def setup(self):
+        
         self.add_subsystem("mach_reynolds", ComputeMachReynolds(), promotes=["*"])
         if self.options["use_xfoil"]:
             start = self.options["xfoil_alpha_min"]
@@ -74,13 +73,26 @@ class AerodynamicsLanding(OpenMdaoOptionDispatcherGroup):
         self.add_subsystem(
             "delta_cl_landing", ComputeDeltaHighLift(landing_flag=True), promotes=["*"]
         )
-        self.add_subsystem("compute_max_cl_landing", ComputeMaxClLanding(), promotes=["*"])
+        self.add_subsystem("compute_max_cl", ComputeAircraftMaxCl(), promotes=["*"])
 
         if self.options["use_xfoil"]:
-            self.connect("data:aerodynamics:aircraft:landing:mach", "xfoil_run.xfoil:mach")
-            self.connect("data:aerodynamics:aircraft:landing:reynolds", "xfoil_run.xfoil:reynolds")
+            ivc = om.IndepVarComp()
+            ivc.add_output("data:aerodynamics:wing:low_speed:alpha")
+            ivc.add_output("data:aerodynamics:wing:low_speed:CL")
+            ivc.add_output("data:aerodynamics:wing:low_speed:CD")
+            ivc.add_output("data:aerodynamics:wing:low_speed:CDp")
+            ivc.add_output("data:aerodynamics:wing:low_speed:CM")
+            self.add_subsystem("low_speed_arrays", ivc, promotes=["*"])
+            self.connect("data:aerodynamics:wing:low_speed:alpha", "xfoil_run.xfoil:alpha")
+            self.connect("data:aerodynamics:wing:low_speed:CL", "xfoil_run.xfoil:CL")
+            self.connect("data:aerodynamics:wing:low_speed:CD", "xfoil_run.xfoil:CD")
+            self.connect("data:aerodynamics:wing:low_speed:CDp", "xfoil_run.xfoil:CDp")
+            self.connect("data:aerodynamics:wing:low_speed:CM", "xfoil_run.xfoil:CM")
+            self.connect("data:aerodynamics:aircraft:low_speed:mach", "xfoil_run.xfoil:mach")
             self.connect(
-                "xfoil_run.xfoil:CL_max_2D", "data:aerodynamics:aircraft:landing:CL_max_clean_2D"
+                "data:aerodynamics:wing:low_speed:reynolds", "xfoil_run.xfoil:reynolds")
+            self.connect(
+                "xfoil_run.xfoil:CL_max_2D", "data:aerodynamics:wing:low_speed:CL_max_clean_2D"
             )
 
 
@@ -90,24 +102,26 @@ class ComputeMachReynolds(om.ExplicitComponent):
     """
 
     def setup(self):
-        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:TLAR:approach_speed", val=np.nan, units="m/s")
         
-        self.add_output("data:aerodynamics:aircraft:landing:mach")
-        self.add_output("data:aerodynamics:aircraft:landing:reynolds")
+        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
+        self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
+        
+        self.add_output("data:aerodynamics:aircraft:low_speed:mach")
+        self.add_output("data:aerodynamics:wing:low_speed:reynolds")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+        
         l0_wing = inputs["data:geometry:wing:MAC:length"]
-        speed = inputs["data:TLAR:approach_speed"]
+        speed = inputs["data:TLAR:v_approach"]
 
         atm = Atmosphere(0.0, 15.0)
         mach = speed / atm.speed_of_sound
         reynolds = atm.get_unitary_reynolds(mach) * l0_wing
 
-        outputs["data:aerodynamics:aircraft:landing:mach"] = mach
-        outputs["data:aerodynamics:aircraft:landing:reynolds"] = reynolds
+        outputs["data:aerodynamics:aircraft:low_speed:mach"] = mach
+        outputs["data:aerodynamics:wing:low_speed:reynolds"] = reynolds
 
 
 class Compute3DMaxCL(om.ExplicitComponent):
@@ -116,16 +130,40 @@ class Compute3DMaxCL(om.ExplicitComponent):
     """
 
     def setup(self):
+        
         self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="rad")
-        self.add_input("data:aerodynamics:aircraft:landing:CL_max_clean_2D", val=np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean_2D", val=np.nan)
 
-        self.add_output("data:aerodynamics:aircraft:landing:CL_max_clean")
+        self.add_output("data:aerodynamics:wing:low_speed:CL_max_clean")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+        
         sweep_25 = inputs["data:geometry:wing:sweep_25"]
-        cl_max_2d = inputs["data:aerodynamics:aircraft:landing:CL_max_clean_2D"]
-        outputs["data:aerodynamics:aircraft:landing:CL_max_clean"] = (
-            cl_max_2d * 0.9 * np.cos(sweep_25)
-        )
+        cl_max_2d = inputs["data:aerodynamics:wing:low_speed:CL_max_clean_2D"]
+        
+        CL_max_clean = cl_max_2d * 0.9 * np.cos(sweep_25)
+        
+        outputs["data:aerodynamics:wing:low_speed:CL_max_clean"] = CL_max_clean
+        
+        
+class ComputeAircraftMaxCl(ExplicitComponent):
+    def setup(self):
+        
+        self.add_input("data:aerodynamics:aircraft:low_speed:CL_max_clean", val=np.nan)
+        self.add_input("data:aerodynamics:high_lift_devices:takeoff:CL", val=np.nan)
+        self.add_input("data:aerodynamics:high_lift_devices:landing:CL", val=np.nan)
+
+        self.add_output("data:aerodynamics:aircraft:landing:CL_max")
+
+        self.declare_partials("*", "*", method="fd")
+
+    def compute(self, inputs, outputs):
+        
+        cl_max_clean = inputs["data:aerodynamics:aircraft:low_speed:CL_max_clean"]
+        cl_max_takeoff = cl_max_clean + inputs["data:aerodynamics:high_lift_devices:takeoff:CL"]
+        cl_max_landing = cl_max_clean + inputs["data:aerodynamics:high_lift_devices:landing:CL"]
+
+        outputs["data:aerodynamics:aircraft:takeoff:CL_max"] = cl_max_takeoff
+        outputs["data:aerodynamics:aircraft:landing:CL_max"] = cl_max_landing

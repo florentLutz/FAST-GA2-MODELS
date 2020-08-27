@@ -30,15 +30,15 @@ class ComputeVTArea(om.ExplicitComponent):
 
     def setup(self):
         
-        self.add_input("data:geometry:propulsion:engine:count", val=np.nan, units="kn")
+        self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan, units="m")
         self.add_input("data:aerodynamics:fuselage:cruise:CnBeta", val=np.nan)
         self.add_input("data:aerodynamics:vertical_tail:cruise:CnBeta", val=np.nan)
-        self.add_input("data:TLAR:v_cruise", val=np.nan, units="kn")
-        self.add_input("data:TLAR:v_approach", val=np.nan, units="kn")
+        self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
+        self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
         self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units="ft")
         self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:diameter", val=np.nan, units="m")
@@ -111,8 +111,8 @@ class ComputeVTArea(om.ExplicitComponent):
         cg_mac_position = inputs["data:weight:aircraft:CG:aft:MAC_position"]
         cn_beta_fuselage = inputs["data:aerodynamics:fuselage:cruise:CnBeta"]
         cn_beta_vt = inputs["data:aerodynamics:vertical_tail:cruise:CnBeta"]
-        cruise_speed = inputs["data:TLAR:v_cruise"] * 0.514444 # converted to m/s
-        approach_speed = inputs["data:TLAR:v_approach"] * 0.514444 # converted to m/s
+        cruise_speed = inputs["data:TLAR:v_cruise"]
+        approach_speed = inputs["data:TLAR:v_approach"]
         cruise_altitude = inputs["data:mission:sizing:cruise:altitude"] 
         wing_htp_distance = inputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"]
         nac_diam = inputs["data:geometry:propulsion:nacelle:diameter"]

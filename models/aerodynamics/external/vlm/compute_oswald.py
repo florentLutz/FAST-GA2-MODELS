@@ -1,0 +1,112 @@
+"""
+    Computation of Oswald coefficient using VLM
+"""
+#  This file is part of FAST : A framework for rapid Overall Aircraft Design
+#  Copyright (C) 2020  ONERA & ISAE-SUPAERO
+#  FAST is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import logging
+
+import numpy as np
+import math
+from fastoad.models.aerodynamics.constants import POLAR_POINT_COUNT
+from fastoad.utils.physics import Atmosphere
+from vlm import VLM
+
+_INPUT_AOAList = [14.0] # ???: why such angle choosen ?
+
+_LOGGER = logging.getLogger(__name__)
+
+class ComputeOSWALDvlm(VLM):
+    """ Computes Oswald efficiency number """
+    
+    def initialize(self):
+        self.options.declare("low_speed_aero", default=False, types=bool)
+        
+    def setup(self):
+        
+        super().setup()
+        
+        self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units='m')
+        self.add_input("data:geometry:wing:span", val=np.nan, units='m')
+        self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
+        self.add_input("data:geometry:wing:area", val=np.nan, units='m**2')
+        self.add_input("data:geometry:wing:area", val=np.nan, units='m**2')
+        nans_array = np.full(POLAR_POINT_COUNT, np.nan)
+        if self.options["low_speed_aero"]:
+            self.add_input("Mach_low_speed", val=np.nan)
+            self.add_input("data:aerodynamics:wing:low_speed:CL", val=nans_array)
+            self.add_input("data:aerodynamics:wing:low_speed:CDp", val=nans_array)
+            self.add_output("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient")
+        else:
+            self.add_input("data:TLAR:v_cruise", val=np.nan)
+            self.add_input("data:aerodynamics:wing:cruise:CL", val=nans_array)
+            self.add_input("data:aerodynamics:wing:cruise:CDp", val=nans_array)
+            self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
+            self.add_output("data:aerodynamics:aircraft:cruise:induced_drag_coefficient")
+        
+        
+        self.declare_partials("*", "*", method="fd")        
+    
+    def compute(self, inputs, outputs):
+        
+        # Get inputs
+        b_f = inputs['data:geometry:fuselage:maximum_width']
+        span = inputs['data:geometry:wing:span']
+        aspect_ratio = inputs['data:geometry:wing:aspect_ratio']
+        wing_area = inputs['data:geometry:wing:area']
+        if self.options["low_speed_aero"]:
+            altitude = 0.0
+            atm = Atmosphere(altitude)
+            mach = inputs["Mach_low_speed"]
+            CL_clean = inputs["data:aerodynamics:wing:low_speed:CL"]
+            CDp_clean = inputs["data:aerodynamics:wing:low_speed:CDp"]
+        else:
+            altitude = inputs["data:mission:sizing:cruise:altitude"]
+            atm = Atmosphere(altitude)
+            mach = inputs["data:TLAR:v_cruise"]/atm.speed_of_sound
+            CL_clean = inputs["data:aerodynamics:wing:cruise:CL"]
+            CDp_clean = inputs["data:aerodynamics:wing:cruise:CDp"]
+        
+        V_inf = min(atm.speed_of_sound * mach, 0.1) # avoid V=0 m/s crashes
+        super()._run()
+        Cl, Cdi, Oswald, _ = super().compute_wing(self, inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
+        k_fus = 1 - 2*(b_f/span)**2
+        oswald = Oswald[0] * k_fus #Fuselage correction
+        if mach>0.4:
+            oswald = oswald * (-0.001521 * ((mach - 0.05) / 0.3 - 1)**10.82 + 1) # Mach correction
+        cdp_foil = self._interpolate_cdp(CL_clean, CDp_clean, Cl[0])
+        cdi = (1.05*Cl[0])**2/(math.pi * aspect_ratio * oswald) + cdp_foil # Full aircraft correction: Wing lift is 105% of total lift.
+        coef_e = Cl[0]**2/(math.pi * aspect_ratio * cdi)
+        coef_k = 1. / (math.pi * span**2 / wing_area * coef_e)
+        
+        if self.options["low_speed_aero"]:
+            outputs['data:aerodynamics:aircraft:low_speed:induced_drag_coefficient'] = coef_k
+        else:
+            outputs['data:aerodynamics:aircraft:cruise:induced_drag_coefficient'] = coef_k
+
+    
+    @staticmethod
+    def _interpolate_cdp(lift_coeff: np.ndarray, drag_coeff: np.ndarray, ojective:float) -> float:
+        """
+        
+        :param lift_coeff: CL array
+        :param drag_coeff: CDp array
+        :param ojective: CL_ref objective value
+        :return: CD_ref if CL_ref encountered, or default value otherwise
+        """
+        if ojective >= min(lift_coeff) and ojective <= max(lift_coeff):
+            idx_max = np.where(lift_coeff == max(lift_coeff))
+            return np.interp(ojective, lift_coeff[0:idx_max+1], drag_coeff[0:idx_max+1])
+
+        _LOGGER.warning("CL not found. Using default CDp value (%s)", drag_coeff[0])
+        return drag_coeff[0]

@@ -20,14 +20,20 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 
 
 class Cd0Other(ExplicitComponent):
+    def initialize(self):
+        self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
+        self.low_speed_aero = self.options["low_speed_aero"]
 
         self.add_input("data:configuration:LG_type", val=np.nan)
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         
-        self.add_output("cd0_other")
+        if self.low_speed_aero:
+            self.add_output("data:aerodynamics:other:low_speed:CD0")
+        else:
+            self.add_output("data:aerodynamics:other:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -45,5 +51,8 @@ class Cd0Other(ExplicitComponent):
         cd0_cooling = 7.054E-6 / wing_area * mtow # FIXME: no type piston engine defined...
         #Gudmunnson p739. Sum of other components (not calculated here), cx_other*wing_area assumed typical
         cd0_components = 0.0253/(wing_area)        
-
-        outputs["cd0_other"] = cd0_cowling + cd0_cooling + cd0_components
+        
+        if self.low_speed_aero:
+            outputs["data:aerodynamics:other:low_speed:CD0"] = cd0_cowling + cd0_cooling + cd0_components
+        else:
+            outputs["data:aerodynamics:other:cruise:CD0"] = cd0_cowling + cd0_cooling + cd0_components

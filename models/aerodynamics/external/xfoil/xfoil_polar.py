@@ -77,6 +77,11 @@ class XfoilPolar(ExternalCodeComp):
         self.add_input("xfoil:mach", val=np.nan)
         self.add_input("data:geometry:wing:thickness_ratio", val=np.nan)
 
+        self.add_output("xfoil:alpha")
+        self.add_output("xfoil:CL")
+        self.add_output("xfoil:CD")
+        self.add_output("xfoil:CDp")
+        self.add_output("xfoil:CM")
         self.add_output("xfoil:CL_max_2D")
 
         self.declare_partials("*", "*", method="fd")
@@ -151,6 +156,11 @@ class XfoilPolar(ExternalCodeComp):
 
         # Post-processing --------------------------------------------------------------------------
         result_array = self._read_polar(tmp_result_file_path)
+        outputs["xfoil:alpha"] = result_array["alpha"]
+        outputs["xfoil:CL"] = result_array["CL"]
+        outputs["xfoil:CD"] = result_array["CD"]
+        outputs["xfoil:CDp"] = result_array["CDp"]
+        outputs["xfoil:CM"] = result_array["CM"]
         outputs["xfoil:CL_max_2D"] = self._get_max_cl(result_array["alpha"], result_array["CL"])
 
         # Getting output files if needed

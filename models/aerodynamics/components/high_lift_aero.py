@@ -23,7 +23,7 @@ from scipy import interpolate
 from . import resources
 
 LIFT_EFFECTIVENESS_FILENAME = "interpolation of lift effectiveness.txt"
-
+ELEVATOR_ANGLE_LIST = np.linspace(-25.0, 25.0, num=50)
 
 class ComputeDeltaHighLift(om.ExplicitComponent):
     """
@@ -34,19 +34,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.options.declare("landing_flag", default=False, types=bool)
 
     def setup(self):
-
-        if self.options["landing_flag"]:
-            self.add_input("data:mission:sizing:landing:flap_angle", val=np.nan, units="deg")
-            self.add_input("data:mission:sizing:landing:slat_angle", val=np.nan, units="deg")
-            self.add_input("data:aerodynamics:aircraft:landing:mach", val=np.nan)
-            self.add_output("data:aerodynamics:high_lift_devices:landing:CL")
-        else:
-            self.add_input("data:mission:sizing:takeoff:flap_angle", val=np.nan, units="deg")
-            self.add_input("data:mission:sizing:takeoff:slat_angle", val=np.nan, units="deg")
-            self.add_input("data:aerodynamics:aircraft:takeoff:mach", val=np.nan)
-            self.add_output("data:aerodynamics:high_lift_devices:takeoff:CL")
-            self.add_output("data:aerodynamics:high_lift_devices:takeoff:CD")
-
+        
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:taper_ratio", val=np.nan)
@@ -55,8 +43,23 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:flap:chord_ratio", val=np.nan)
         self.add_input("data:geometry:flap:span_ratio", val=np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:CL_alpha", val=np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", val=np.nan)
         self.add_input("configuration:flap_type", val=np.nan)
+        if self.options["landing_flag"]:
+            self.add_input("data:mission:sizing:landing:flap_angle", val=np.nan, units="deg")
+            self.add_input("data:aerodynamics:aircraft:landing:mach", val=np.nan)
+            self.add_output("data:aerodynamics:flaps:landing:CL")
+            self.add_output("data:aerodynamics:flaps:landing:CM")
+            self.add_output("data:aerodynamics:flaps:landing:CD")
+        else:
+            self.add_input("data:mission:sizing:takeoff:flap_angle", val=np.nan, units="deg")
+            self.add_output("data:aerodynamics:flaps:takeoff:CL")
+            self.add_output("data:aerodynamics:flaps:takeoff:CM")
+            self.add_output("data:aerodynamics:flaps:takeoff:CD")
+        self.add_input("Mach_low_speed", val=np.nan)
+        self.add_output("data:aerodynamics:elevator:low_speed:angle")
+        self.add_output("data:aerodynamics:elevator:low_speed:CL")
+        
 
         self.declare_partials("*", "*", method="fd") # FIXME: define derivative without flap_type
 
@@ -64,71 +67,149 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
 
         if self.options["landing_flag"]:
             flap_angle = inputs["data:mission:sizing:landing:flap_angle"]
-            slat_angle = inputs["data:mission:sizing:landing:slat_angle"]
-            mach = inputs["data:aerodynamics:aircraft:landing:mach"]
         else:
             flap_angle = inputs["data:mission:sizing:takeoff:flap_angle"]
-            slat_angle = inputs["data:mission:sizing:takeoff:slat_angle"]
-            mach = inputs["data:aerodynamics:aircraft:takeoff:mach"]
-
+        mach = inputs["Mach_low_speed"]
+        
+        # Computes flaps contribution during low speed operations (take-off/landing)
         if self.options["landing_flag"]:
-            outputs["data:aerodynamics:high_lift_devices:landing:CL"] = self._get_delta_cl(
+            outputs["data:aerodynamics:flaps:landing:CL"] = self._get_flaps_delta_cl(
                 inputs,
-                slat_angle,
                 flap_angle,
                 mach,
+            )
+            outputs["data:aerodynamics:flaps:landing:CM"] = self._get_flaps_delta_cm(
+                inputs,
+                flap_angle,
+                mach,
+            )
+            outputs["data:aerodynamics:flaps:landing:CD"] = self._get_flaps_delta_cd(
+                inputs,
+                flap_angle,
             )
         else:
-            outputs["data:aerodynamics:high_lift_devices:takeoff:CL"] = self._get_delta_cl(
+            outputs["data:aerodynamics:flaps:takeoff:CL"] = self._get_flaps_delta_cl(
                 inputs,
-                slat_angle,
                 flap_angle,
                 mach,
             )
-            outputs["data:aerodynamics:high_lift_devices:takeoff:CD"] = self._get_delta_cd(
+            outputs["data:aerodynamics:flaps:takeoff:CM"] = self._get_flaps_delta_cm(
                 inputs,
-                slat_angle, 
+                flap_angle,
+                mach,
+            )
+            outputs["data:aerodynamics:flaps:takeoff:CD"] = self._get_flaps_delta_cd(
+                inputs,
                 flap_angle,
             )
+        
+        outputs["data:aerodynamics:elevator:low_speed:angle"] = ELEVATOR_ANGLE_LIST
+        outputs["data:aerodynamics:elevator:low_speed:CL"] = self._get_elevator_delta_cl(
+                inputs,
+                ELEVATOR_ANGLE_LIST,
+            )
+            
+    def _get_elevator_delta_cl(self, inputs, elevator_angle_array):
+        """
+        Method based on on Roskam book
 
-    def _get_delta_cl(self, inputs, slat_angle, flap_angle, mach):
+        :param elevator_angle: in degrees
+        :return: increment of lift coefficient
+        """
+        
+        ht_area = inputs["data:geometry:horizontal_tail:area"]
+        wing_area = inputs["data:geometry:wing:area"]
+        
+        k_array = np.zeros(np.shape(elevator_angle_array))
+        k2_array = np.zeros(np.shape(elevator_angle_array))
+        cldelta_theory = 4.5 #Fig 8.14, for t/c=0.10 and cf/c=0.3
+        for idx in range(len(elevator_angle_array)):
+            elevator_angle = elevator_angle_array[idx]
+            if abs(elevator_angle)<=12: #Fig 8.13. Quick linear approximation of graph (not intended to be used)
+                k = 1.0 
+            elif abs(elevator_angle)<=20:
+                k = 1.0 - 0.0263*(abs(elevator_angle) - 12)
+            elif abs(elevator_angle)<=25:
+                k = 0.79 - 0.024* (abs(elevator_angle)-20)
+            else:
+                k = 0.67 - 0.008 * (abs(elevator_angle) - 25)
+            if abs(elevator_angle)<=15: #Fig 8.33. Quick linear approximation of graph (not intended to be used)
+                k2 = 0.46 / 15 * abs(elevator_angle) 
+            else:
+                k2 = 0.46 + 0.22/10 * (abs(elevator_angle) - 15)
+            k_array[idx] = k
+            k2_array[idx] = k2
+        #Roskam 3D flap parameters
+        k1 = 1.05 #cf/c = 0.3
+        delta_cl_elev = (cldelta_theory * k1 * k_array* k2_array * np.radians(elevator_angle_array)) \
+                        * ht_area/wing_area
+                        
+        return delta_cl_elev
+        
+
+    def _get_flaps_delta_cl(self, inputs, flap_angle, mach):
         """
         Method based on Roskam book and Raymer book
 
-        :param slat_angle: in degrees
         :param flap_angle: in degrees
         :param mach:
         :return: increment of lift coefficient
         """
 
         flap_angle = np.radians(flap_angle)
-        slat_angle = np.radians(slat_angle)
 
-        # Compute flap lift coefficient
         if not(self.options["landing_flag"]) and (flap_angle != 30.0):
             delta_cl_flap = self._compute_delta_cl_flaps(inputs, flap_angle, mach)
         else:
             delta_cl_flap = self._compute_delta_clmax_flaps(inputs)
-        # Compute slat lift coefficient
-        delta_cl_slat = 0.0
-        # Sum results
-        delta_cl_total = delta_cl_flap + delta_cl_slat
 
-        return delta_cl_total
-
-    def _get_delta_cd(self, inputs, slat_angle, flap_angle):
+        return delta_cl_flap
+    
+    def _get_flaps_delta_cm(self, inputs, flap_angle, mach):
         """
+        Method based on Roskam book and Raymer book
 
-        :param slat_angle: in degrees
+        :param flap_angle: in degrees
+        :param mach:
+        :return: increment of moment coefficient
+        """
+        
+        wing_taper_ratio = inputs['data:geometry:wing:taper_ratio']
+        
+        #Method from Roskam (sweep=0, flaps 60%, simple slotted and not extensible,
+        #at 25% MAC, cf/c+0.25)
+        k_p = interpolate.interp1d([0.,0.2,0.33,0.5,1.],[0.65,0.75,0.7,0.63,0.5])
+        #k_p: Figure 8.105, interpolated function of taper ratio (span ratio fixed)
+        delta_cl_flap = self._get_delta_cl(inputs, flap_angle, mach)
+        delta_cm_flap = k_p(wing_taper_ratio) * (-0.27)*(delta_cl_flap) #-0.27: Figure 8.106
+
+        return delta_cm_flap
+    
+
+    def _get_flaps_delta_cd(self, inputs, flap_angle):
+        """
+        Method from Young (in Gudmunsson book; page 725)
+        
         :param flap_angle: in degrees
         :return: increment of drag coefficient
         """
-
-        cd0_flap = self._compute_delta_cd_flaps(inputs, flap_angle)
-        cd0_slat = 0.0 # !!!: no model for increased drag by slats
-        total_cd0 = cd0_flap + cd0_slat
-
-        return total_cd0
+        
+        flap_type = inputs['configuration:flap_type']
+        flap_chord_ratio = inputs['data:geometry:flap:chord_ratio']
+        flap_area_ratio = self._compute_flap_area_ratio(inputs)
+        
+        if flap_type == 1.0: # slotted flap
+            delta_cd_flaps = (-0.01523 + 0.05145 * flap_angle - 9.53201E-4 * flap_angle**2 \
+                              + 7.5972E-5 * flap_angle**3) * flap_area_ratio / 100
+        else: # plain flap
+            k1 = - 21.09 * flap_chord_ratio**3 + 14.091 * flap_chord_ratio**2 \
+                 + 3.165 * flap_chord_ratio - 0.00103
+            k2 = -3.795E-7 * flap_angle**3 + 5.387E-5 * flap_angle**2 \
+                 + 6.843E-4 * flap_angle - 1.4729E-3
+            delta_cd_flaps = k1 * k2 * flap_area_ratio   
+            
+        return delta_cd_flaps
+    
     
     def _compute_delta_cl_flaps(self, inputs, flap_angle, mach):
         """
@@ -139,7 +220,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         flap_span_ratio = inputs['ata:geometry:flap:span_ratio']
         flap_chord_ratio = inputs['data:geometry:flap:chord_ratio']
         flap_type = inputs['configuration:flap_type']
-        cl_alpha_wing = inputs['data:aerodynamics:aircraft:takeoff:CL_alpha']
+        cl_alpha_wing = inputs['data:aerodynamics:aircraft:low_speed:CL_alpha']
         
         if flap_type == 1: # slotted flap
             alpha_flap = self._compute_alpha_flap(flap_angle, flap_chord_ratio)
@@ -198,27 +279,6 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         
         return delta_clmax_flaps
     
-    def _compute_delta_cd_flaps(self, inputs, flap_angle):
-        """
-        
-        Method from Young (in Gudmunsson book; page 725)
-        """
-        
-        flap_type = inputs['configuration:flap_type']
-        flap_chord_ratio = inputs['data:geometry:flap:chord_ratio']
-        flap_area_ratio = self._compute_flap_area_ratio(inputs)
-        
-        if flap_type == 1.0: # slotted flap
-            delta_cd_flaps = (-0.01523 + 0.05145 * flap_angle - 9.53201E-4 * flap_angle**2 \
-                              + 7.5972E-5 * flap_angle**3) * flap_area_ratio / 100
-        else: # plain flap
-            k1 = - 21.09 * flap_chord_ratio**3 + 14.091 * flap_chord_ratio**2 \
-                 + 3.165 * flap_chord_ratio - 0.00103
-            k2 = -3.795E-7 * flap_angle**3 + 5.387E-5 * flap_angle**2 \
-                 + 6.843E-4 * flap_angle - 1.4729E-3
-            delta_cd_flaps = k1 * k2 * flap_area_ratio   
-            
-        return delta_cd_flaps
         
     def _compute_flap_area_ratio(self, inputs):
         

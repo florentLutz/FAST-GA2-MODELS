@@ -22,12 +22,12 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 
 
 class Cd0Fuselage(ExplicitComponent):
+    
     def initialize(self):
-        self.options.declare("reynolds", default=False, types=float)
+        self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
-        
-        self.reynolds = self.options["reynolds"]
+        self.low_speed_aero = self.options["low_speed_aero"]
 
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
@@ -35,8 +35,12 @@ class Cd0Fuselage(ExplicitComponent):
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:wetted_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        
-        self.add_output("cd0_fus")
+        if self.low_speed_aero:
+            self.add_input("reynolds_low_speed", val=np.nan)
+            self.add_output("data:aerodynamics:fuselage:low_speed:CD0")
+        else:
+            self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
+            self.add_output("data:aerodynamics:fuselage:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -48,20 +52,26 @@ class Cd0Fuselage(ExplicitComponent):
         length = inputs["data:geometry:fuselage:length"]
         wet_area_fus = inputs["data:geometry:fuselage:wetted_area"]
         wing_area = inputs["data:geometry:wing:area"]
+        if self.low_speed_aero:
+            reynolds = inputs["reynolds_low_speed"]
+        else:
+            reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
         
-        #Local Reynolds: re*length
-        re = self.reynolds/l0_wing
+        #Local Reynolds:
+        reynolds = reynolds*length/l0_wing
         #5% NLF
         x_trans = 0.05
         #Roots
-        x0_turb = 36.9 * x_trans**0.625 * (1/(re*length))**0.375
-        cf_fus = 0.074 / (re*length)**0.2 * (1 - (x_trans - x0_turb))**0.8        
+        x0_turb = 36.9 * x_trans**0.625 * (1/reynolds)**0.375
+        cf_fus = 0.074 / reynolds**0.2 * (1 - (x_trans - x0_turb))**0.8        
         f = length/math.sqrt(4*height*width/math.pi) 
         ff_fus = 1 + 60/(f**3) + f/400
-        
         #Fuselage
         cd0_fuselage = cf_fus * ff_fus * wet_area_fus / wing_area
         #Cockpit window (Gudmunsson p727)
         cd0_window = 0.002 * (height*width)/wing_area
 
-        outputs["cd0_fus"] = cd0_fuselage + cd0_window
+        if self.low_speed_aero:
+            outputs["data:aerodynamics:fuselage:low_speed:CD0"] = cd0_fuselage + cd0_window
+        else:
+            outputs["data:aerodynamics:fuselage:cruise:CD0"] = cd0_fuselage + cd0_window

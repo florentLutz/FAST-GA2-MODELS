@@ -20,14 +20,19 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 
 
 class Cd0LandingGear(ExplicitComponent):
+    def initialize(self):
+        self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
-
+        self.low_speed_aero = self.options["low_speed_aero"]
+        
         self.add_input("configuration:landing_gear_type", val=np.nan)
         self.add_input("data:geometry:landing_gear:height", val=np.nan, units="m")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        
-        self.add_output("cd0_lg")
+        if self.low_speed_aero:
+            self.add_output("data:aerodynamics:landing_gear:low_speed:CD0")
+        else:
+            self.add_output("data:aerodynamics:landing_gear:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -48,6 +53,10 @@ class Cd0LandingGear(ExplicitComponent):
             cd_wheel = 0.484/2
             cd0_nlg = cd_wheel*area_nlg/(wing_area)
             cd0 = cd0_mlg + cd0_nlg
+            if self.low_speed_aero:
+                outputs["data:aerodynamics:landing_gear:low_speed:CD0"] = cd0
+            else:
+                outputs["data:aerodynamics:landing_gear:cruise:CD0"] = cd0
         else: # retractable LG AC
             tyre_width = 5*0.0254
             #MLG
@@ -57,5 +66,7 @@ class Cd0LandingGear(ExplicitComponent):
             cd_nlg = 0.65
             area_nlg = 14*5*0.0254**2
             cd0 = (cd_mlg*area_mlg + cd_nlg*area_nlg) / wing_area
-
-        outputs["cd0_lg"] = cd0
+            if self.low_speed_aero:
+                outputs["data:aerodynamics:landing_gear:low_speed:CD0"] = cd0
+            else:
+                outputs["data:aerodynamics:landing_gear:cruise:CD0"] = 0.0

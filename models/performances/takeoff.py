@@ -1,4 +1,4 @@
-"""Simple module for performances."""
+"""Simple module for takeoff."""
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
 #  FAST is free software: you can redistribute it and/or modify
@@ -94,8 +94,8 @@ class _v2(om.ExplicitComponent):
         atm = Atmosphere(35, 15.0)
         alpha_max = (CL_max_clean-CL0_clean)/CL_alpha
         gama_climb_rate = math.asin(min_climb_rate)
-        CD0 = CL0_clean+CD0_high_lift
-        CL0 = CD0_clean+CL0_high_lift
+        CD0 = CD0_clean+CD0_high_lift
+        CL0 = CL0_clean+CL0_high_lift
         alpha = np.linspace(0.0, min(alpha_max, ALPHA_LIMIT), num=100) * math.pi/180.0
         V = np.zeros(np.size(alpha))
         climb_rate = np.zeros(np.size(alpha))
@@ -392,7 +392,7 @@ class _simulate_takeoff(om.ExplicitComponent):
         outputs["takeoff:climb_rate"] = math.sin(gamma_t)
         outputs["takeoff:distance"] = distance_t
         outputs["takeoff:consumption"] = TOW - mass_t
-        outputs["takeoff:duration"] = time_t # !!!: 
+        outputs["takeoff:duration"] = time_t
 
 class _Propulsion(om.ExplicitComponent): # FIXME: understand how engine model is choosen
     

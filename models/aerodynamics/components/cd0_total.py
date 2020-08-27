@@ -23,33 +23,55 @@ class Cd0Total(ExplicitComponent):
         self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
+        self.low_speed_aero = self.options["low_speed_aero"]
         
-        self.add_input("cd0_wing", val=np.nan)
-        self.add_input("cd0_fus", val=np.nan)
-        self.add_input("cd0_ht", val=np.nan)
-        self.add_input("cd0_vt", val=np.nan)
-        self.add_input("cd0_nac", val=np.nan)
-        self.add_input("cd0_lg", val=np.nan)
-        self.add_input("cd0_other", val=np.nan)
-        
-        self.add_output("cd0_total")
+        if self.low_speed_aero:
+            self.add_input("data:aerodynamics:wing:low_speed:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:fuselage:low_speed:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:horizontal_tail:low_speed:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:vertical_tail:low_speed:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:nacelles:low_speed:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:landing_gear:low_speed:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:other:low_speed:CD0", val=np.nan)
+            self.add_output("data:aerodynamics:aircraft:low_speed:CD0")
+        else:
+            self.add_input("data:aerodynamics:wing:cruise:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:fuselage:cruise:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:horizontal_tail:cruise:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:vertical_tail:cruise:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:nacelles:cruise:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:landing_gear:cruise:CD0", val=np.nan)
+            self.add_input("data:aerodynamics:other:cruise:CD0", val=np.nan)
+            self.add_output("data:aerodynamics:aircraft:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
 
-        cd0_wing = inputs["cd0_wing"]
-        cd0_fus = inputs["cd0_fus"]
-        cd0_ht = inputs["cd0_ht"]
-        cd0_vt = inputs["cd0_vt"]
-        cd0_nac = inputs["cd0_nac"]
-        cd0_lg = inputs["cd0_lg"]
-        cd0_other = inputs["cd0_other"]
+        if self.low_speed_aero:
+            cd0_wing = inputs["data:aerodynamics:wing:low_speed:CD0"]
+            cd0_fus = inputs["data:aerodynamics:fuselage:low_speed:CD0"]
+            cd0_ht = inputs["data:aerodynamics:horizontal_tail:low_speed:CD0"]
+            cd0_vt = inputs["data:aerodynamics:vertical_tail:low_speed:CD0"]
+            cd0_nac = inputs["data:aerodynamics:nacelles:low_speed:CD0"]
+            cd0_lg = inputs["data:aerodynamics:landing_gear:low_speed:CD0"]
+            cd0_other = inputs["data:aerodynamics:other:low_speed:CD0"]
+        else:
+            cd0_wing = inputs["data:aerodynamics:wing:cruise:CD0"]
+            cd0_fus = inputs["data:aerodynamics:fuselage:cruise:CD0"]
+            cd0_ht = inputs["data:aerodynamics:horizontal_tail:cruise:CD0"]
+            cd0_vt = inputs["data:aerodynamics:vertical_tail:cruise:CD0"]
+            cd0_nac = inputs["data:aerodynamics:nacelles:cruise:CD0"]
+            cd0_lg = inputs["data:aerodynamics:landing_gear:cruise:CD0"]
+            cd0_other = inputs["data:aerodynamics:other:cruise:CD0"]
 
         #CRUD (other undesirable drag). Factor from Gudmunsson book
         crud_factor = 1.25
 
         cd0 = crud_factor * (cd0_wing + cd0_fus + cd0_ht + cd0_vt + cd0_lg + \
                cd0_nac + cd0_other)
-
-        outputs["cd0_total"] = cd0
+        
+        if self.low_speed_aero:
+            outputs["data:aerodynamics:aircraft:low_speed:CD0"] = cd0
+        else:
+            outputs["data:aerodynamics:aircraft:cruise:CD0"] = cd0

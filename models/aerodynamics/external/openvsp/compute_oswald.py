@@ -1,5 +1,5 @@
 """
-    Estimation of wing drag coefficient using OPENVSP
+    Computation of Oswald coefficient using OPENVSP
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -44,9 +44,10 @@ VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
 
 class ComputeOSWALDopenvsp(ExternalCodeComp):
+    """ Computes Oswald efficiency number """
 
     def initialize(self):
-        
+        self.options.declare("low_speed_aero", default=False, types=bool)
         self.options.declare(OPTION_OPENVSP_EXE_PATH, default="", types=str, allow_none=True)
         
     def setup(self):
@@ -63,10 +64,14 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
-        self.add_input("openvsp:altitude", val=np.nan, units="ft")
-        self.add_input("openvsp:mach", val=np.nan)
         
-        self.add_output("openvsp:coef_k")
+        if self.options["low_speed_aero"]:
+            self.add_input("Mach_low_speed", val=np.nan)
+            self.add_output("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient")
+        else:
+            self.add_input("data:TLAR:v_cruise", val=np.nan)
+            self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
+            self.add_output("data:aerodynamics:aircraft:cruise:induced_drag_coefficient")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -86,8 +91,16 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         Sref_wing = inputs['data:geometry:wing:area']
         span_wing = inputs['data:geometry:wing:span']
         height_max = inputs["data:geometry:fuselage:maximum_height"]
-        altitude = inputs["openvsp:altitude"]
-        mach = inputs["openvsp:mach"]
+        if self.options["low_speed_aero"]:
+            altitude = 0.0
+            atm = Atmosphere(altitude)
+            mach = inputs["Mach_low_speed"]
+        else:
+            altitude = inputs["data:mission:sizing:cruise:altitude"]
+            atm = Atmosphere(altitude)
+            mach = inputs["data:TLAR:v_cruise"]/atm.speed_of_sound        
+        
+        # Initial parameters calculation
         x_wing = fa_length-x0_wing-0.25*l0_wing
         z_wing = -(height_max - 0.12*l2_wing)*0.5
         span2_wing = y4_wing - y2_wing
@@ -216,6 +229,10 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         coef_k = 1. / (math.pi * span_wing**2 / Sref_wing * coef_e)
         
         outputs["openvsp:coef_k"] = coef_k
+        if self.options["low_speed_aero"]:
+            outputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"] = coef_k
+        else:
+            outputs["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"] = coef_k
             
         # Delete temporary directory    
         tmp_directory.cleanup()                

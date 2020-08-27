@@ -1,5 +1,5 @@
 """
-    Estimation of vertical tail lift coefficient
+    Estimation of vertical induced yawing moment
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -23,7 +23,7 @@ from fastoad.utils.physics import Atmosphere
 
 class ComputeCnBetaVT(om.ExplicitComponent):
     # TODO: Document equations. Cite sources
-    """ Vertical tail lift coefficient estimation """
+    """ Vertical tail yawing moment estimation """
 
     def setup(self):
         

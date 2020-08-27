@@ -20,7 +20,6 @@ import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-# TODO: This belongs more to aerodynamics than geometry
 class ComputeCnBetaFuselage(ExplicitComponent):
     # TODO: Document equations. Cite sources
     """ Yawing moment due to sideslip estimation """

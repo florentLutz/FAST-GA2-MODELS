@@ -19,12 +19,12 @@ import math
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-
+from fastoad.utils.physics import Atmosphere
 
 class Cd0VerticalTail(ExplicitComponent):
+
     def initialize(self):
-        self.options.declare("reynolds", default=False, types=float)
-        self.options.declare("mach", default=False, types=float)
+        self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
         
@@ -32,13 +32,20 @@ class Cd0VerticalTail(ExplicitComponent):
         self.mach = self.options["mach"]
 
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:tip:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
-        self.add_input("data:geometry:horizontal_tail:wetted_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:vertical_tail:tip:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:vertical_tail:root:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:vertical_tail:sweep_25", val=np.nan, units="deg")
+        self.add_input("data:geometry:vertical_tail:wetted_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        
-        self.add_output("cd0_ht")
+        if self.low_speed_aero:
+            self.add_input("reynolds_low_speed", val=np.nan)
+            self.add_input("Mach_low_speed", val=np.nan)
+            self.add_output("data:aerodynamics:vertical_tail:low_speed:CD0")
+        else:
+            self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
+            self.add_input("data:TLAR:cruise_mach", val=np.nan)
+            self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units="ft")
+            self.add_output("data:aerodynamics:vertical_tail:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -50,9 +57,17 @@ class Cd0VerticalTail(ExplicitComponent):
         sweep_25_vt = inputs["data:geometry:vertical_tail:sweep_25"]
         wet_area_vt = inputs["data:geometry:vertical_tail:wetted_area"]
         wing_area = inputs["data:geometry:wing:area"]
+        if self.low_speed_aero:
+            mach = inputs["Mach_low_speed"]
+            reynolds = inputs["reynolds_low_speed"]
+        else:
+            altitude = inputs["data:mission:sizing:cruise:altitude"]
+            atm = Atmosphere(altitude)
+            mach = inputs["data:TLAR:v_cruise"]/atm.speed_of_sound
+            reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
         
         #Local Reynolds: re*length
-        re = self.reynolds/l0_wing # ???: should it be data:geometry:horizontal_tail:MAC:length?
+        re = reynolds/l0_wing
         #Airfoil data: change if airfoil is redefined (NACA 23012)
         x_tmax = 0.3 # !!!: should be defined with parameter and data file
         thickness = 0.1 # !!!: should be defined with parameter and data file (data:geometry:vertical_tail:thickness_ratio?)
@@ -68,10 +83,13 @@ class Cd0VerticalTail(ExplicitComponent):
         cf_vt = (cf_root + cf_tip) * 0.5
         ff = 1 + 0.6/x_tmax * thickness + 100 * thickness**4
         ff = ff*1.05 #Due to hinged elevator (Raymer)
-        if self.mach>0.2:
-            ff = ff * 1.34 * self.mach**0.18 * (math.cos(sweep_25_vt*math.pi/180))**0.28
+        if mach>0.2:
+            ff = ff * 1.34 * mach**0.18 * (math.cos(sweep_25_vt*math.pi/180))**0.28
         interf = 1.05
             
         cd0 = ff*interf*cf_vt * wet_area_vt / wing_area
 
-        outputs["cd0_vt_low_speed"] = cd0
+        if self.low_speed_aero:
+            outputs["data:aerodynamics:vertical_tail:low_speed:CD0"] = cd0
+        else:
+            outputs["data:aerodynamics:vertical_tail:cruise:CD0"] = cd0
