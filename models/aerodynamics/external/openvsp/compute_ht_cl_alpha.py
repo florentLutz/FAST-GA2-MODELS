@@ -46,7 +46,7 @@ VSPAERO_EXE_NAME = "vspaero.exe"
 class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
 
     def initialize(self):
-        
+        self.options.declare("low_speed_aero", default=False, types=bool)
         self.options.declare(OPTION_OPENVSP_EXE_PATH, default="", types=str, allow_none=True)
         
     def setup(self):
@@ -71,10 +71,13 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         self.add_input("ata:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:local", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:height", val=np.nan, units="m")
-        self.add_input("openvsp:altitude", val=np.nan, units="ft")
-        self.add_input("openvsp:mach", val=np.nan)
-        
-        self.add_output("openvsp:cl_alpha_htp")
+        if self.options["low_speed_aero"]:
+            self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
+            self.add_output("data:aerodynamics:horizontal_tail:low_speed:cl_alpha")
+        else:
+            self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
+            self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
+            self.add_output("data:aerodynamics:horizontal_tail:cruise:cl_alpha")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -102,19 +105,26 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         l0_htp = inputs["data:geometry:horizontal_tail:MAC:length"] 
         x0_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"]
         height_htp = inputs["data:geometry:horizontal_tail:height"]
-        altitude = inputs["openvsp:altitude"]
-        mach = inputs["openvsp:mach"]
+        if self.options["low_speed_aero"]:
+            altitude = 0.0
+            atm = Atmosphere(altitude)
+            mach = inputs["data:aerodynamics:low_speed:mach"]
+        else:
+            altitude = inputs["data:mission:sizing:cruise:altitude"]
+            atm = Atmosphere(altitude)
+            mach = inputs["data:aerodynamics:cruise:mach"]
+        
+        # Compute remaining inputs
         x_wing = fa_length-x0_wing-0.25*l0_wing
         z_wing = -(height_max - 0.12*l2_wing)*0.5
         span2_wing = y4_wing - y2_wing
         distance_htp = fa_length + lp_htp - 0.25 * l0_htp - x0_htp
         AOAList = str(_INPUT_AOAList)
         AOAList = AOAList[1:len(AOAList)-1]
-        atm = Atmosphere(altitude)
         speed_of_sound = atm.speed_of_sound
         viscosity = atm.kinematic_viscosity
         rho = atm.density
-        V_inf = min(speed_of_sound * mach, 0.1) # avoid V=0 m/s crashes
+        V_inf = max(speed_of_sound * mach, 0.01) # avoid V=0 m/s crashes
         reynolds = V_inf * l0_wing / viscosity
         
         # OPENVSP-SCRIPT: Geometry generation ######################################################
@@ -238,13 +248,15 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         # Post-processing --------------------------------------------------------------------------
         cl_htp = self._read_lod_file(tmp_result_file_path, AOAList)
         # Calculate derivative
-        cl_alpha_htp = (cl_htp[2] + cl_htp[3] - cl_htp[0] - cl_htp[1]) \
-                        / ((_INPUT_AOAList[1]-_INPUT_AOAList[0]) * math.pi/180)
-        
-        outputs["openvsp:cl_alpha_htp"] = cl_alpha_htp
-            
+        cl_alpha = (cl_htp[2] + cl_htp[3] - cl_htp[0] - cl_htp[1]) \
+                    / ((_INPUT_AOAList[1]-_INPUT_AOAList[0]) * math.pi/180)  
         # Delete temporary directory    
-        tmp_directory.cleanup()                
+        tmp_directory.cleanup()    
+
+        if self.options["low_speed_aero"]:
+            outputs['data:aerodynamics:horizontal_tail:low_speed:cl_alpha'] = cl_alpha
+        else:
+            outputs['data:aerodynamics:horizontal_tail:cruise:cl_alpha'] = cl_alpha            
         
     @staticmethod
     def _read_lod_file(tmp_result_file_path: str) -> np.ndarray:

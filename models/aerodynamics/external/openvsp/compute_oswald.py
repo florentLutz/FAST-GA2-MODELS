@@ -66,10 +66,10 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
         
         if self.options["low_speed_aero"]:
-            self.add_input("Mach_low_speed", val=np.nan)
+            self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_output("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient")
         else:
-            self.add_input("data:TLAR:v_cruise", val=np.nan)
+            self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
             self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
             self.add_output("data:aerodynamics:aircraft:cruise:induced_drag_coefficient")
         
@@ -94,11 +94,11 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         if self.options["low_speed_aero"]:
             altitude = 0.0
             atm = Atmosphere(altitude)
-            mach = inputs["Mach_low_speed"]
+            mach = inputs["data:aerodynamics:low_speed:mach"]
         else:
             altitude = inputs["data:mission:sizing:cruise:altitude"]
             atm = Atmosphere(altitude)
-            mach = inputs["data:TLAR:v_cruise"]/atm.speed_of_sound        
+            mach = inputs["data:aerodynamics:cruise:mach"]    
         
         # Initial parameters calculation
         x_wing = fa_length-x0_wing-0.25*l0_wing
@@ -106,11 +106,9 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         span2_wing = y4_wing - y2_wing
         AOAList = str(_INPUT_AOAList)
         AOAList = AOAList[1:len(AOAList)-1]
-        atm = Atmosphere(altitude)
-        speed_of_sound = atm.speed_of_sound
         viscosity = atm.kinematic_viscosity
         rho = atm.density
-        V_inf = min(speed_of_sound * mach, 0.1) # avoid V=0 m/s crashes
+        V_inf = max(atm.speed_of_sound * mach, 0.1) # avoid V=0 m/s crashes
         reynolds = V_inf * l0_wing / viscosity
         
         # OPENVSP-SCRIPT: Geometry generation ######################################################

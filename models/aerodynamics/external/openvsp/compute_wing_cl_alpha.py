@@ -65,13 +65,13 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
         if self.options["low_speed_aero"]:
             self.add_input("Mach_low_speed", val=np.nan)
-            self.add_output("data:aerodynamics:aircraft:low_speed:cl_0_clean")
-            self.add_output("data:aerodynamics:aircraft:low_speed:cl_alpha")
+            self.add_output("data:aerodynamics:aircraft:low_speed:CL0_clean")
+            self.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha")
         else:
             self.add_input("data:TLAR:v_cruise", val=np.nan)
             self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
-            self.add_output("data:aerodynamics:aircraft:cruise:cl_0_clean")
-            self.add_output("data:aerodynamics:aircraft:cruise:cl_alpha")
+            self.add_output("data:aerodynamics:aircraft:cruise:CL0_clean")
+            self.add_output("data:aerodynamics:aircraft:cruise:CL_alpha")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -99,16 +99,16 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
             altitude = inputs["data:mission:sizing:cruise:altitude"]
             atm = Atmosphere(altitude)
             mach = inputs["data:TLAR:v_cruise"]/atm.speed_of_sound
+        
+        # Initial parameters calculation
         x_wing = fa_length-x0_wing-0.25*l0_wing
         z_wing = -(height_max - 0.12*l2_wing)*0.5
         span2_wing = y4_wing - y2_wing
         AOAList = str(_INPUT_AOAList)
         AOAList = AOAList[1:len(AOAList)-1]
-        atm = Atmosphere(altitude)
-        speed_of_sound = atm.speed_of_sound
         viscosity = atm.kinematic_viscosity
         rho = atm.density
-        V_inf = min(speed_of_sound * mach, 0.1) # avoid V=0 m/s crashes
+        V_inf = max(atm.speed_of_sound * mach, 0.01) # avoid V=0 m/s crashes
         reynolds = V_inf * l0_wing / viscosity
         
         # OPENVSP-SCRIPT: Geometry generation ######################################################
@@ -229,11 +229,11 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         tmp_directory.cleanup()              
         
         if self.options["low_speed_aero"]:
-            outputs['data:aerodynamics:aircraft:low_speed:cl_0_clean'] = cl_0
-            outputs['data:aerodynamics:aircraft:low_speed:cl_alpha'] = cl_alpha
+            outputs['data:aerodynamics:aircraft:low_speed:CL0_clean'] = cl_0
+            outputs['data:aerodynamics:aircraft:low_speed:CL_alpha'] = cl_alpha
         else:
-            outputs['data:aerodynamics:aircraft:cruise:cl_0_clean'] = cl_0
-            outputs['data:aerodynamics:aircraft:cruise:cl_alpha'] = cl_alpha
+            outputs['data:aerodynamics:aircraft:cruise:CL0_clean'] = cl_0
+            outputs['data:aerodynamics:aircraft:cruise:CL_alpha'] = cl_alpha
         
     @staticmethod
     def _read_polar_file(tmp_result_file_path: str, AOAList: list) -> np.ndarray:

@@ -36,7 +36,7 @@ class Cd0Fuselage(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:wetted_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.low_speed_aero:
-            self.add_input("reynolds_low_speed", val=np.nan)
+            self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
             self.add_output("data:aerodynamics:fuselage:low_speed:CD0")
         else:
             self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
@@ -53,7 +53,7 @@ class Cd0Fuselage(ExplicitComponent):
         wet_area_fus = inputs["data:geometry:fuselage:wetted_area"]
         wing_area = inputs["data:geometry:wing:area"]
         if self.low_speed_aero:
-            reynolds = inputs["reynolds_low_speed"]
+            reynolds = inputs["data:aerodynamics:wing:low_speed:reynolds"]
         else:
             reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
         

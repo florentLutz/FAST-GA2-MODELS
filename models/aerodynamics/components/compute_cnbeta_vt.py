@@ -28,8 +28,7 @@ class ComputeCnBetaVT(om.ExplicitComponent):
     def setup(self):
         
         self.add_input("data:geometry:has_T_tail", val=np.nan)
-        self.add_input("data:TLAR:v_cruise", val=np.nan, units="kn")
-        self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units="ft")
+        self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
         self.add_input("data:geometry:vertical_tail:sweep_25", val=np.nan, units="deg")
         self.add_input("data:geometry:vertical_tail:aspect_ratio", val=np.nan)
 
@@ -38,8 +37,7 @@ class ComputeCnBetaVT(om.ExplicitComponent):
         self.declare_partials(
                 "data:aerodynamics:vertical_tail:cruise:CnBeta",
                 [
-                    "data:TLAR:v_cruise",
-                    "data:mission:sizing:cruise:altitude",
+                    "data:aerodynamics:cruise:mach",
                     "data:geometry:vertical_tail:sweep_25",
                     "data:geometry:vertical_tail:aspect_ratio",
                 ],
@@ -49,15 +47,11 @@ class ComputeCnBetaVT(om.ExplicitComponent):
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         tail_type = np.round(inputs["data:geometry:has_T_tail"])
-        cruise_speed = inputs["data:TLAR:v_cruise"] * 0.514444 # converted to m/s
-        cruise_altitude = inputs["data:mission:sizing:cruise:altitude"] 
+        cruise_mach = inputs["data:aerodynamics:cruise:mach"]
         sweep_25_vt = inputs["data:geometry:vertical_tail:sweep_25"]
         k_ar_effective = 2.9 if tail_type == 1.00 else 1.55
         lambda_vt = inputs["data:geometry:vertical_tail:aspect_ratio"] * k_ar_effective
         
-        atm = Atmosphere(cruise_altitude)
-        speed_of_sound = atm.speed_of_sound
-        cruise_mach = cruise_speed / speed_of_sound
         beta = math.sqrt(1 - cruise_mach ** 2)
         cn_beta = (
             0.8

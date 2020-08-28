@@ -43,15 +43,15 @@ class ComputeOSWALDvlm(VLM):
         self.add_input("data:geometry:wing:area", val=np.nan, units='m**2')
         nans_array = np.full(POLAR_POINT_COUNT, np.nan)
         if self.options["low_speed_aero"]:
-            self.add_input("Mach_low_speed", val=np.nan)
+            self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_input("data:aerodynamics:wing:low_speed:CL", val=nans_array)
             self.add_input("data:aerodynamics:wing:low_speed:CDp", val=nans_array)
             self.add_output("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient")
         else:
-            self.add_input("data:TLAR:v_cruise", val=np.nan)
+            self.add_input("data:TLAR:v_cruise", val=np.nan, units='m/s')
+            self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
             self.add_input("data:aerodynamics:wing:cruise:CL", val=nans_array)
             self.add_input("data:aerodynamics:wing:cruise:CDp", val=nans_array)
-            self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
             self.add_output("data:aerodynamics:aircraft:cruise:induced_drag_coefficient")
         
         
@@ -65,19 +65,16 @@ class ComputeOSWALDvlm(VLM):
         aspect_ratio = inputs['data:geometry:wing:aspect_ratio']
         wing_area = inputs['data:geometry:wing:area']
         if self.options["low_speed_aero"]:
-            altitude = 0.0
-            atm = Atmosphere(altitude)
-            mach = inputs["Mach_low_speed"]
+            mach = inputs["data:aerodynamics:low_speed:mach"]
+            V_inf = max(Atmosphere(0.0).speed_of_sound * mach, 0.01) # avoid V=0 m/s crashes
             CL_clean = inputs["data:aerodynamics:wing:low_speed:CL"]
             CDp_clean = inputs["data:aerodynamics:wing:low_speed:CDp"]
         else:
-            altitude = inputs["data:mission:sizing:cruise:altitude"]
-            atm = Atmosphere(altitude)
-            mach = inputs["data:TLAR:v_cruise"]/atm.speed_of_sound
+            mach = inputs["data:aerodynamics:cruise:mach"]
+            V_inf = inputs["data:TLAR:v_cruise"]
             CL_clean = inputs["data:aerodynamics:wing:cruise:CL"]
             CDp_clean = inputs["data:aerodynamics:wing:cruise:CDp"]
         
-        V_inf = min(atm.speed_of_sound * mach, 0.1) # avoid V=0 m/s crashes
         super()._run()
         Cl, Cdi, Oswald, _ = super().compute_wing(self, inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
         k_fus = 1 - 2*(b_f/span)**2

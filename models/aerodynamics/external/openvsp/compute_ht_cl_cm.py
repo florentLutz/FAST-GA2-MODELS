@@ -73,7 +73,7 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         self.add_input("ata:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:local", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:height", val=np.nan, units="m")
-        self.add_input("Mach_low_speed", val=np.nan)
+        self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
         
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha")
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL")
@@ -105,17 +105,21 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         l0_htp = inputs["data:geometry:horizontal_tail:MAC:length"] 
         x0_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"]
         height_htp = inputs["data:geometry:horizontal_tail:height"]
-        mach = inputs["Mach_low_speed"]
+        mach = inputs["data:aerodynamics:low_speed:mach"]
+        altitude = 0.0
         
+        # Compute remaining inputs
         x_wing = fa_length-x0_wing-0.25*l0_wing
         z_wing = -(height_max - 0.12*l2_wing)*0.5
         span2_wing = y4_wing - y2_wing
         distance_htp = fa_length + lp_htp - 0.25 * l0_htp - x0_htp
-        atm = Atmosphere(0.0)
+        atm = Atmosphere(altitude)
         viscosity = atm.kinematic_viscosity
         rho = atm.density
         V_inf = max(atm.speed_of_sound * mach, 0.01) # avoid V=0 m/s crashes
         reynolds = V_inf * l0_wing / viscosity
+        AOAList = str(_INPUT_AOAList)
+        AOAList = AOAList[1:len(AOAList)-1]
         
         # OPENVSP-SCRIPT: Geometry generation ######################################################
         
@@ -219,7 +223,7 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
             parser.mark_anchor("mach_")
             parser.transfer_var(float(mach), 1, 1)
             parser.mark_anchor("AOAList")
-            parser.transfer_var(str(list(_INPUT_AOAList)), 1, 1)
+            parser.transfer_var(AOAList, 1, 1)
             parser.mark_anchor("V_inf")
             parser.transfer_var(float(V_inf), 1, 1)
             parser.mark_anchor("rho_")

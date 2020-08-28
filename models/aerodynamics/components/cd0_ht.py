@@ -36,13 +36,12 @@ class Cd0HorizontalTail(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:wetted_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.low_speed_aero:
-            self.add_input("reynolds_low_speed", val=np.nan)
-            self.add_input("Mach_low_speed", val=np.nan)
+            self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
+            self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CD0")
         else:
+            self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
             self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
-            self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
-            self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units="ft")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
@@ -56,12 +55,10 @@ class Cd0HorizontalTail(ExplicitComponent):
         wet_area_ht = inputs["data:geometry:horizontal_tail:wetted_area"]
         wing_area = inputs["data:geometry:wing:area"]
         if self.low_speed_aero:
-            mach = inputs["Mach_low_speed"]
-            reynolds = inputs["reynolds_low_speed"]
+            mach = inputs["data:aerodynamics:low_speed:mach"]
+            reynolds = inputs["data:aerodynamics:wing:low_speed:reynolds"]
         else:
-            altitude = inputs["data:mission:sizing:cruise:altitude"]
-            atm = Atmosphere(altitude)
-            mach = inputs["data:TLAR:v_cruise"]/atm.speed_of_sound
+            mach = inputs["data:aerodynamics:cruise:mach"]
             reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
         
         #Local Reynolds: re*length

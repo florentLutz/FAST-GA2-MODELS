@@ -63,6 +63,8 @@ class XfoilPolar(ExternalCodeComp):
     """Column names in XFOIL polar result"""
 
     def initialize(self):
+        self.options.declare("low_speed_aero", default=False, types=bool)
+        
         self.options.declare(OPTION_XFOIL_EXE_PATH, default="", types=str, allow_none=True)
         self.options.declare(OPTION_PROFILE_NAME, default="BACJ.txt", types=str)
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
@@ -72,17 +74,28 @@ class XfoilPolar(ExternalCodeComp):
         self.options.declare(OPTION_ITER_LIMIT, default=500, types=int)
 
     def setup(self):
-
-        self.add_input("xfoil:reynolds", val=np.nan)
-        self.add_input("xfoil:mach", val=np.nan)
+        self.low_speed_aero = self.options["low_speed_aero"]
+        
         self.add_input("data:geometry:wing:thickness_ratio", val=np.nan)
-
-        self.add_output("xfoil:alpha")
-        self.add_output("xfoil:CL")
-        self.add_output("xfoil:CD")
-        self.add_output("xfoil:CDp")
-        self.add_output("xfoil:CM")
-        self.add_output("xfoil:CL_max_2D")
+        
+        if self.low_speed_aero:
+            self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
+            self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
+            self.add_output("data:aerodynamics:wing:low_speed:alpha")
+            self.add_output("data:aerodynamics:wing:low_speed:CL")
+            self.add_output("data:aerodynamics:wing:low_speed:CD")
+            self.add_output("data:aerodynamics:wing:low_speed:CDp")
+            self.add_output("data:aerodynamics:wing:low_speed:CM")
+            self.add_output("data:aerodynamics:wing:low_speed:CL_max_2D")
+        else:
+            self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
+            self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
+            self.add_output("data:aerodynamics:wing:cruise:alpha")
+            self.add_output("data:aerodynamics:wing:cruise:CL")
+            self.add_output("data:aerodynamics:wing:cruise:CD")
+            self.add_output("data:aerodynamics:wing:cruise:CDp")
+            self.add_output("data:aerodynamics:wing:cruise:CM")
+            self.add_output("data:aerodynamics:wing:cruise:CL_max_2D")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -156,12 +169,23 @@ class XfoilPolar(ExternalCodeComp):
 
         # Post-processing --------------------------------------------------------------------------
         result_array = self._read_polar(tmp_result_file_path)
-        outputs["xfoil:alpha"] = result_array["alpha"]
-        outputs["xfoil:CL"] = result_array["CL"]
-        outputs["xfoil:CD"] = result_array["CD"]
-        outputs["xfoil:CDp"] = result_array["CDp"]
-        outputs["xfoil:CM"] = result_array["CM"]
-        outputs["xfoil:CL_max_2D"] = self._get_max_cl(result_array["alpha"], result_array["CL"])
+        CL_max_2D = self._get_max_cl(result_array["alpha"], result_array["CL"])
+        
+        if self.low_speed_aero:
+            outputs["data:aerodynamics:wing:low_speed:alpha"] = result_array["alpha"]
+            outputs["data:aerodynamics:wing:low_speed:CL"] = result_array["CL"]
+            outputs["data:aerodynamics:wing:low_speed:CD"] = result_array["CD"]
+            outputs["data:aerodynamics:wing:low_speed:CDp"] = result_array["CDp"]
+            outputs["data:aerodynamics:wing:low_speed:CM"] = result_array["CM"]
+            outputs["data:aerodynamics:wing:low_speed:CL_max_2D"] = CL_max_2D
+        else:
+            outputs["data:aerodynamics:wing:cruise:alpha"] = result_array["alpha"]
+            outputs["data:aerodynamics:wing:cruise:CL"] = result_array["CL"]
+            outputs["data:aerodynamics:wing:cruise:CD"] = result_array["CD"]
+            outputs["data:aerodynamics:wing:cruise:CDp"] = result_array["CDp"]
+            outputs["data:aerodynamics:wing:cruise:CM"] = result_array["CM"]
+            outputs["data:aerodynamics:wing:cruise:CL_max_2D"] = CL_max_2D
+        
 
         # Getting output files if needed
         if self.options[OPTION_RESULT_FOLDER_PATH] != "":

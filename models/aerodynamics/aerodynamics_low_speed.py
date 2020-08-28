@@ -24,12 +24,12 @@ from cd0_vt import Cd0VerticalTail
 from cd0_wing import Cd0Wing
 from cd0_other import Cd0Other
 from compute_cl_max import ComputeMaxCL
-from compute_low_speed_aero import ComputeAerodynamicsLowSpeed
 from compute_reynolds import ComputeReynolds
 from high_lift_aero import ComputeDeltaHighLift
 
 from ..external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm
-from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLCMopenvsp
+from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLCMopenvsp, ComputeHTPCLALPHAopenvsp
+from ..external.xfoil import XfoilPolar
 
 from openmdao.core.group import Group
 from openmdao.core.indepvarcomp import IndepVarComp
@@ -43,8 +43,7 @@ class AerodynamicsLowSpeed(Group):
     """
 
     def setup(self):
-        self.add_subsystem("compute_low_speed_aero", ComputeAerodynamicsLowSpeed(), promotes=["*"])
-        ivc = IndepVarComp("Mach_low_speed", val=0.2)
+        ivc = IndepVarComp("data:aerodynamics:low_speed:mach", val=0.2)
         self.add_subsystem("mach_low_speed", ivc, promotes=["*"])
         if _OSWALD_BY_VLM:
             self.add_subsystem("oswald", ComputeOSWALDvlm(low_speed_aero=True), promotes=["*"])
@@ -63,6 +62,8 @@ class AerodynamicsLowSpeed(Group):
         self.add_subsystem("cd0_l_gear", Cd0LandingGear(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cd0_other", Cd0Other(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cd0_total", Cd0Total(low_speed_aero=True), promotes=["*"])
+        self.add_subsystem("comp_polar", XfoilPolar(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cl_max", ComputeMaxCL(), promotes=["*"])
         self.add_subsystem("cl_ht", ComputeHTPCLCMopenvsp(), promotes=["*"])
+        self.add_subsystem("cl_alpha_ht", ComputeHTPCLALPHAopenvsp(), promotes=["*"])
         self.add_subsystem("high_lift", ComputeDeltaHighLift(), promotes=["*"])
