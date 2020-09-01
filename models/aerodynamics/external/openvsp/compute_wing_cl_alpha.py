@@ -30,7 +30,7 @@ from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
 
 from . import resources
-from . import openvsp3201
+from . import openvsp351
 
 OPTION_OPENVSP_EXE_PATH = "openvsp_exe_path"
 
@@ -132,7 +132,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
             self.options["command"] = [pth.join(self.options[OPTION_OPENVSP_EXE_PATH], VSPSCRIPT_EXE_NAME) + ' -script ' + self.stdin1]
         else:
             # otherwise, copy the embedded resource in tmp dir
-            copy_resource(openvsp3201, VSPSCRIPT_EXE_NAME, VSPAERO_EXE_NAME, tmp_directory.name)
+            copy_resource(openvsp351, VSPSCRIPT_EXE_NAME, VSPAERO_EXE_NAME, tmp_directory.name)
             copy_resource(_AIRFOIL_0_FILE_NAME, _AIRFOIL_1_FILE_NAME, _AIRFOIL_2_FILE_NAME, tmp_directory.name)
             self.options["command"] = [pth.join(tmp_directory.name, VSPSCRIPT_EXE_NAME) + ' -script ' + self.stdin1]
         

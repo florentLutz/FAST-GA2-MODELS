@@ -1,7 +1,3 @@
-"""
-    FAST - Copyright (c) 2016 ONERA ISAE
-"""
-
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
 #  FAST is free software: you can redistribute it and/or modify
@@ -14,16 +10,4 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-from .aerodynamics_high_speed import AerodynamicsHighSpeed
-from .aerodynamics_low_speed import AerodynamicsLowSpeed
-from openmdao.api import Group
-
-
-class Aerodynamics(Group):
-    def setup(self):
-        # Compute the low speed aero (landing/takeoff)
-        self.add_subsystem("aero_low", AerodynamicsLowSpeed(), promotes=["*"])
-
-        # Compute cruise characteristics
-        self.add_subsystem("aero_high", AerodynamicsHighSpeed(), promotes=["*"])
+from .aerodynamics import Aerodynamics

@@ -22,6 +22,7 @@ from scipy.constants import g
 
 ALPHA_LIMIT = 13.5 # Limit angle to touch tail on ground
 ALPHA_RATE = 3.0 # Angular rotation speed 
+SAFETY_HEIGHT = 50 # Height in feets to reach V2 speed
 TIME_STEP = 0.05 # For time dependent simulation
 
 class TakeOffPhase(om.Group):
@@ -51,23 +52,24 @@ class TakeOffSpeed(om.Group):
 
 class _v2(om.ExplicitComponent):
     """
-    Search for V2 safety speed and alpha angle to reach minimum climb rate with take-off-weight.
+    Search for V2 safety speed and alpha angle to reach minimum climb rate with 
+    take-off-weight and maximum thrust.
     """
 
     def setup(self):
         
-        self.add_input("data:aerodynamics:aircraft:takeoff:CL0_clean", np.nan)
-        self.add_input("data:aerodynamics:high_lift_devices:takeoff:CL", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:CL_max_clean", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:CL_alpha", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:CD0_clean", np.nan)
-        self.add_input("data:aerodynamics:high_lift_devices:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:coef_k", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:CL0_clean", np.nan)
+        self.add_input("data:aerodynamics:flaps:takeoff:CL", np.nan)
+        self.add_input("data:aerodynamics:aircraft:takeoff:CL_max", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
+        self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:coef_k", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:mission:sizing:climb:min_climb_rate", np.nan)
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
-        self.add_input("propulsion_max_power", np.nan, units='w')
-        self.add_input("propulsion_mach", np.nan, units='w')
+        self.add_input("propulsion_max_power", np.nan, units='w') # FIXME: array
+        self.add_input("propulsion_mach", np.nan) # FIXME: array
         
         self.add_output("v2:climb_rate")
         self.add_output("v2:v2", units='m/s')
@@ -77,13 +79,13 @@ class _v2(om.ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        CL0_clean = inputs["data:aerodynamics:aircraft:takeoff:CL0_clean"]
-        CL0_high_lift = inputs["data:aerodynamics:high_lift_devices:takeoff:CL"]
-        CL_max_clean = inputs["data:aerodynamics:aircraft:takeoff:CL_max_clean"]
-        CL_alpha = inputs["data:aerodynamics:aircraft:takeoff:CL_alpha"]
-        CD0_clean = inputs["data:aerodynamics:aircraft:takeoff:CD0_clean"]
-        CD0_high_lift = inputs["data:aerodynamics:high_lift_devices:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:takeoff:coef_k"]
+        CL0_clean = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"]
+        CL0_high_lift = inputs["data:aerodynamics:flaps:takeoff:CL"]
+        CL_max_clean = inputs["data:aerodynamics:aircraft:takeoff:CL_max"]
+        CL_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
+        CD0_clean = inputs["data:aerodynamics:aircraft:low_speed:CD0"]
+        CD0_high_lift = inputs["data:aerodynamics:flaps:takeoff:CD"]
+        coef_k = inputs["data:aerodynamics:aircraft:low_speed:coef_k"]
         wing_area = inputs["data:geometry:wing:area"]
         min_climb_rate = inputs["data:mission:sizing:climb:min_climb_rate"]
         TOW = inputs["data:weight:aircraft:MTOW"]
@@ -91,7 +93,7 @@ class _v2(om.ExplicitComponent):
         prop_mach = inputs["propulsion_mach"]
         
         
-        atm = Atmosphere(35, 15.0)
+        atm = Atmosphere(SAFETY_HEIGHT, 15.0)
         alpha_max = (CL_max_clean-CL0_clean)/CL_alpha
         gama_climb_rate = math.asin(min_climb_rate)
         CD0 = CD0_clean+CD0_high_lift
@@ -133,21 +135,20 @@ class _v2(om.ExplicitComponent):
 class _vloff(om.ExplicitComponent):
     """
     Search for Vloff speed to reach V2 safety speed at 35ft height 
-    with a alpha angle <= alpha_V2.
+    with an alpha angle <= alpha_V2 and maximum thrust.
     """
     def setup(self):
         
-        self.add_input("data:aerodynamics:aircraft:takeoff:CL0_clean", np.nan)
-        self.add_input("data:aerodynamics:high_lift_devices:takeoff:CL", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:CL_alpha", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:CD0_clean", np.nan)
-        self.add_input("data:aerodynamics:high_lift_devices:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:coef_k", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:CL0_clean", np.nan)
+        self.add_input("data:aerodynamics:flaps:takeoff:CL", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
+        self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:coef_k", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("propulsion_max_power", np.nan, units='w')
-        self.add_input("propulsion_mach", np.nan, units='w')
-        self.add_input("propulsion_max_power", np.nan, units='w')
+        self.add_input("propulsion_mach", np.nan)
         self.add_input("vloff:v2", np.nan, units='m/s')
         self.add_input("vloff:alpha_v2", np.nan, units='rad')
         
@@ -158,12 +159,12 @@ class _vloff(om.ExplicitComponent):
         
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        CL0_clean = inputs["data:aerodynamics:aircraft:takeoff:CL0_clean"]
-        CL0_high_lift = inputs["data:aerodynamics:high_lift_devices:takeoff:CL"]
-        CL_alpha = inputs["data:aerodynamics:aircraft:takeoff:CL_alpha"]
-        CD0_clean = inputs["data:aerodynamics:aircraft:takeoff:CD0_clean"]
-        CD0_high_lift = inputs["data:aerodynamics:high_lift_devices:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:takeoff:coef_k"]
+        CL0_clean = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"]
+        CL0_high_lift = inputs["data:aerodynamics:flaps:takeoff:CL"]
+        CL_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
+        CD0_clean = inputs["data:aerodynamics:aircraft:low_speed:CD0"]
+        CD0_high_lift = inputs["data:aerodynamics:flaps:takeoff:CD"]
+        coef_k = inputs["data:aerodynamics:aircraft:low_speed:coef_k"]
         wing_area = inputs["data:geometry:wing:area"]
         TOW = inputs["data:weight:aircraft:MTOW"]
         prop_max_power = inputs["propulsion_max_power"]
@@ -196,7 +197,7 @@ class _vloff(om.ExplicitComponent):
             height_t = 0.0
             distance_t = 0.0
             mass_t = TOW
-            while height_t < 35.0:
+            while height_t < SAFETY_HEIGHT:
                 # Estimation of thrust
                 atm = Atmosphere(height_t, 15.0)
                 thrust_real = np.interp(v_t / atm.speed_of_sound, prop_mach, prop_max_power)/v_t

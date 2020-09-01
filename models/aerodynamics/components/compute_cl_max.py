@@ -69,6 +69,7 @@ class ComputeAircraftMaxCl(ExplicitComponent):
         self.add_input("data:aerodynamics:flaps:takeoff:CL", val=np.nan)
         self.add_input("data:aerodynamics:flaps:landing:CL", val=np.nan)
 
+        self.add_output("data:aerodynamics:aircraft:takeoff:CL_max")
         self.add_output("data:aerodynamics:aircraft:landing:CL_max")
 
         self.declare_partials("*", "*", method="fd")

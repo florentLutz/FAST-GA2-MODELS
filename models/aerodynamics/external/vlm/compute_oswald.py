@@ -20,7 +20,7 @@ import numpy as np
 import math
 from fastoad.models.aerodynamics.constants import POLAR_POINT_COUNT
 from fastoad.utils.physics import Atmosphere
-from vlm import VLM
+from .vlm import VLM
 
 _INPUT_AOAList = [14.0] # ???: why such angle choosen ?
 

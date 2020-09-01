@@ -15,21 +15,21 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from cd0_fuselage import Cd0Fuselage
-from cd0_ht import Cd0HorizontalTail
-from cd0_lg import Cd0LandingGear
-from cd0_nacelle import Cd0Nacelle
-from cd0_total import Cd0Total
-from cd0_vt import Cd0VerticalTail
-from cd0_wing import Cd0Wing
-from cd0_other import Cd0Other
-from compute_cl_max import ComputeMaxCL
-from compute_reynolds import ComputeReynolds
-from high_lift_aero import ComputeDeltaHighLift
+from .components.cd0_fuselage import Cd0Fuselage
+from .components.cd0_ht import Cd0HorizontalTail
+from .components.cd0_lg import Cd0LandingGear
+from .components.cd0_nacelle import Cd0Nacelle
+from .components.cd0_total import Cd0Total
+from .components.cd0_vt import Cd0VerticalTail
+from .components.cd0_wing import Cd0Wing
+from .components.cd0_other import Cd0Other
+from .components.compute_cl_max import ComputeMaxCL
+from .components.compute_reynolds import ComputeReynolds
+from .components.high_lift_aero import ComputeDeltaHighLift
 
-from ..external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm
-from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLCMopenvsp, ComputeHTPCLALPHAopenvsp
-from ..external.xfoil import XfoilPolar
+from .external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm
+from .external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLCMopenvsp, ComputeHTPCLALPHAopenvsp
+from .external.xfoil import XfoilPolar
 
 from openmdao.core.group import Group
 from openmdao.core.indepvarcomp import IndepVarComp

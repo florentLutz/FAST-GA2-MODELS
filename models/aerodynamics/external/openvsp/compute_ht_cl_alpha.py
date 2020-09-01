@@ -73,11 +73,11 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:horizontal_tail:height", val=np.nan, units="m")
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-            self.add_output("data:aerodynamics:horizontal_tail:low_speed:cl_alpha")
+            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_alpha")
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
             self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
-            self.add_output("data:aerodynamics:horizontal_tail:cruise:cl_alpha")
+            self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -254,9 +254,9 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         tmp_directory.cleanup()    
 
         if self.options["low_speed_aero"]:
-            outputs['data:aerodynamics:horizontal_tail:low_speed:cl_alpha'] = cl_alpha
+            outputs['data:aerodynamics:horizontal_tail:low_speed:CL_alpha'] = cl_alpha
         else:
-            outputs['data:aerodynamics:horizontal_tail:cruise:cl_alpha'] = cl_alpha            
+            outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha'] = cl_alpha            
         
     @staticmethod
     def _read_lod_file(tmp_result_file_path: str) -> np.ndarray:

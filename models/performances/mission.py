@@ -22,7 +22,7 @@ from scipy.constants import g
 
 CLIMB_MASS_RATIO = 0.97  # = mass at end of climb / mass at start of climb
 ALPHA_RATE = 3.0 # Angular rotation speed 
-TIME_STEP = 0.05 # For time dependent simulation
+HEIGHT_STEP = 50 # Height step in feets for climb integration
 
 class TakeOffPhase(om.Group):
     
@@ -38,103 +38,118 @@ class TakeOffPhase(om.Group):
         self.connect("vr:vr", "takeoff:vr_in")
         self.connect("v2:alpha_v2", "takeoff:alpha_v2")
 
-class TakeOffSpeed(om.Group):
-    
-    def setup(self):
-        self.add_subsystem("compute_v2", _v2(), promotes=["*"])
-        self.add_subsystem("compute_vloff", _vloff(), promotes=["*"])
-        self.add_subsystem("compute_vr", _vr(), promotes=["*"])
-        self.connect("v2:v2", "vloff:v2")
-        self.connect("v2:alpha_v2", "vloff:alpha_v2")
-        self.connect("vloff:vloff", "vr:vloff")
-        self.connect("vloff:alpha_vloff", "vr:alpha_vloff")
-
-class _compute_taxi_out(om.ExplicitComponent):
+class _compute_taxi(om.ExplicitComponent):
     """
-    Compute the fuel consumption for taxi out based on speed and duration.
+    Compute the fuel consumption for taxi based on speed and duration.
     """
 
     def setup(self):
         
-        self.add_input("data:mission:sizing:taxi_out:duration", np.nan, units='s')
-        self.add_input("data:mission:sizing:taxi_out:speed", np.nan, units='m/s')
         self.add_input("data:mission:sizing:takeoff:friction_coefficient_no_brake", np.nan)
         self.add_input("data:aerodynamics:aircraft:takeoff:CD0_clean", np.nan)
         self.add_input("data:aerodynamics:high_lift_devices:takeoff:CD", np.nan)
         self.add_input("data:weight:aircraft:MTOW", np.nan, units='kg')
         self.add_input("data:geometry:wing:area", np.nan, units='m**2')
+        self.add_input("taxi_duration", np.nan, units='s')
+        self.add_input("taxi_speed", np.nan, units='m/s')
         
         self.add_output("data:mission:sizing:taxi_out:thrust_rate")
         self.add_output("data:mission:operational:taxi_out:fuel", units='kg')
         
-        self.declare_partials("*", "*", method="fd")
+        self.declare_partials("*", "*", method="fd") 
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        dt = inputs["data:mission:sizing:taxi_out:duration"]
-        V = inputs["data:mission:sizing:taxi_out:speed"]
         friction_coeff = inputs["data:mission:sizing:takeoff:friction_coefficient_no_brake"]
-        CL0_clean = inputs["data:aerodynamics:aircraft:takeoff:CL0_clean"]
-        CL0_high_lift = inputs["data:aerodynamics:high_lift_devices:takeoff:CL"]
-        CD0_clean = inputs["data:aerodynamics:aircraft:takeoff:CD0_clean"]
-        CD0_high_lift = inputs["data:aerodynamics:high_lift_devices:takeoff:CD"]
+        cl0_clean = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"]
+        cl_flaps = inputs["data:aerodynamics:high_lift_devices:takeoff:CL"]
+        cd0_clean = inputs["data:aerodynamics:aircraft:low_speed:CD0"]
+        cd_flaps = inputs["data:aerodynamics:flaps:takeoff:CD"]
         TOW = inputs["data:weight:aircraft:MTOW"]
         wing_area = inputs["data:geometry:wing:area"]
+        dt = inputs["taxi_duration"]
+        V = inputs["taxi_speed"]
         
         
         atm = Atmosphere(0.0, 15.0)
-        CL0 = CL0_clean+CL0_high_lift
-        CD0 = CD0_clean+CD0_high_lift
+        CL0 = cl0_clean + cl_flaps
+        CD0 = cd0_clean + cd_flaps
         Lift = 0.5 * atm.density * wing_area * CL0 * V**2
         Drag = 0.5 * atm.density * wing_area * CD0 * V**2
         Friction = (TOW * g - Lift) * friction_coeff
         Thrust = Drag + Friction
         
         
+        
         outputs["v2:climb_rate"] = CLIMB_RATE
         outputs["v2:v2"] = V2
         outputs["v2:alpha_v2"] = ALPHA * 180.0/math.pi # conversion to degre
 
-class _vloff(om.ExplicitComponent):
+class _climb(om.ExplicitComponent):
     """
-    Search for Vloff speed to reach V2 safety speed at 35ft height 
-    with a alpha angle <= alpha_V2.
+    Compute the fuel consumption for climb considering VCAS constant speed strategy and
+    minimum climb_rate with low mass variation and negligeable alpha (Thrust*sin(alpha)~0).
     """
     def setup(self):
-        
-        self.add_input("data:aerodynamics:aircraft:takeoff:CL0_clean", np.nan)
-        self.add_input("data:aerodynamics:high_lift_devices:takeoff:CL", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:CL_alpha", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:CD0_clean", np.nan)
-        self.add_input("data:aerodynamics:high_lift_devices:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:coef_k", np.nan)
-        self.add_input("data:geometry:wing:area", np.nan, units="m**2")
-        self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
-        self.add_input("propulsion_max_power", np.nan, units='w')
-        self.add_input("propulsion_mach", np.nan, units='w')
-        self.add_input("propulsion_max_power", np.nan, units='w')
-        self.add_input("vloff:v2", np.nan, units='m/s')
-        self.add_input("vloff:alpha_v2", np.nan, units='rad')
-        
-        self.add_output("vloff:vloff", units='m/s')
-        self.add_output("vloff:alpha_vloff", units='deg')
+         
+        self.add_input("data:mission:sizing:climb:v_cas", np.nan, units="m/s")
+        self.add_input("data:mission:sizing:cruise:altitude", np.nan, units="m")
+        self.add_input("data:aerodynamics:aircraft:cruise:CL0_clean", np.nan)
+        self.add_input("data:aerodynamics:aircraft:cruise:CL_alpha", np.nan)
+        self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
+        self.add_input("data:aerodynamics:aircraft:cruise:coef_k", np.nan)
         
         self.declare_partials("*", "*", method="fd")
         
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        CL0_clean = inputs["data:aerodynamics:aircraft:takeoff:CL0_clean"]
-        CL0_high_lift = inputs["data:aerodynamics:high_lift_devices:takeoff:CL"]
-        CL_alpha = inputs["data:aerodynamics:aircraft:takeoff:CL_alpha"]
-        CD0_clean = inputs["data:aerodynamics:aircraft:takeoff:CD0_clean"]
-        CD0_high_lift = inputs["data:aerodynamics:high_lift_devices:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:takeoff:coef_k"]
+        v_cas = inputs["data:mission:sizing:climb:v_cas"]
+        cruise_altitude = inputs["data:mission:sizing:cruise:altitude"]
+        cl0_clean = inputs["data:aerodynamics:aircraft:cruise:CL0_clean"]
+        cl_alpha = inputs["data:aerodynamics:aircraft:cruise:CL_alpha"]
+        cd0_clean = inputs["data:aerodynamics:aircraft:cruise:CD0"]
+        coef_k = inputs["data:aerodynamics:aircraft:cruise:coef_k"]
         wing_area = inputs["data:geometry:wing:area"]
         TOW = inputs["data:weight:aircraft:MTOW"]
+        taxiout_fuel = inputs["data:mission:sizing:taxi_out:fuel"]
+        takeoff_fuel = inputs["data:mission:sizing:takeoff:fuel"]
+        
         prop_max_power = inputs["propulsion_max_power"]
         prop_mach = inputs["propulsion_mach"]
         V2 = inputs["vloff:v2"]
         alpha_V2 = inputs["vloff:alpha_v2"]
+        
+        gamma_interp = np.linspace(0, 30, 100) * math.pi/180
+        climb_weight = TOW - taxiout_fuel - takeoff_fuel
+        height_t = 50 / 0.3048 # conversion to m
+        distance = 0
+        
+        while height_t < cruise_altitude:
+            atm = Atmosphere(height_t)
+            v_tas = v_cas * math.sqrt(Atmosphere(0.0).density / atm.density)
+            # Search for clim rate
+            Thrust = 12 # FIXME: function to evaluate max trust depending on altitude
+            cl = (climb_weight * g * math.cos(gamma_interp))/(0.5 * atm.density * wing_area * v_tas**2)
+            cd = cd0_clean + coef_k * cl**2
+            error = (Thrust - 0.5 * atm.density * wing_area * v_tas**2 * cd)/(climb_weight * g) \
+                    - math.sin(gamma_interp)
+            idx = np.where(abs(error) == min(abs(error)))
+            gamma = gamma_interp[idx[0]]
+            # Calculate heght increase
+            dt = min(cruise_altitude - altitude, HEIGHT_STEP)/(v_tas*math.sin(gamma))
+            height_t = height_t + v_tas*math.sin(gamma)*dt
+            distance = distance + v_tas*math.cos(gamma)*dt
+            
+        
+        
+        
+        mach = math.sqrt(5 * ((Atmosphere(0.0).pressure / atm.pressure \
+                *((1 + 0.2 * (v_cas / Atmosphere(0.0).kinematic_viscosity) ** 2) \
+                ** 3.5 - 1) + 1)** (1 / 3.5) - 1))
+        cl = (climb_weight * g * math.cos(gama))/(0.5 * atm.density * wing_area * v_tas**2)
+        
+        Thrust = 0.5 * atm.density * wing_area * cd * v_tas**2 + climb_weight * g * math.sin(gama)
+        
         
         CL0 = CL0_clean+CL0_high_lift
         CD0 = CD0_clean+CD0_high_lift
