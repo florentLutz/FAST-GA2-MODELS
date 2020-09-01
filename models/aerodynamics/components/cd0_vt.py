@@ -27,9 +27,7 @@ class Cd0VerticalTail(ExplicitComponent):
         self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
-        
-        self.reynolds = self.options["reynolds"]
-        self.mach = self.options["mach"]
+        self.low_speed_aero = self.options["low_speed_aero"]
 
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:tip:chord", val=np.nan, units="m")

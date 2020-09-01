@@ -15,20 +15,15 @@ Test module for aerodynamics groups
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os.path as pth
-from platform import system
+import openmdao.api as om
 
 import pytest
 from fastoad.io import VariableIO
 
 from pytest import approx
 from tests.testing_utilities import run_system
-from tests.xfoil_exe.get_xfoil import get_xfoil_path
-from ..external.xfoil import XfoilPolar
 from ..aerodynamics_high_speed import AerodynamicsHighSpeed
 from ..aerodynamics_low_speed import AerodynamicsLowSpeed
-
-xfoil_path = None if system() == "Windows" else get_xfoil_path()
-
 
 def get_indep_var_comp(var_names):
     """ Reads required input data and returns an IndepVarcomp() instance"""
@@ -38,37 +33,24 @@ def get_indep_var_comp(var_names):
     return ivc
 
 
-@pytest.mark.skipif(
-    system() != "Windows" and xfoil_path is None, reason="No XFOIL executable available"
-)
-
-
-def test_aerodynamics_landing_with_xfoil():
-    """ Tests AerodynamicsHighSpeed """
-
-    # Use manual input list
-    input_list = [
-        "data:geometry:wing:thickness_ratio",
-        "data:aerodynamics:cruise:mach",
-        "data:aerodynamics:wing:cruise:reynolds",
-    ]
-
-    # Research independent input value in .xml file and complete with values from other modules
-    ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:aerodynamics:cruise:mach", 0.8)
-    ivc.add_output("data:aerodynamics:wing:cruise:reynolds", 1e8)
-
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(XfoilPolar(xfoil_exe_path=xfoil_path), ivc)
-    # Reference values are for Windows XFOIL version, but as results can be slightly different on other
-    # platforms, tolerance is extended to 1e-2
-    assert problem["data:aerodynamics:aircraft:low_speed:CL_max_clean"] == approx(1.59359, abs=1e-2)
-    assert problem["data:aerodynamics:aircraft:takeoff:CL_max"] == approx(2.82178, abs=1e-2)
-    assert problem["data:aerodynamics:aircraft:landing:CL_max"] == approx(2.82178, abs=1e-2)
+def list_inputs(group):
+    """ Reads input variables from a group and return as a list (run model with 0 value can lead to raise configuration
+    errors in models)"""
+    prob = om.Problem(model=group)
+    prob.setup()
+    prob.run_model()
+    data = prob.model.list_inputs(out_stream=None)
+    list_names = []
+    for idx in range(len(data)):
+        variable_name = data[idx][0].split('.')
+        list_names.append(variable_name[len(variable_name) - 1])
+    return list(dict.fromkeys(list_names))
 
 
 def test_aerodynamics_high_speed():
     """ Tests AerodynamicsHighSpeed """
+
+
     input_list = [
         "data:geometry:propulsion:engine:count",
         "data:geometry:propulsion:fan:length",
@@ -119,7 +101,18 @@ def test_aerodynamics_high_speed():
         "data:TLAR:approach_speed",
     ]
 
+    # Generate input list from model
+    group = om.Group()
+    ivc = om.IndepVarComp()
+    ivc.add_output("data:TLAR:v_cruise", 150)
+    ivc.add_output("data:mission:sizing:cruise:altitude", 50)
+    group.add_subsystem("constants", ivc, promotes=["*"])
+    group.add_subsystem("my_model", AerodynamicsHighSpeed(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
+
     problem = run_system(AerodynamicsHighSpeed(), ivc)
 
     cd = problem["data:aerodynamics:aircraft:cruise:CD"]

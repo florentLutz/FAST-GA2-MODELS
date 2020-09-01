@@ -35,11 +35,6 @@ class ComputeOSWALDvlm(VLM):
     def setup(self):
         
         super().setup()
-        
-        self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units='m')
-        self.add_input("data:geometry:wing:span", val=np.nan, units='m')
-        self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
-        self.add_input("data:geometry:wing:area", val=np.nan, units='m**2')
         self.add_input("data:geometry:wing:area", val=np.nan, units='m**2')
         nans_array = np.full(POLAR_POINT_COUNT, np.nan)
         if self.options["low_speed_aero"]:
@@ -75,8 +70,8 @@ class ComputeOSWALDvlm(VLM):
             CL_clean = inputs["data:aerodynamics:wing:cruise:CL"]
             CDp_clean = inputs["data:aerodynamics:wing:cruise:CDp"]
         
-        super()._run()
-        Cl, Cdi, Oswald, _ = super().compute_wing(self, inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
+        super()._run(inputs)
+        Cl, Cdi, Oswald, _ = super().compute_wing(inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
         k_fus = 1 - 2*(b_f/span)**2
         oswald = Oswald[0] * k_fus #Fuselage correction
         if mach>0.4:

@@ -18,16 +18,17 @@
 import math
 import numpy as np
 import copy
-from openmdao.components.external_code_comp import ExternalCodeComp
+import openmdao.api as om
 
 DEFAULT_NX = 19
 DEFAULT_NY1 = 3
 DEFAULT_NY2 = 14
 
-class VLM(ExternalCodeComp):
+class VLM(om.ExplicitComponent):
     
     def setup(self):
 
+        self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:wing:kink:span_ratio", val=np.nan)
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
@@ -45,47 +46,42 @@ class VLM(ExternalCodeComp):
         wing_break = inputs["data:geometry:wing:kink:span_ratio"]
         
         # Define mesh size        
-        self.nx = DEFAULT_NX
+        self.nx = int(DEFAULT_NX)
         if wing_break > 0:
-            self.ny1 = DEFAULT_NY1 + 5 # n° of panels in the straight section of the wing
-            self.ny2 = (DEFAULT_NY2 - 5)/2 # n° of panels in in the flapped portion of the wing
+            self.ny1 = int(DEFAULT_NY1 + 5) # n° of panels in the straight section of the wing
+            self.ny2 = int((DEFAULT_NY2 - 5)/2) # n° of panels in in the flapped portion of the wing
         else:
-            self.ny1 = DEFAULT_NY1 # n° of panels in the straight section of the wing
-            self.ny2 = DEFAULT_NY2/2 # n° of panels in in the flapped portion of the wing
+            self.ny1 = int(DEFAULT_NY1) # n° of panels in the straight section of the wing
+            self.ny2 = int(DEFAULT_NY2/2) # n° of panels in in the flapped portion of the wing
         self.ny3 = self.ny2 # n° of panels in the unflapped exterior portion of the wing
         
-        self.ny = self.ny1 + self.ny2 + self.ny3
+        self.ny = int(self.ny1 + self.ny2 + self.ny3)
         # Define elements
-        self.WING = {}
-        self.WING['x_panel'] = np.zeros(self.nx+1, 2*self.ny+1)
-        self.WING['y_panel'] = np.zeros(2*self.ny+1)
-        self.WING['x_LE'] = np.zeros(2*self.ny+1)
-        self.WING['chord'] = np.zeros(2*self.ny+1)
-        self.WING['panel_span'] = np.zeros(2*self.ny)
-        self.WING['panel_chord'] = np.zeros(self.nx*self.ny)
-        self.WING['panel_surf'] = np.zeros(self.nx*self.ny)
-        # Define control points
-        self.WING['xc'] = np.zeros(self.nx*2*self.ny)
-        self.WING['yc'] = np.zeros(self.nx*2*self.ny)
-        # Horsehoe vortex corners (1/4 chord)
-        self.WING['x1'] = np.zeros(self.nx*2*self.ny)
-        self.WING['x2'] = np.zeros(self.nx*2*self.ny)
-        self.WING['y1'] = np.zeros(self.nx*2*self.ny)
-        self.WING['y2'] = np.zeros(self.nx*2*self.ny)        
-        # Airfoil modeling
-        self.WING['panel_angle'] = np.zeros(self.nx)
-        self.WING['panel_angle_vect'] = np.zeros(self.nx*self.ny)
-        # Aerodynamic influence matrix
-        self.WING['AIC'] = np.zeros(self.nx*self.ny,self.nx*self.ny)
-        self.WING['AIC_wake'] = np.zeros(self.nx*self.ny,self.nx*self.ny)
+        self.WING = {'x_panel': np.zeros((self.nx + 1, 2 * self.ny + 1)),
+                     'y_panel': np.zeros(2 * self.ny + 1),
+                     'x_LE': np.zeros(2 * self.ny + 1),
+                     'chord': np.zeros(2 * self.ny + 1),
+                     'panel_span': np.zeros(2 * self.ny),
+                     'panel_chord': np.zeros(self.nx * self.ny),
+                     'panel_surf': np.zeros(self.nx * self.ny),
+                     'xc': np.zeros(self.nx * 2 * self.ny),
+                     'yc': np.zeros(self.nx * 2 * self.ny),
+                     'x1': np.zeros(self.nx * 2 * self.ny),
+                     'x2': np.zeros(self.nx * 2 * self.ny),
+                     'y1': np.zeros(self.nx * 2 * self.ny),
+                     'y2': np.zeros(self.nx * 2 * self.ny),
+                     'panel_angle': np.zeros(self.nx),
+                     'panel_angle_vect': np.zeros(self.nx * self.ny),
+                     'AIC': np.zeros((self.nx * self.ny, self.nx * self.ny)),
+                     'AIC_wake': np.zeros((self.nx * self.ny, self.nx * self.ny))}
         # Duplicate for HTP
         self.HTP = copy.deepcopy(self.WING)
         
         # Generate WING
-        self._generate_wing(self, inputs)
+        self._generate_wing(inputs)
         
         # Generate HTP
-        self._generate_htp(self, inputs)
+        self._generate_htp(inputs)
             
     def _generate_wing(self, inputs):
         """Generates the coordinates for VLM calculations and AIC matrix of the wing"""
@@ -126,7 +122,7 @@ class VLM(ExternalCodeComp):
         self.WING['chord'] = chord
         self.WING['x_LE'] = x_LE
         # Launch common code
-        self._generate_common(self, self.WING)
+        self._generate_common(self.WING)
     
     def _generate_htp(self, inputs):
         """Generates the coordinates for VLM calculations and AIC matrix of the htp"""
@@ -154,7 +150,7 @@ class VLM(ExternalCodeComp):
         self.HTP['chord'] = chord
         self.HTP['x_LE'] = x_LE
         # Launch common code
-        self._generate_common(self, self.HTP)
+        self._generate_common(self.HTP)
         
         
     def _generate_common(self, dictionnary):
@@ -275,6 +271,7 @@ class VLM(ExternalCodeComp):
         Cdi = []
         Oswald = []
         Cm = []
+        xc = self.WING['xc']
         y_panel = self.WING['y_panel']
         panelchord = self.WING['panel_chord']
         panelsurf = self.WING['panel_surf']
@@ -285,7 +282,7 @@ class VLM(ExternalCodeComp):
         AIC = self.WING['AIC']
         AIC_inv = np.linalg.inv(AIC)
         AIC_wake = self.WING['AIC_wake']
-        self.flapped_airfoil(flaps_angle)
+        self.flapped_airfoil(inputs, flaps_angle)
         
         # Calculate all the aerodynamic parameters 
         for AoA in AOAList:
@@ -300,7 +297,7 @@ class VLM(ExternalCodeComp):
             cdind_panel = cp*alphaind
             cdi = np.sum(cdind_panel*panelsurf)/np.sum(panelsurf)
             oswald = cl**2/(math.pi*aspect_ratio*cdi) * 0.955 # !!!: manual correction?
-            cmpanel = np.multiply(cp, (self.xc[:self.nx*self.ny]-meanchord/4))
+            cmpanel = np.multiply(cp, (xc[:self.nx*self.ny]-meanchord/4))
             cm = np.sum(cmpanel*panelsurf)/np.sum(panelsurf)
             # Calculate Wake
             w_farfield = []
@@ -413,6 +410,8 @@ class VLM(ExternalCodeComp):
         x_panel = self.WING['x_panel']
         y_panel = self.WING['y_panel']
         panelangle = self.WING['panel_angle']
+        panelangle_vect = self.WING['panel_angle_vect']
+
         z = np.zeros(self.nx+1)
         for i in range(self.nx+1):
             if x_panel[i,0]>x_start:
@@ -422,10 +421,13 @@ class VLM(ExternalCodeComp):
         for j in range(self.ny1):
             if y_panel[j]>y1_wing:
                 for i in range(self.nx):
-                    self.panelangle_vect[i*self.ny+j] += panelangle[i]
+                    panelangle_vect[i*self.ny+j] += panelangle[i]
         for j in range(self.ny1,self.ny1+self.ny2):
             for i in range(self.nx):
-                self.panelangle_vect[i*self.ny+j] += panelangle[i]   
-        
-        
+                panelangle_vect[i*self.ny+j] += panelangle[i]
+
+        # Save results
+        self.WING['panel_angle_vect'] = panelangle_vect
+        self.WING['panel_angle'] = panelangle
+        self.WING['z'] = z
         

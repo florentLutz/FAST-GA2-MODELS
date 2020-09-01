@@ -26,7 +26,7 @@ class Cd0Other(ExplicitComponent):
     def setup(self):
         self.low_speed_aero = self.options["low_speed_aero"]
 
-        self.add_input("data:configuration:LG_type", val=np.nan)
+        self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         

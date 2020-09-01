@@ -1,5 +1,5 @@
 LOAD
-profile.txt
+/profile.txt
 PLOP
 g
 
@@ -12,7 +12,7 @@ VISC
 ITER
 20
 PACC
-polar_result.txt
+/polar_result.txt
 
 ASEQ
 0

@@ -37,10 +37,6 @@ class ComputeWingCLALPHAvlm(VLM):
     def setup(self):
         
         super().setup()
-        self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units='m')
-        self.add_input("data:geometry:wing:span", val=np.nan, units='m')
-        self.add_input("vlm:alpha", val=np.nan)
-        self.add_input("vlm:CL_clean", val=np.nan)
         nans_array = np.full(POLAR_POINT_COUNT, np.nan)
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
@@ -78,8 +74,8 @@ class ComputeWingCLALPHAvlm(VLM):
         
         # Initial parameters calculation
         V_inf = max(atm.speed_of_sound * mach, 0.01) # avoid V=0 m/s crashes
-        super()._run()
-        Cl, Cdi, Oswald, Cm = super().compute_wing(self, inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
+        super()._run(inputs)
+        Cl, Cdi, Oswald, Cm = super().compute_wing(inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
         k_fus = 1 + 0.025*b_f/span - 0.025*(b_f/span)**2 # Fuselage correction
         beta = math.sqrt(1 - mach**2) # Prandtl-Glauert
         cl_alpha = (Cl[1] - Cl[0]) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180) * k_fus / beta

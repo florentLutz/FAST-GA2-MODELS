@@ -33,7 +33,7 @@ class Cd0Fuselage(ExplicitComponent):
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:wetted_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:fuselage:wetted_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.low_speed_aero:
             self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
