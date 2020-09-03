@@ -54,7 +54,7 @@ class AerodynamicsHighSpeed(Group):
         else:
             self.add_subsystem("cl_alpha", ComputeWingCLALPHAopenvsp(), promotes=["*"])
         self.add_subsystem("comp_re", ComputeReynolds(), promotes=["*"])
-        self.add_subsystem("cd0_wing", Cd0Wing(low_speed_aero=True), promotes=["*"])
+        self.add_subsystem("cd0_wing", Cd0Wing(), promotes=["*"])
         self.add_subsystem("cd0_fuselage", Cd0Fuselage(), promotes=["*"])
         self.add_subsystem("cd0_ht", Cd0HorizontalTail(), promotes=["*"])
         self.add_subsystem("cd0_vt", Cd0VerticalTail(), promotes=["*"])

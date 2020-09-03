@@ -14,7 +14,7 @@
 from ..components.cd0_fuselage import Cd0Fuselage
 from ..components.cd0_ht import Cd0HorizontalTail
 from ..components.cd0_lg import Cd0LandingGear
-from ..components.cd0_nacelle_pylons import Cd0Nacelle
+from ..components.cd0_nacelle import Cd0Nacelle
 from ..components.cd0_vt import Cd0VerticalTail
 from ..components.cd0_wing import Cd0Wing
 from ..components.cd0_other import Cd0Other
@@ -23,12 +23,25 @@ from openmdao.core.group import Group
 
 
 class CD0(Group):
+    def initialize(self):
+        self.options.declare("low_speed_aero", default=False, types=bool)
+        
     def setup(self):
-        self.add_subsystem("cd0_wing", Cd0Wing(), promotes=["*"])
-        self.add_subsystem("cd0_fuselage", Cd0Fuselage(), promotes=["*"])
-        self.add_subsystem("cd0_ht", Cd0HorizontalTail(), promotes=["*"])
-        self.add_subsystem("cd0_vt", Cd0VerticalTail(), promotes=["*"])
-        self.add_subsystem("cd0_nac_pylons", Cd0Nacelle(), promotes=["*"])
-        self.add_subsystem("cd0_lg", Cd0LandingGear(), promotes=["*"])
-        self.add_subsystem("cd0_other", Cd0Other(), promotes=["*"])
-        self.add_subsystem("cd0_total", Cd0Total(), promotes=["*"])
+        if self.options["low_speed_aero"]:
+            self.add_subsystem("cd0_wing", Cd0Wing(low_speed_aero=True), promotes=["*"])
+            self.add_subsystem("cd0_fuselage", Cd0Fuselage(low_speed_aero=True), promotes=["*"])
+            self.add_subsystem("cd0_ht", Cd0HorizontalTail(low_speed_aero=True), promotes=["*"])
+            self.add_subsystem("cd0_vt", Cd0VerticalTail(low_speed_aero=True), promotes=["*"])
+            self.add_subsystem("cd0_nac", Cd0Nacelle(low_speed_aero=True), promotes=["*"])
+            self.add_subsystem("cd0_lg", Cd0LandingGear(low_speed_aero=True), promotes=["*"])
+            self.add_subsystem("cd0_other", Cd0Other(low_speed_aero=True), promotes=["*"])
+            self.add_subsystem("cd0_total", Cd0Total(low_speed_aero=True), promotes=["*"])
+        else:
+            self.add_subsystem("cd0_wing", Cd0Wing(), promotes=["*"])
+            self.add_subsystem("cd0_fuselage", Cd0Fuselage(), promotes=["*"])
+            self.add_subsystem("cd0_ht", Cd0HorizontalTail(), promotes=["*"])
+            self.add_subsystem("cd0_vt", Cd0VerticalTail(), promotes=["*"])
+            self.add_subsystem("cd0_nac", Cd0Nacelle(), promotes=["*"])
+            self.add_subsystem("cd0_lg", Cd0LandingGear(), promotes=["*"])
+            self.add_subsystem("cd0_other", Cd0Other(), promotes=["*"])
+            self.add_subsystem("cd0_total", Cd0Total(), promotes=["*"])

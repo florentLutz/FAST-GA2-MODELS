@@ -64,6 +64,6 @@ class AerodynamicsLowSpeed(Group):
         self.add_subsystem("cd0_total", Cd0Total(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("comp_polar", XfoilPolar(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cl_max", ComputeMaxCL(), promotes=["*"])
-        self.add_subsystem("cl_ht", ComputeHTPCLCMopenvsp(), promotes=["*"])
-        self.add_subsystem("cl_alpha_ht", ComputeHTPCLALPHAopenvsp(), promotes=["*"])
+        self.add_subsystem("cl_cm_ht", ComputeHTPCLCMopenvsp(), promotes=["*"])
+        self.add_subsystem("cl_alpha_ht", ComputeHTPCLALPHAopenvsp(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("high_lift", ComputeDeltaHighLift(), promotes=["*"])

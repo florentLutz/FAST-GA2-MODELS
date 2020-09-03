@@ -22,6 +22,8 @@ from fastoad.io import VariableIO
 
 from pytest import approx
 from tests.testing_utilities import run_system
+from ..components.cd0 import CD0
+from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp
 from ..aerodynamics_high_speed import AerodynamicsHighSpeed
 from ..aerodynamics_low_speed import AerodynamicsLowSpeed
 
@@ -47,144 +49,104 @@ def list_inputs(group):
     return list(dict.fromkeys(list_names))
 
 
-def test_aerodynamics_high_speed():
-    """ Tests AerodynamicsHighSpeed """
-
-
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:geometry:propulsion:fan:length",
-        "data:geometry:flap:chord_ratio",
-        "data:geometry:flap:span_ratio",
-        "data:geometry:fuselage:maximum_height",
-        "data:geometry:fuselage:length",
-        "data:geometry:fuselage:wetted_area",
-        "data:geometry:fuselage:maximum_width",
-        "data:geometry:horizontal_tail:MAC:length",
-        "data:geometry:horizontal_tail:sweep_25",
-        "data:geometry:horizontal_tail:thickness_ratio",
-        "data:geometry:horizontal_tail:wetted_area",
-        "data:geometry:propulsion:nacelle:length",
-        "data:geometry:propulsion:nacelle:wetted_area",
-        "data:geometry:propulsion:pylon:length",
-        "data:geometry:propulsion:pylon:wetted_area",
-        "data:geometry:aircraft:wetted_area",
-        "data:geometry:slat:chord_ratio",
-        "data:geometry:slat:span_ratio",
-        "data:geometry:vertical_tail:MAC:length",
-        "data:geometry:vertical_tail:sweep_25",
-        "data:geometry:vertical_tail:thickness_ratio",
-        "data:geometry:vertical_tail:wetted_area",
-        "data:geometry:wing:area",
-        "data:geometry:wing:MAC:length",
-        "data:geometry:wing:root:chord",
-        "data:geometry:wing:tip:chord",
-        "data:geometry:wing:span",
-        "data:geometry:wing:sweep_0",
-        "data:geometry:wing:sweep_100_outer",
-        "data:geometry:wing:sweep_25",
-        "data:geometry:wing:thickness_ratio",
-        "data:geometry:wing:wetted_area",
-        "tuning:aerodynamics:aircraft:cruise:CD:k",
-        "tuning:aerodynamics:aircraft:cruise:CL:k",
-        "tuning:aerodynamics:aircraft:landing:CL_max:landing_gear_effect:k",
-        "tuning:aerodynamics:aircraft:cruise:CD:winglet_effect:k",
-        "tuning:aerodynamics:aircraft:cruise:CL:winglet_effect:k",
-        "tuning:aerodynamics:aircraft:cruise:CD:offset",
-        "tuning:aerodynamics:aircraft:cruise:CL:offset",
-        "tuning:aerodynamics:aircraft:cruise:CD:winglet_effect:offset",
-        "tuning:aerodynamics:aircraft:cruise:CL:winglet_effect:offset",
-        "data:mission:sizing:cruise:altitude",
-        "data:mission:sizing:landing:flap_angle",
-        "data:mission:sizing:landing:slat_angle",
-        "data:TLAR:cruise_mach",
-        "data:TLAR:approach_speed",
-    ]
+def test_cd0_high_speed():
+    """ Tests drag coefficient @ high speed """
 
     # Generate input list from model
     group = om.Group()
     ivc = om.IndepVarComp()
-    ivc.add_output("data:TLAR:v_cruise", 150)
-    ivc.add_output("data:mission:sizing:cruise:altitude", 50)
+    ivc.add_output("data:aerodynamics:cruise:mach", 0.8)
+    ivc.add_output("data:aerodynamics:wing:cruise:reynolds", 1e8)
     group.add_subsystem("constants", ivc, promotes=["*"])
-    group.add_subsystem("my_model", AerodynamicsHighSpeed(), promotes=["*"])
+    group.add_subsystem("my_model", CD0(), promotes=["*"])
     input_list = list_inputs(group)
+    print(input_list)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
+    ivc.add_output("data:aerodynamics:cruise:mach", 0.8)
+    ivc.add_output("data:aerodynamics:wing:cruise:reynolds", 1e8)
 
-    problem = run_system(AerodynamicsHighSpeed(), ivc)
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(CD0(), ivc)
+    cd0_wing = problem["data:aerodynamics:wing:cruise:CD0"]
+    assert cd0_wing == pytest.approx(0.0035, abs=1e-4)
+    cd0_fus = problem["data:aerodynamics:fuselage:cruise:CD0"]
+    assert cd0_fus == pytest.approx(0.0040, abs=1e-4)
+    cd0_ht = problem["data:aerodynamics:horizontal_tail:cruise:CD0"]
+    assert cd0_ht == pytest.approx(0.0013, abs=1e-4)
+    cd0_vt = problem["data:aerodynamics:vertical_tail:cruise:CD0"]
+    assert cd0_vt == pytest.approx(0.0010, abs=1e-4)
+    cd0_nac = problem["data:aerodynamics:nacelles:cruise:CD0"]
+    assert cd0_nac == pytest.approx(0.0010, abs=1e-4)
+    cd0_lg = problem["data:aerodynamics:landing_gear:cruise:CD0"]
+    assert cd0_lg == pytest.approx(0.0, abs=1e-4)
+    cd0_other = problem["data:aerodynamics:other:cruise:CD0"]
+    assert cd0_other == pytest.approx(0.0007, abs=1e-4)
 
-    cd = problem["data:aerodynamics:aircraft:cruise:CD"]
-    cl = problem["data:aerodynamics:aircraft:cruise:CL"]
 
-    assert cd[cl == 0.0] == approx(0.02030, abs=1e-5)
-    assert cd[cl == 0.2] == approx(0.02209, abs=1e-5)
-    assert cd[cl == 0.42] == approx(0.02897, abs=1e-5)
-    assert cd[cl == 0.85] == approx(0.11781, abs=1e-5)
+def test_cd0_low_speed():
+    """ Tests drag coefficient @ low speed """
 
-    assert problem["data:aerodynamics:aircraft:cruise:optimal_CL"] == approx(0.54, abs=1e-3)
-    assert problem["data:aerodynamics:aircraft:cruise:optimal_CD"] == approx(0.03550, abs=1e-5)
+    # Generate input list from model
+    group = om.Group()
+    ivc = om.IndepVarComp()
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.2)
+    ivc.add_output("data:aerodynamics:wing:low_speed:reynolds", 1e7)
+    group.add_subsystem("constants", ivc, promotes=["*"])
+    group.add_subsystem("my_model", CD0(low_speed_aero=True), promotes=["*"])
+    input_list = list_inputs(group)
+    print(input_list)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(input_list)
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.2)
+    ivc.add_output("data:aerodynamics:wing:low_speed:reynolds", 1e7)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(CD0(low_speed_aero=True), ivc)
+    cd0_wing = problem["data:aerodynamics:wing:low_speed:CD0"]
+    assert cd0_wing == pytest.approx(0.0048, abs=1e-4)
+    cd0_fus = problem["data:aerodynamics:fuselage:low_speed:CD0"]
+    assert cd0_fus == pytest.approx(0.0064, abs=1e-4)
+    cd0_ht = problem["data:aerodynamics:horizontal_tail:low_speed:CD0"]
+    assert cd0_ht == pytest.approx(0.0019, abs=1e-4)
+    cd0_vt = problem["data:aerodynamics:vertical_tail:low_speed:CD0"]
+    assert cd0_vt == pytest.approx(0.0014, abs=1e-4)
+    cd0_nac = problem["data:aerodynamics:nacelles:low_speed:CD0"]
+    assert cd0_nac == pytest.approx(0.0014, abs=1e-4)
+    cd0_lg = problem["data:aerodynamics:landing_gear:low_speed:CD0"]
+    assert cd0_lg == pytest.approx(0.0024, abs=1e-4)
+    cd0_other = problem["data:aerodynamics:other:low_speed:CD0"]
+    assert cd0_other == pytest.approx(0.0007, abs=1e-4)
 
 
-def test_aerodynamics_low_speed():
-    """ Tests AerodynamicsLowSpeed """
+def test_openvsp_comp_high_speed():
+    """ Tests openvsp components @ high speed """
+
+    # Generate input list from model
+    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
     input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:geometry:propulsion:fan:length",
-        "data:geometry:flap:chord_ratio",
-        "data:geometry:flap:span_ratio",
-        "data:geometry:fuselage:maximum_height",
-        "data:geometry:fuselage:length",
-        "data:geometry:fuselage:wetted_area",
-        "data:geometry:fuselage:maximum_width",
-        "data:geometry:horizontal_tail:MAC:length",
-        "data:geometry:horizontal_tail:sweep_25",
-        "data:geometry:horizontal_tail:thickness_ratio",
-        "data:geometry:horizontal_tail:wetted_area",
-        "data:geometry:propulsion:nacelle:length",
-        "data:geometry:propulsion:nacelle:wetted_area",
-        "data:geometry:propulsion:pylon:length",
-        "data:geometry:propulsion:pylon:wetted_area",
-        "data:geometry:aircraft:wetted_area",
-        "data:geometry:slat:chord_ratio",
-        "data:geometry:slat:span_ratio",
-        "data:geometry:vertical_tail:MAC:length",
-        "data:geometry:vertical_tail:sweep_25",
-        "data:geometry:vertical_tail:thickness_ratio",
-        "data:geometry:vertical_tail:wetted_area",
-        "data:geometry:wing:area",
-        "data:geometry:wing:aspect_ratio",
+        "data:geometry:wing:MAC:leading_edge:x:local",
         "data:geometry:wing:MAC:length",
+        "data:geometry:fuselage:maximum_width",
+        "data:geometry:wing:root:y",
         "data:geometry:wing:root:chord",
+        "data:geometry:wing:tip:y",
         "data:geometry:wing:tip:chord",
-        "data:geometry:wing:span",
         "data:geometry:wing:sweep_0",
-        "data:geometry:wing:sweep_100_outer",
-        "data:geometry:wing:sweep_25",
-        "data:geometry:wing:thickness_ratio",
-        "data:geometry:wing:tip:thickness_ratio",
-        "data:geometry:wing:wetted_area",
-        "tuning:aerodynamics:aircraft:cruise:CD:k",
-        "tuning:aerodynamics:aircraft:cruise:CL:k",
-        "tuning:aerodynamics:aircraft:cruise:CD:winglet_effect:k",
-        "tuning:aerodynamics:aircraft:cruise:CL:winglet_effect:k",
-        "tuning:aerodynamics:aircraft:cruise:CD:offset",
-        "tuning:aerodynamics:aircraft:cruise:CL:offset",
-        "tuning:aerodynamics:aircraft:cruise:CD:winglet_effect:offset",
-        "tuning:aerodynamics:aircraft:cruise:CL:winglet_effect:offset",
-        "data:mission:sizing:landing:flap_angle",
-        "data:mission:sizing:landing:slat_angle",
-        "data:TLAR:approach_speed",
+        "data:geometry:wing:MAC:at25percent:x",
+        "data:geometry:wing:area",
+        "data:geometry:wing:span",
+        "data:geometry:fuselage:maximum_height",
+        "data:mission:sizing:cruise:altitude",
     ]
 
+    # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    problem = run_system(AerodynamicsLowSpeed(), ivc)
+    ivc.add_output("data:aerodynamics:cruise:mach", 0.8)
 
-    cd = problem["aerodynamics:Cd_low_speed"]
-    cl = problem["cl_low_speed"]
-
-    assert cd[cl == 0.0] == approx(0.02173, abs=1e-5)
-    assert cd[cl == 0.2] == approx(0.02339, abs=1e-5)
-    assert cd[cl == 0.42] == approx(0.02974, abs=1e-5)
-    assert cd[cl == 0.85] == approx(0.06010, abs=1e-5)
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeWingCLALPHAopenvsp(), ivc)
+    coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
+    assert coef_k == pytest.approx(0.35, abs=1e-2)
