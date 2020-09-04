@@ -15,6 +15,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import multiprocessing
+import shutil
 import os
 import os.path as pth
 import tempfile
@@ -36,7 +37,7 @@ OPTION_OPENVSP_EXE_PATH = "openvsp_exe_path"
 
 _INPUT_SCRIPT_FILE_NAME = "wing_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_openvsp_DegenGeom"
-_INPUT_AOAList = [0.0, 5.0] # !!!: arround 0° calculation
+_INPUT_AOAList = [0.0, 5.0] # Small angle calculation of derivative
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
 _AIRFOIL_2_FILE_NAME = "naca23012.af"
@@ -122,7 +123,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         input_file_list.append(pth.join(target_directory, _AIRFOIL_0_FILE_NAME))
         input_file_list.append(pth.join(target_directory, _AIRFOIL_1_FILE_NAME))
         input_file_list.append(pth.join(target_directory, _AIRFOIL_2_FILE_NAME))
-        tmp_result_file_path = pth.join(target_directory, _INPUT_AERO_FILE_NAME + '.csv')
+        tmp_result_file_path = pth.join(target_directory, _INPUT_AERO_FILE_NAME + '0.csv')
         output_file_list = [tmp_result_file_path]
         self.options["external_input_files"] = input_file_list
         self.options["external_output_files"] = output_file_list
@@ -137,7 +138,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
         self.options['allowed_return_codes'] = [0]
-        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, pth.splitext(_INPUT_AERO_FILE_NAME)[0] + '.vspscript')
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write(command)
         batch_file.close()
@@ -179,7 +180,11 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         # OPENVSP-AERO: aero calculation ############################################################
        
         # I/O files --------------------------------------------------------------------------------
+        # Duplicate .csv file for multiple run
         input_file_list = [tmp_result_file_path]
+        for idx in range(len(_INPUT_AOAList)-1):
+            shutil.copy(tmp_result_file_path, pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx+1) + '.csv'))
+            input_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx+1) + '.csv'))
         output_file_list = []
         for idx in range(len(_INPUT_AOAList)):
             input_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx) + '.vspaero')
@@ -202,7 +207,8 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         for idx in range(len(_INPUT_AOAList)):
             with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
                 parser.set_template_file(input_template_path)
-                parser.set_generated_file(input_file_list[idx])
+                parser.set_generated_file(input_file_list[len(_INPUT_AOAList)+idx])
+                parser.reset_anchor()
                 parser.mark_anchor("Sref")
                 parser.transfer_var(float(Sref_wing), 0, 3)
                 parser.mark_anchor("Cref")
@@ -230,12 +236,13 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         
         # Post-processing --------------------------------------------------------------------------
         result_cl = []
-        for i in range(len(_INPUT_AOAList)):
-            result_cl.append(self._read_polar_file(output_file_list[idx]))
+        for idx in range(len(_INPUT_AOAList)):
+            cl, _, _, _ = self._read_polar_file(output_file_list[idx])
+            result_cl.append(cl)
         # Fuselage correction
         k_fus = 1 + 0.025*width_max/span_wing - 0.025*(width_max/span_wing)**2
-        cl_0 = result_cl[0] * k_fus
-        cl_5 = result_cl[1] * k_fus
+        cl_0 = float(result_cl[0] * k_fus)
+        cl_5 = float(result_cl[1] * k_fus)
         # Calculate derivative
         cl_alpha = (cl_5 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)           
         # Delete temporary directory    
@@ -249,36 +256,23 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
             outputs['data:aerodynamics:aircraft:cruise:CL_alpha'] = cl_alpha
         
     @staticmethod
-    def _read_polar_file(tmp_result_file_path: str) -> float:
-        result_cl = []
-        result_cdi = []
-        result_oswald = []
-        result_cm = []
-        # Colect data from .polar file
+    def _read_polar_file(tmp_result_file_path: str):
+        """
+        Collect data from .polar file
+        """
+
         with open(tmp_result_file_path, 'r') as hf:
             line = hf.readlines()
-            i = 0
-            iteration_found = True
-            while iteration_found:
-                try:
-                    # Cl
-                    iter_cl = float(line[i + 1][40:50].replace(' ', ''))
-                    # Cdi
-                    iter_cdi = float(line[i + 1][60:70].replace(' ', ''))
-                    # Oswald
-                    iter_oswald = float(line[i + 1][100:110].replace(' ', ''))
-                    # Cm
-                    iter_cm = float(line[i + 1][150:160].replace(' ', ''))
-                    # Save
-                    result_cl.append(iter_cl)
-                    result_cdi.append(iter_cdi)
-                    result_oswald.append(iter_oswald)
-                    result_cm.append(iter_cm)
-                    i += 1
-                except:
-                    iteration_found = False
-                
-        return result_cl[len(result_cl)-1]
+            # Cl
+            cl = float(line[1][40:50].replace(' ', ''))
+            # Cdi
+            cdi = float(line[1][60:70].replace(' ', ''))
+            # Oswald
+            oswald = float(line[1][100:110].replace(' ', ''))
+            # Cm
+            cm = float(line[1][150:160].replace(' ', ''))
+
+        return cl, cdi, oswald, cm
     
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:

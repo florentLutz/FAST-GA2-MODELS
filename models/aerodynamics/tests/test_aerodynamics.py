@@ -16,6 +16,7 @@ Test module for aerodynamics groups
 
 import os.path as pth
 import openmdao.api as om
+import numpy as np
 
 import pytest
 from fastoad.io import VariableIO
@@ -23,7 +24,7 @@ from fastoad.io import VariableIO
 from pytest import approx
 from tests.testing_utilities import run_system
 from ..components.cd0 import CD0
-from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp
+from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp, ComputeHTPCLCMopenvsp
 from ..aerodynamics_high_speed import AerodynamicsHighSpeed
 from ..aerodynamics_low_speed import AerodynamicsLowSpeed
 
@@ -147,6 +148,54 @@ def test_openvsp_comp_high_speed():
     ivc.add_output("data:aerodynamics:cruise:mach", 0.8)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeWingCLALPHAopenvsp(), ivc)
+    problem = run_system(ComputeOSWALDopenvsp(), ivc)
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
     assert coef_k == pytest.approx(0.35, abs=1e-2)
+    problem = run_system(ComputeWingCLALPHAopenvsp(), ivc)
+    cl0 = problem["data:aerodynamics:aircraft:cruise:CL0_clean"]
+    assert cl0 == pytest.approx(0.016, abs=1e-3)
+    cl_alpha = problem["data:aerodynamics:aircraft:cruise:CL_alpha"]
+    assert cl_alpha == pytest.approx(0.83, abs=1e-2)
+
+def test_openvsp_comp_low_speed():
+    """ Tests openvsp components @ low speed """
+
+    # Generate input list from model
+    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
+    input_list = [
+        "data:geometry:wing:MAC:leading_edge:x:local",
+        "data:geometry:wing:MAC:length",
+        "data:geometry:fuselage:maximum_width",
+        "data:geometry:wing:root:y",
+        "data:geometry:wing:root:chord",
+        "data:geometry:wing:tip:y",
+        "data:geometry:wing:tip:chord",
+        "data:geometry:wing:sweep_0",
+        "data:geometry:wing:MAC:at25percent:x",
+        "data:geometry:wing:area",
+        "data:geometry:wing:span",
+        "data:geometry:fuselage:maximum_height",
+        "data:geometry:horizontal_tail:sweep_25",
+        "data:geometry:horizontal_tail:span",
+        "data:geometry:horizontal_tail:root:chord",
+        "data:geometry:horizontal_tail:tip:chord",
+        "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
+        "data:geometry: horizontal_tail:MAC: length",
+        "data:geometry:horizontal_tail:MAC:at25percent:x:local",
+        "data:geometry:horizontal_tail:height",
+
+    ]
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(input_list)
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.2)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeHTPCLCMopenvsp(), ivc)
+    alpha_interp = problem["data:aerodynamics:horizontal_tail:low_speed:alpha"]
+    cl_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CL"]
+    cm_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CL"]
+    cl = np.interp(10.0, alpha_interp, cl_interp)
+    cm = np.interp(10.0, alpha_interp, cm_interp)
+    assert cl == pytest.approx(0.35, abs=1e-2)
+    assert cm == pytest.approx(0.35, abs=1e-2)

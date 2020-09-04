@@ -70,6 +70,7 @@
         <wetted_area units="m**2">401.956<!--wetted area of fuselage--></wetted_area>
       </fuselage>
       <horizontal_tail>
+	    <span units="m">0.6<!--chord length at wing tip--></span>
 		<tip>
           <chord units="m">1.02<!--chord length at wing tip--></chord>
         </tip>
@@ -77,7 +78,9 @@
           <chord units="m">1.26<!--chord length at wing root--></chord>
         </root>
         <MAC>
-          <length units="m">3.141<!--mean aerodynamic chord length of horizontal tail--></length>
+		  <at25percent>
+		  </at25percent>
+          <length units="m">0.5<!--mean aerodynamic chord length of horizontal tail--></length>
         </MAC>
         <thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>
         <sweep_25 units="deg">28.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>

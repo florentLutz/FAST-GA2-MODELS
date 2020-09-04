@@ -17,3 +17,6 @@ FarDist = -1.000000
 NumWakeNodes = cpu_count
 WakeIters = 5
 NumberOfRotors = 0
+NumberOfControlGroups = 0 
+Preconditioner = Matrix 
+Karman-Tsien Correction = N
