@@ -68,12 +68,12 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_output("data:aerodynamics:aircraft:low_speed:CL0_clean")
-            self.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha")
+            self.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
             self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
             self.add_output("data:aerodynamics:aircraft:cruise:CL0_clean")
-            self.add_output("data:aerodynamics:aircraft:cruise:CL_alpha")
+            self.add_output("data:aerodynamics:aircraft:cruise:CL_alpha", units="rad**-1")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -137,7 +137,6 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-        self.options['allowed_return_codes'] = [0]
         command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write(command)
@@ -195,6 +194,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         # Pre-processing (create batch file) -------------------------------------------------------
         self.options["command"] = [pth.join(target_directory, 'vspaero.bat')]
         batch_file = open(self.options["command"][0], "w+")
+        batch_file.write("@echo off\n")
         for idx in range(len(_INPUT_AOAList)):
             command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + '\n')
             batch_file.write(command)

@@ -108,7 +108,7 @@ class VLM(om.ExplicitComponent):
                 chord[j] = root_chord + (tip_chord-root_chord)*y_tapered_section/(semi_span-y2_wing)
                 x_LE[j] = y_tapered_section * (root_chord-tip_chord)/(4*(semi_span-y2_wing))
             else:
-                y_panel[j] = y2_wing + (semi_span - y_endflaps)* (j-(self.ny1+self.ny2))/self.ny3
+                y_panel[j] = y_endflaps + (semi_span - y_endflaps)* (j-(self.ny1+self.ny2))/self.ny3
                 y_tapered_section = (y_panel[j] - y2_wing)
                 chord[j] = root_chord + (tip_chord-root_chord)*y_tapered_section/(semi_span-y2_wing)
                 x_LE[j] = y_tapered_section * (root_chord-tip_chord)/(4*(semi_span-y2_wing))

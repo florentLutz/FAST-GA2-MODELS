@@ -42,16 +42,16 @@ class Compute3DMaxCL(ExplicitComponent):
     def setup(self):
         
         self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="rad")
-        self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean_2D", val=np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:CL_max_2D", val=np.nan)
 
         self.add_output("data:aerodynamics:wing:low_speed:CL_max_clean")
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+    def compute(self, inputs, outputs):
         
         sweep_25 = inputs["data:geometry:wing:sweep_25"]
-        cl_max_2d = inputs["data:aerodynamics:wing:low_speed:CL_max_clean_2D"]
+        cl_max_2d = inputs["data:aerodynamics:wing:low_speed:CL_max_2D"]
         
         CL_max_clean = cl_max_2d * 0.9 * np.cos(sweep_25)
         
@@ -65,7 +65,7 @@ class ComputeAircraftMaxCl(ExplicitComponent):
     
     def setup(self):
         
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL_max_clean", val=np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean", val=np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CL", val=np.nan)
         self.add_input("data:aerodynamics:flaps:landing:CL", val=np.nan)
 
@@ -76,7 +76,7 @@ class ComputeAircraftMaxCl(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         
-        cl_max_clean = inputs["data:aerodynamics:aircraft:low_speed:CL_max_clean"]
+        cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
         cl_max_takeoff = cl_max_clean + inputs["data:aerodynamics:flaps:takeoff:CL"]
         cl_max_landing = cl_max_clean + inputs["data:aerodynamics:flaps:landing:CL"]
 

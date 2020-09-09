@@ -64,7 +64,6 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("cd0_total", Cd0Total(), promotes=["*"])
         self.add_subsystem("comp_polar", XfoilPolar(), promotes=["*"])
         self.add_subsystem("cl_alpha_ht", ComputeHTPCLALPHAopenvsp(), promotes=["*"])
-        self.add_subsystem("high_lift", ComputeDeltaHighLift(), promotes=["*"])
         self.add_subsystem("L_D_max", ComputeLDMax(), promotes=["*"])
         self.add_subsystem("cnBeta_fuse", ComputeCnBetaFuselage(), promotes=["*"])
         self.add_subsystem("cnBeta_vt", ComputeCnBetaVT(), promotes=["*"])

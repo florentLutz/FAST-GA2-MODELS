@@ -50,7 +50,6 @@ class ComputeReynolds(ExplicitComponent):
         reynolds = Atmosphere(altitude, altitude_in_feet=False).get_unitary_reynolds(mach)
 
         if self.low_speed_aero:
-            outputs["data:aerodynamics:low_speed:mach"] = mach
             outputs["data:aerodynamics:wing:low_speed:reynolds"] = reynolds
         else:
             outputs["data:aerodynamics:cruise:mach"] = mach

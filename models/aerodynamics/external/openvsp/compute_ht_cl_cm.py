@@ -44,7 +44,7 @@ VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
 
 ALPHA_LIMIT = 30.0 # Limit angle for calculation
-_INPUT_AOAList = list(np.linspace(0.0, ALPHA_LIMIT, 10))
+_INPUT_AOAList = list(np.linspace(0.0, ALPHA_LIMIT, 5))
 
 class ComputeHTPCLCMopenvsp(ExternalCodeComp):
 
@@ -119,8 +119,6 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         rho = atm.density
         V_inf = max(atm.speed_of_sound * mach, 0.01) # avoid V=0 m/s crashes
         reynolds = V_inf * l0_wing / viscosity
-        AOAList = str(_INPUT_AOAList)
-        AOAList = AOAList[1:len(AOAList)-1]
         
         # OPENVSP-SCRIPT: Geometry generation ######################################################
         
@@ -148,7 +146,6 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-        self.options['allowed_return_codes'] = [0]
         command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write(command)
@@ -181,6 +178,18 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
             parser.transfer_var(self._rewrite_path(input_file_list[2]), 0, 3)
             parser.mark_anchor("airfoil_2_file")
             parser.transfer_var(self._rewrite_path(input_file_list[3]), 0, 3)
+            parser.mark_anchor("distance_htp")
+            parser.transfer_var(float(distance_htp), 0, 5)
+            parser.mark_anchor("height_htp")
+            parser.transfer_var(float(height_htp), 0, 5)
+            parser.mark_anchor("span_htp")
+            parser.transfer_var(float(span_htp), 0, 5)
+            parser.mark_anchor("root_chord_htp")
+            parser.transfer_var(float(root_chord_htp), 0, 5)
+            parser.mark_anchor("tip_chord_htp")
+            parser.transfer_var(float(tip_chord_htp), 0, 5)
+            parser.mark_anchor("sweep_25_htp")
+            parser.transfer_var(float(sweep_25_htp), 0, 5)
             parser.mark_anchor("csv_file")
             parser.transfer_var(self._rewrite_path(tmp_result_file_path), 0, 3)
             parser.generate()
@@ -199,13 +208,14 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         output_file_list = []
         for idx in range(len(_INPUT_AOAList)):
             input_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx) + '.vspaero')
-            output_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx) + '.polar')
+            output_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx) + '.lod')
         self.options["external_input_files"] = input_file_list
         self.options["external_output_files"] = output_file_list
 
         # Pre-processing (create batch file) -------------------------------------------------------
         self.options["command"] = [pth.join(target_directory, 'vspaero.bat')]
         batch_file = open(self.options["command"][0], "w+")
+        batch_file.write("@echo off\n")
         for idx in range(len(_INPUT_AOAList)):
             command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + '\n')
             batch_file.write(command)
@@ -249,13 +259,13 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         result_cl = []
         result_cm = []
         for idx in range(len(_INPUT_AOAList)):
-            cl_htp, cm_wing = self._read_lod_file(tmp_result_file_path)
+            cl_htp, cm_wing = self._read_lod_file(output_file_list[idx])
             result_cl.append(cl_htp)
             result_cm.append(cm_wing)
 
         outputs['data:aerodynamics:horizontal_tail:low_speed:alpha'] = np.array(_INPUT_AOAList)
-        outputs['data:aerodynamics:horizontal_tail:low_speed:CL'] = np.array(cl_htp)
-        outputs['data:aerodynamics:horizontal_tail:low_speed:CM'] = np.array(cm_wing)
+        outputs['data:aerodynamics:horizontal_tail:low_speed:CL'] = np.array(result_cl)
+        outputs['data:aerodynamics:horizontal_tail:low_speed:CM'] = np.array(result_cm)
 
         # Delete temporary directory
         tmp_directory.cleanup()
@@ -265,6 +275,8 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         """
         Collect data from .lod file
         """
+        cl_htp = 0.0
+        cm_wing = 0.0
         with open(tmp_result_file_path, 'r') as lf:
             data = lf.readlines()
             for i in range(len(data)):
@@ -287,4 +299,9 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
             tmp_directory = tempfile.TemporaryDirectory(prefix="x", dir=tmp_base_path)
             break
             
-        return tmp_directory    
+        return tmp_directory
+
+    @staticmethod
+    def _rewrite_path(file_path: str) -> str:
+        file_path = '\"' + file_path.replace('\\', '\\\\') + '\"'
+        return file_path

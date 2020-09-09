@@ -40,17 +40,17 @@ class ComputeWingCLALPHAvlm(VLM):
         nans_array = np.full(POLAR_POINT_COUNT, np.nan)
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-            self.add_input("data:aerodynamics:wing:low_speed:alpha", val=nans_array)
+            self.add_input("data:aerodynamics:wing:low_speed:alpha", val=nans_array, units="deg")
             self.add_input("data:aerodynamics:wing:low_speed:CL", val=nans_array)
             self.add_output("data:aerodynamics:aircraft:low_speed:CL0_clean")
-            self.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha")
+            self.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
         else:
+            self.add_input("data:TLAR:v_cruise", val=np.nan, units='m/s')
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-            self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
-            self.add_input("data:aerodynamics:wing:cruise:alpha", val=nans_array)
+            self.add_input("data:aerodynamics:wing:cruise:alpha", val=nans_array, units="deg")
             self.add_input("data:aerodynamics:wing:cruise:CL", val=nans_array)
             self.add_output("data:aerodynamics:aircraft:cruise:CL0_clean")
-            self.add_output("data:aerodynamics:aircraft:cruise:CL_alpha")
+            self.add_output("data:aerodynamics:aircraft:cruise:CL_alpha", units="rad**-1")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -60,20 +60,16 @@ class ComputeWingCLALPHAvlm(VLM):
         b_f = inputs['data:geometry:fuselage:maximum_width']
         span = inputs['data:geometry:wing:span']
         if self.options["low_speed_aero"]:
-            altitude = 0.0
-            atm = Atmosphere(altitude)
             mach = inputs["data:aerodynamics:low_speed:mach"]
+            V_inf = max(Atmosphere(0.0).speed_of_sound * mach, 0.01)  # avoid V=0 m/s crashes
             CL_clean = inputs["data:aerodynamics:wing:low_speed:CL"]
             alpha = inputs["data:aerodynamics:wing:low_speed:alpha"]
         else:
-            altitude = inputs["data:mission:sizing:cruise:altitude"]
-            atm = Atmosphere(altitude)
             mach = inputs["data:aerodynamics:cruise:mach"]
+            V_inf = inputs["data:TLAR:v_cruise"]
             CL_clean = inputs["data:aerodynamics:wing:cruise:CL"]
             alpha = inputs["data:aerodynamics:wing:cruise:alpha"]
         
-        # Initial parameters calculation
-        V_inf = max(atm.speed_of_sound * mach, 0.01) # avoid V=0 m/s crashes
         super()._run(inputs)
         Cl, Cdi, Oswald, Cm = super().compute_wing(inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
         k_fus = 1 + 0.025*b_f/span - 0.025*(b_f/span)**2 # Fuselage correction

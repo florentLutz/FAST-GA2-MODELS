@@ -81,7 +81,7 @@ class XfoilPolar(ExternalCodeComp):
         if self.low_speed_aero:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
-            self.add_output("data:aerodynamics:wing:low_speed:alpha", shape=POLAR_POINT_COUNT)
+            self.add_output("data:aerodynamics:wing:low_speed:alpha", shape=POLAR_POINT_COUNT, units="deg")
             self.add_output("data:aerodynamics:wing:low_speed:CL", shape=POLAR_POINT_COUNT)
             self.add_output("data:aerodynamics:wing:low_speed:CD", shape=POLAR_POINT_COUNT)
             self.add_output("data:aerodynamics:wing:low_speed:CDp", shape=POLAR_POINT_COUNT)
@@ -90,7 +90,7 @@ class XfoilPolar(ExternalCodeComp):
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
             self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
-            self.add_output("data:aerodynamics:wing:cruise:alpha", shape=POLAR_POINT_COUNT)
+            self.add_output("data:aerodynamics:wing:cruise:alpha", shape=POLAR_POINT_COUNT, units="deg")
             self.add_output("data:aerodynamics:wing:cruise:CL", shape=POLAR_POINT_COUNT)
             self.add_output("data:aerodynamics:wing:cruise:CD", shape=POLAR_POINT_COUNT)
             self.add_output("data:aerodynamics:wing:cruise:CDp", shape=POLAR_POINT_COUNT)

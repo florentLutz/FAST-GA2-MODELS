@@ -15,6 +15,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import multiprocessing
+import shutil
 import os
 import os.path as pth
 import tempfile
@@ -24,7 +25,7 @@ from tempfile import TemporaryDirectory
 import math
 import numpy as np
 from fastoad.utils.physics import Atmosphere
-from fastoad.utils.resource_management.copy import copy_resource
+from fastoad.utils.resource_management.copy import copy_resource, copy_resource_folder
 from importlib_resources import path
 from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
@@ -34,8 +35,8 @@ from . import openvsp3201
 
 OPTION_OPENVSP_EXE_PATH = "openvsp_exe_path"
 
-_INPUT_SCRIPT_FILE_NAME = "polar_session_2.vspscript"
-_INPUT_AERO_FILE_NAME = "polar_session.vspaero"
+_INPUT_SCRIPT_FILE_NAME = "wing_ht_openvsp.vspscript"
+_INPUT_AERO_FILE_NAME = "wing_ht_openvsp_DegenGeom"
 _INPUT_AOAList = [2.0, 4.0] # ???: why mid point is 3° ?
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
@@ -68,16 +69,16 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
-        self.add_input("ata:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:local", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:height", val=np.nan, units="m")
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_alpha")
+            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
             self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
-            self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha")
+            self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
         
         self.declare_partials("*", "*", method="fd")        
     
@@ -132,150 +133,171 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         # I/O files --------------------------------------------------------------------------------
         tmp_directory = self._create_tmp_directory()
         if self.options[OPTION_OPENVSP_EXE_PATH]:
-            self.stdin1 = pth.join(self.options[OPTION_OPENVSP_EXE_PATH], pth.splitext(_INPUT_AERO_FILE_NAME)[0], '.vspscript')
-            self.stdin2 = pth.abspath(pth.join(self.options[OPTION_OPENVSP_EXE_PATH], _AIRFOIL_0_FILE_NAME))
-            self.stdin3 = pth.abspath(pth.join(self.options[OPTION_OPENVSP_EXE_PATH], _AIRFOIL_1_FILE_NAME))
-            self.stdin4 = pth.abspath(pth.join(self.options[OPTION_OPENVSP_EXE_PATH], _AIRFOIL_2_FILE_NAME)) 
+            target_directory = pth.abspath(self.options[OPTION_OPENVSP_EXE_PATH])
         else:
-            self.stdin1 = pth.join(tmp_directory.name, pth.splitext(_INPUT_AERO_FILE_NAME)[0], '.vspscript')
-            self.stdin2 = pth.abspath(pth.join(tmp_directory.name, _AIRFOIL_0_FILE_NAME))
-            self.stdin3 = pth.abspath(pth.join(tmp_directory.name, _AIRFOIL_1_FILE_NAME))
-            self.stdin4 = pth.abspath(pth.join(tmp_directory.name, _AIRFOIL_2_FILE_NAME))  
+            target_directory = tmp_directory.name
+        input_file_list = [pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)]
+        input_file_list.append(pth.join(target_directory, _AIRFOIL_0_FILE_NAME))
+        input_file_list.append(pth.join(target_directory, _AIRFOIL_1_FILE_NAME))
+        input_file_list.append(pth.join(target_directory, _AIRFOIL_2_FILE_NAME))
+        tmp_result_file_path = pth.join(target_directory, _INPUT_AERO_FILE_NAME + '0.csv')
+        output_file_list = [tmp_result_file_path]
+        self.options["external_input_files"] = input_file_list
+        self.options["external_output_files"] = output_file_list
         
         # Pre-processing (populating temp directory) -----------------------------------------------
-        if self.options[OPTION_OPENVSP_EXE_PATH]:
-            # if a path for openvsp has been provided, simply use it
-            self.options["command"] = [pth.join(self.options[OPTION_OPENVSP_EXE_PATH], VSPSCRIPT_EXE_NAME) + ' -script ' + self.stdin1]
-        else:
-            # otherwise, copy the embedded resource in tmp dir
-            copy_resource(openvsp3201, VSPSCRIPT_EXE_NAME, VSPAERO_EXE_NAME, tmp_directory.name)
-            copy_resource(_AIRFOIL_0_FILE_NAME, _AIRFOIL_1_FILE_NAME, _AIRFOIL_2_FILE_NAME, tmp_directory.name)
-            self.options["command"] = [pth.join(tmp_directory.name, VSPSCRIPT_EXE_NAME) + ' -script ' + self.stdin1]
+        # Copy resource in temp directory if needed
+        if not (self.options[OPTION_OPENVSP_EXE_PATH]):
+            copy_resource_folder(openvsp3201.__path__[0], target_directory)  # FIXME: look if old version is working
+            copy_resource(resources, _AIRFOIL_0_FILE_NAME, target_directory)
+            copy_resource(resources, _AIRFOIL_1_FILE_NAME, target_directory)
+            copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
+        # Create corresponding .bat file
+        self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)
+        batch_file = open(self.options["command"][0], "w+")
+        batch_file.write(command)
+        batch_file.close()
         
         # standard SCRIPT input file ----------------------------------------------------------------
-        tmp_result_file_path = pth.join(pth.splitext(self.stdin1)[0], '.csv')
         parser = InputFileGenerator()
         with path(resources, _INPUT_SCRIPT_FILE_NAME) as input_template_path:
             parser.set_template_file(input_template_path)
-            parser.set_generated_file(self.stdin1)
+            parser.set_generated_file(input_file_list[0])
             parser.mark_anchor("x_wing")
-            parser.transfer_var(float(x_wing) + ');', 0, 57)
+            parser.transfer_var(float(x_wing), 0, 5)
             parser.mark_anchor("z_wing")
-            parser.transfer_var(float(z_wing) + ');', 0, 57)
+            parser.transfer_var(float(z_wing), 0, 5)
             parser.mark_anchor("y1_wing")
-            parser.transfer_var(float(y1_wing) + ');', 0, 57)
-            parser.mark_anchor("l2_wing")
-            parser.transfer_var(float(l2_wing) + ');', 0, 57)
+            parser.transfer_var(float(y1_wing), 0, 5)
+            for i in range(3):
+                parser.mark_anchor("l2_wing")
+                parser.transfer_var(float(l2_wing), 0, 5)
             parser.reset_anchor()
             parser.mark_anchor("span2_wing")
-            parser.transfer_var(float(span2_wing) + ');', 0, 57)
+            parser.transfer_var(float(span2_wing), 0, 5)
             parser.mark_anchor("l4_wing")
-            parser.transfer_var(float(l4_wing) + ');', 0, 57)
+            parser.transfer_var(float(l4_wing), 0, 5)
             parser.mark_anchor("sweep_0_wing")
-            parser.transfer_var(float(sweep_0_wing) + ');', 0, 57)
+            parser.transfer_var(float(sweep_0_wing), 0, 5)
             parser.mark_anchor("airfoil_0_file")
-            parser.transfer_var(self.stdin2 + ');', 0, 27)
+            parser.transfer_var(self._rewrite_path(input_file_list[1]), 0, 3)
             parser.mark_anchor("airfoil_1_file")
-            parser.transfer_var(self.stdin3 + ');', 0, 27)
+            parser.transfer_var(self._rewrite_path(input_file_list[2]), 0, 3)
             parser.mark_anchor("airfoil_2_file")
-            parser.transfer_var(self.stdin4 + ');', 0, 27)
+            parser.transfer_var(self._rewrite_path(input_file_list[3]), 0, 3)
             parser.mark_anchor("distance_htp")
-            parser.transfer_var(float(distance_htp) + ');', 0, 57)
+            parser.transfer_var(float(distance_htp), 0, 5)
             parser.mark_anchor("height_htp")
-            parser.transfer_var(float(height_htp) + ');', 0, 57)
+            parser.transfer_var(float(height_htp), 0, 5)
             parser.mark_anchor("span_htp")
-            parser.transfer_var(float(span_htp) + ');', 0, 57)
+            parser.transfer_var(float(span_htp), 0, 5)
             parser.mark_anchor("root_chord_htp")
-            parser.transfer_var(float(root_chord_htp) + ');', 0, 57)
+            parser.transfer_var(float(root_chord_htp), 0, 5)
             parser.mark_anchor("tip_chord_htp")
-            parser.transfer_var(float(tip_chord_htp) + ');', 0, 57)
+            parser.transfer_var(float(tip_chord_htp), 0, 5)
             parser.mark_anchor("sweep_25_htp")
-            parser.transfer_var(float(sweep_25_htp) + ');', 0, 57)
+            parser.transfer_var(float(sweep_25_htp), 0, 5)
+            parser.mark_anchor("csv_file")
+            parser.transfer_var(self._rewrite_path(tmp_result_file_path), 0, 3)
             parser.generate()
             
         # Run SCRIPT --------------------------------------------------------------------------------
-        self.options["external_input_files"] = [self.stdin1, self.stdin2, self.stdin3, self.stdin4]
-        self.options["external_output_files"] = [tmp_result_file_path]
         super().compute(inputs, outputs)
  
         # OPENVSP-AERO: aero calculation ############################################################
        
         # I/O files --------------------------------------------------------------------------------
-        self.stdin1 = tmp_result_file_path
-        if self.options[OPTION_OPENVSP_EXE_PATH]:
-            self.stdin2 = pth.join(self.options[OPTION_OPENVSP_EXE_PATH], _INPUT_AERO_FILE_NAME)
-        else:
-            self.stdin2 = pth.join(tmp_directory.name, _INPUT_AERO_FILE_NAME)
+        # Duplicate .csv file for multiple run
+        input_file_list = [tmp_result_file_path]
+        for idx in range(len(_INPUT_AOAList) - 1):
+            shutil.copy(tmp_result_file_path, pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx + 1) + '.csv'))
+            input_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx + 1) + '.csv'))
+        output_file_list = []
+        for idx in range(len(_INPUT_AOAList)):
+            input_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx) + '.vspaero')
+            output_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx) + '.lod')
+        self.options["external_input_files"] = input_file_list
+        self.options["external_output_files"] = output_file_list
         
         # Pre-processing (populating temp directory) -----------------------------------------------
-        if self.options[OPTION_OPENVSP_EXE_PATH]:
-            self.options["command"] = [pth.join(self.options[OPTION_OPENVSP_EXE_PATH], VSPAERO_EXE_NAME) + " " + self.stdin2]
-        else:
-            self.options["command"] = [pth.join(tmp_directory.name, VSPAERO_EXE_NAME) + " " + self.stdin2]
+        self.options["command"] = [pth.join(target_directory, 'vspaero.bat')]
+        batch_file = open(self.options["command"][0], "w+")
+        batch_file.write("@echo off\n")
+        for idx in range(len(_INPUT_AOAList)):
+            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + '\n')
+            batch_file.write(command)
+        batch_file.close()
         
         # standard AERO input file -----------------------------------------------------------------
-        tmp_result_file_path = pth.join(tmp_directory.name, pth.splitext(self.stdin1)[0], '.lod')
         parser = InputFileGenerator()
-        with path(resources, _INPUT_AERO_FILE_NAME) as input_template_path:
-            parser.set_template_file(input_template_path)
-            parser.set_generated_file(self.stdin1)
-            parser.mark_anchor("Sref")
-            parser.transfer_var(float(Sref_wing), 0, 8)
-            parser.mark_anchor("Cref")
-            parser.transfer_var(float(l0_wing), 0, 8)
-            parser.mark_anchor("Bref")
-            parser.transfer_var(float(span_wing), 0, 8)
-            parser.mark_anchor("X_cg")
-            parser.transfer_var(float(fa_length), 0, 8)
-            parser.mark_anchor("Mach")
-            parser.transfer_var(float(mach), 0, 8)
-            parser.mark_anchor("AOA")
-            parser.transfer_var(AOAList, 0, 8)
-            parser.mark_anchor("Vinf")
-            parser.transfer_var(float(V_inf), 0, 8)
-            parser.mark_anchor("Rho")
-            parser.transfer_var(float(rho), 0, 8)
-            parser.mark_anchor("ReCref")
-            parser.transfer_var(float(reynolds), 0, 12)
-            parser.mark_anchor("NumWakeNodes")
-            parser.transfer_var(str(multiprocessing.cpu_count()), 0, 17)
-            parser.generate()
+        pair_core = 2 ** np.linspace(1, 10, 10)
+        cpu_count = pair_core[np.max(np.where(pair_core <= multiprocessing.cpu_count()))]
+        for idx in range(len(_INPUT_AOAList)):
+            with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
+                parser.set_template_file(input_template_path)
+                parser.set_generated_file(input_file_list[len(_INPUT_AOAList) + idx])
+                parser.reset_anchor()
+                parser.mark_anchor("Sref")
+                parser.transfer_var(float(Sref_wing), 0, 3)
+                parser.mark_anchor("Cref")
+                parser.transfer_var(float(l0_wing), 0, 3)
+                parser.mark_anchor("Bref")
+                parser.transfer_var(float(span_wing), 0, 3)
+                parser.mark_anchor("X_cg")
+                parser.transfer_var(float(fa_length), 0, 3)
+                parser.mark_anchor("Mach")
+                parser.transfer_var(float(mach), 0, 3)
+                parser.mark_anchor("AOA")
+                parser.transfer_var(float(_INPUT_AOAList[idx]), 0, 3)
+                parser.mark_anchor("Vinf")
+                parser.transfer_var(float(V_inf), 0, 3)
+                parser.mark_anchor("Rho")
+                parser.transfer_var(float(rho), 0, 3)
+                parser.mark_anchor("ReCref")
+                parser.transfer_var(float(reynolds), 0, 3)
+                parser.mark_anchor("NumWakeNodes")
+                parser.transfer_var(int(cpu_count), 0, 3)
+                parser.generate()
         
         # Run AERO --------------------------------------------------------------------------------
-        self.options["external_input_files"] = [self.stdin1, self.stdin2]
-        self.options["external_output_files"] = [tmp_result_file_path]
         super().compute(inputs, outputs)
         
         # Post-processing --------------------------------------------------------------------------
-        cl_htp = self._read_lod_file(tmp_result_file_path, AOAList)
+        result_cl = []
+        for idx in range(len(_INPUT_AOAList)):
+            cl_htp, _ = self._read_lod_file(output_file_list[idx])
+            result_cl.append(cl_htp)
         # Calculate derivative
-        cl_alpha = (cl_htp[2] + cl_htp[3] - cl_htp[0] - cl_htp[1]) \
-                    / ((_INPUT_AOAList[1]-_INPUT_AOAList[0]) * math.pi/180)  
-        # Delete temporary directory    
-        tmp_directory.cleanup()    
+        cl_alpha = float((result_cl[1] - result_cl[0]) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0]) * math.pi/180))
 
         if self.options["low_speed_aero"]:
             outputs['data:aerodynamics:horizontal_tail:low_speed:CL_alpha'] = cl_alpha
         else:
-            outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha'] = cl_alpha            
-        
+            outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha'] = cl_alpha
+
+        # Delete temporary directory
+        tmp_directory.cleanup()
+
     @staticmethod
-    def _read_lod_file(tmp_result_file_path: str) -> np.ndarray:
-        cl_htp = []
-        cm_wing = []
-        # Colect data from .lod file
+    def _read_lod_file(tmp_result_file_path: str):
+        """
+        Collect data from .lod file
+        """
+        cl_htp = 0.0
+        cm_wing = 0.0
         with open(tmp_result_file_path, 'r') as lf:
             data = lf.readlines()
             for i in range(len(data)):
                 line = data[i].split()
-                line.append('**')
+                line.append('**')  # avoid void line error
                 if line[0] == 'Comp':
-                    cl_htp.append(float(data[i+3].split()[5]))
-                    cl_htp.append(float(data[i+4].split()[5]))
-                    cm_wing.append(float(data[i+1].split()[12]))
-                    cm_wing.append(float(data[i+2].split()[12]))
-                
-        return np.array(cl_htp)
+                    cl_htp = float(data[i + 3].split()[5]) + float(
+                        data[i + 4].split()[5])  # sum CL on left and right part of htp
+                    cm_wing = float(data[i + 1].split()[12]) + float(
+                        data[i + 2].split()[12])  # sum CM on left and right part of htp
+
+        return cl_htp, cm_wing
     
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:
@@ -289,3 +311,8 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
             break
             
         return tmp_directory
+
+    @staticmethod
+    def _rewrite_path(file_path: str) -> str:
+        file_path = '\"' + file_path.replace('\\', '\\\\') + '\"'
+        return file_path

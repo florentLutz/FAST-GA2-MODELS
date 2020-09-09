@@ -19,17 +19,23 @@
   </geometry>
   <configuration>
     <landing_gear_type>1.0</landing_gear_type>
+	<flap_type>1.0</flap_type>
   </configuration>
   <data>
     <geometry>
+	  <has_T_tail>0.00</has_T_tail>
       <wing>
+	    <taper_ratio>0.8<!--wing aspect ratio--></taper_ratio>
         <sweep_0 units="deg">0.0<!--sweep angle at leading edge of wing--></sweep_0>
         <sweep_100_outer units="deg">16.696<!--sweep angle at trailing edge of wing (outer side of the kink)--></sweep_100_outer>
         <span units="m">31.603<!--wing span--></span>
         <root>
           <chord units="m">1.44095577151<!--chord length at wing root--></chord>
-		  <y units="m">0.0<!--chord length at wing root--></y>
+		  <y units="m">0.2<!--chord length at wing root--></y>
         </root>
+		<kink>
+          <span_ratio>0.11<!--thickness ratio at wing tip--></span_ratio>
+        </kink>
         <tip>
 		  <y units="m">5.14330874945<!--chord length at wing tip--></y>
           <chord units="m">1.44095577151<!--chord length at wing tip--></chord>
@@ -64,12 +70,16 @@
         <span_ratio>0.9<!--ratio (width of slats)/(total span)--></span_ratio>
       </slat>
       <fuselage>
+	    <front_length units="m">1.3378<!--maximum fuselage height--></front_length>
+		<rear_length units="m">1.3378<!--maximum fuselage height--></rear_length>
         <maximum_height units="m">1.3378<!--maximum fuselage height--></maximum_height>
         <maximum_width units="m">1.1978<!--maximum fuselage width--></maximum_width>
         <length units="m">37.507<!--total fuselage length--></length>
         <wetted_area units="m**2">401.956<!--wetted area of fuselage--></wetted_area>
       </fuselage>
       <horizontal_tail>
+	    <area units="m**2">2.1<!--chord length at wing tip--></area>
+	    <height units="m">0.9<!--chord length at wing tip--></height>
 	    <span units="m">0.6<!--chord length at wing tip--></span>
 		<tip>
           <chord units="m">1.02<!--chord length at wing tip--></chord>
@@ -79,6 +89,10 @@
         </root>
         <MAC>
 		  <at25percent>
+			<x>
+				<from_wingMAC25 units="m">6.5<!--mean aerodynamic chord length of horizontal tail--></from_wingMAC25>
+				<local units="m">0.5<!--mean aerodynamic chord length of horizontal tail--></local>
+			</x>
 		  </at25percent>
           <length units="m">0.5<!--mean aerodynamic chord length of horizontal tail--></length>
         </MAC>
@@ -87,6 +101,7 @@
         <wetted_area units="m**2">70.341<!--wetted area of horizontal tail--></wetted_area>
       </horizontal_tail>
       <vertical_tail>
+	    <aspect_ratio>9.48<!--wing aspect ratio--></aspect_ratio>
 		<tip>
           <chord units="m">1.02<!--chord length at wing tip--></chord>
         </tip>
@@ -125,12 +140,12 @@
     <mission>
       <sizing>
         <takeoff>
+		  <elevator_angle units="deg">-25.0</elevator_angle>
           <flap_angle units="deg">10.0<!--flap angle during takeoff phase in sizing mission--></flap_angle>
-          <slat_angle units="deg">18.0<!--slat angle during takeoff phase in sizing mission--></slat_angle>
         </takeoff>
         <landing>
+		  <elevator_angle units="deg">-25.0</elevator_angle>
           <flap_angle units="deg">30.0<!--flap angle during landing phase in sizing mission--></flap_angle>
-          <slat_angle units="deg">20.0<!--slat angle during landing phase in sizing mission--></slat_angle>
         </landing>
         <cruise>
           <altitude units="ft">35000.0<!--altitude during cruise phase in sizing mission--></altitude>

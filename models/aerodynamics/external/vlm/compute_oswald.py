@@ -96,9 +96,22 @@ class ComputeOSWALDvlm(VLM):
         :param ojective: CL_ref objective value
         :return: CD_ref if CL_ref encountered, or default value otherwise
         """
+        # Reduce vectors for interpolation
+        for idx in range(len(lift_coeff)):
+            if np.sum(lift_coeff[idx:len(lift_coeff)]==0)==(len(lift_coeff)-idx):
+                lift_coeff = lift_coeff[0:idx]
+                drag_coeff = drag_coeff[0:idx]
+                break
+
+        # Interpolate value if within the interpolation range
         if ojective >= min(lift_coeff) and ojective <= max(lift_coeff):
             idx_max = np.where(lift_coeff == max(lift_coeff))
             return np.interp(ojective, lift_coeff[0:idx_max+1], drag_coeff[0:idx_max+1])
-
-        _LOGGER.warning("CL not found. Using default CDp value (%s)", drag_coeff[0])
-        return drag_coeff[0]
+        elif ojective < lift_coeff[0]:
+            cdp = drag_coeff[0] + (ojective - lift_coeff[0]) * (drag_coeff[1] - drag_coeff[0]) \
+                  / (lift_coeff[1] - lift_coeff[0])
+        elif ojective > lift_coeff[-1]:
+            cdp = drag_coeff[-1] + (ojective - lift_coeff[-1]) * (drag_coeff[-1] - drag_coeff[-2]) \
+                  / (lift_coeff[-1] - lift_coeff[-2])
+        _LOGGER.warning("CL not in range. Linear extrapolation of CDp value (%s)", cdp)
+        return cdp
