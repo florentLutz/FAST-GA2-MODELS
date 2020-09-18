@@ -40,7 +40,7 @@ class _ComputeWingArea(om.ExplicitComponent):
         self.add_input("data:geometry:wing:root:thickness_ratio", val=np.nan)
         self.add_input("data:geometry:wing:tip:thickness_ratio", val=np.nan)
         self.add_input("data:mission:sizing:fuel", val=np.nan, units="kg")
-        self.add_input("data:TLAR:approach_speed", val=np.nan, units="m/s")
+        self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="kg")
         self.add_input("data:aerodynamics:aircraft:landing:CL_max", val=np.nan)
 
@@ -62,7 +62,7 @@ class _ComputeWingArea(om.ExplicitComponent):
             / (0.6 * root_thickness_ratio + 0.4 * tip_thickness_ratio)
         ) ** (1.0 / 1.5)
 
-        approach_speed = inputs["data:TLAR:approach_speed"]
+        approach_speed = inputs["data:TLAR:v_approach"]
         mlw = inputs["data:weight:aircraft:MLW"]
         max_CL = inputs["data:aerodynamics:aircraft:landing:CL_max"]
         wing_area_approach = 2 * mlw * g / (approach_speed ** 2) / (1.225 * max_CL)
@@ -76,7 +76,7 @@ class _ComputeWingAreaConstraints(om.ExplicitComponent):
         self.add_input("data:mission:sizing:fuel", val=np.nan, units="kg")
         self.add_input("data:weight:aircraft:MFW", val=np.nan, units="kg")
 
-        self.add_input("data:TLAR:approach_speed", val=np.nan, units="m/s")
+        self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="kg")
         self.add_input("data:aerodynamics:aircraft:landing:CL_max", val=np.nan)
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
@@ -104,7 +104,7 @@ class _ComputeWingAreaConstraints(om.ExplicitComponent):
         
         mfw = inputs["data:weight:aircraft:MFW"]
         mission_fuel = inputs["data:mission:sizing:fuel"]
-        v_approach = inputs["data:TLAR:approach_speed"]
+        v_approach = inputs["data:TLAR:v_approach"]
         cl_max = inputs["data:aerodynamics:aircraft:landing:CL_max"]
         mlw = inputs["data:weight:aircraft:MLW"]
         wing_area = inputs["data:geometry:wing:area"]

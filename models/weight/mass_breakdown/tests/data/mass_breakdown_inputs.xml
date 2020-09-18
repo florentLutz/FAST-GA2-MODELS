@@ -15,6 +15,11 @@
 
 <FASTOAD_model>
 	<data>
+		<TLAR>
+			<NPAX>10.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
+			<v_cruise units="kt">200.0<!--top-level requirement: cruise speed--></v_cruise>
+			<v_limit units="kt">400.0<!--top-level requirement: limit speed--></v_limit>
+		</TLAR>
 		<geometry>
 			<fuselage>
 				<length units="m">37.507<!--total fuselage length--></length>
@@ -62,11 +67,6 @@
 				<n_strokes>4.0<!--2=2-strokes engine / 4=4-strokes engine--></n_strokes>
 			</engine>
 		</propulsion>
-		<TLAR>
-			<NPAX>10.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
-			<v_limit units="kt">400.0<!--top-level requirement: limit speed--></v_limit>
-			<v_cruise units="kt">200.0<!--top-level requirement: cruise speed--></v_cruise>
-		</TLAR>
 		<weight>
 			<aircraft>
 				<max_payload units="kg">500.0<!--max payload weight--></max_payload>

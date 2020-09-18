@@ -31,5 +31,5 @@ class ComputeTailAreas(om.Group):
     """
 
     def setup(self):
-        self.add_subsystem("horizontal_tail", ComputeHTArea(), promotes=["*"])
+        self.add_subsystem("horizontal_tail", ComputeHTAreaConstraint(), promotes=["*"])
         self.add_subsystem("vertical_tail", ComputeVTArea(), promotes=["*"])

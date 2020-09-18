@@ -34,6 +34,7 @@ from . import resources
 from . import openvsp3201
 
 OPTION_OPENVSP_EXE_PATH = "openvsp_exe_path"
+OPTION_RESULT_FOLDER_PATH = "result_folder_path"
 
 _INPUT_SCRIPT_FILE_NAME = "wing_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_openvsp_DegenGeom"
@@ -49,6 +50,7 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
 
     def initialize(self):
         self.options.declare("low_speed_aero", default=False, types=bool)
+        self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_OPENVSP_EXE_PATH, default="", types=str, allow_none=True)
         
     def setup(self):
@@ -71,13 +73,18 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             self.add_output("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient")
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-            self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units='ft')
+            self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units='ft')
             self.add_output("data:aerodynamics:aircraft:cruise:induced_drag_coefficient")
         
         self.declare_partials("*", "*", method="fd")        
     
     def compute(self, inputs, outputs):
-        
+
+        # Create result folder first (if it must fail, let it fail as soon as possible)
+        result_folder_path = self.options[OPTION_RESULT_FOLDER_PATH]
+        if result_folder_path != "":
+            os.makedirs(pth.join(result_folder_path,'OSWALD'), exist_ok=True)
+
         # Get inputs (and calculate missing ones)
         x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
@@ -97,7 +104,7 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             atm = Atmosphere(altitude)
             mach = inputs["data:aerodynamics:low_speed:mach"]
         else:
-            altitude = inputs["data:mission:sizing:cruise:altitude"]
+            altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
             atm = Atmosphere(altitude)
             mach = inputs["data:aerodynamics:cruise:mach"]    
         
@@ -176,6 +183,17 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             
         # Run SCRIPT --------------------------------------------------------------------------------
         super().compute(inputs, outputs)
+
+        # Getting input/output files if needed
+        if self.options[OPTION_RESULT_FOLDER_PATH] != "":
+            for file_path in input_file_list:
+                new_path = pth.join(result_folder_path, 'OSWALD', pth.split(file_path)[1])
+                if pth.exists(file_path):
+                    shutil.copyfile(file_path, new_path)
+            for file_path in output_file_list:
+                new_path = pth.join(result_folder_path, 'OSWALD', pth.split(file_path)[1])
+                if pth.exists(file_path):
+                    shutil.copyfile(file_path, new_path)
  
         # OPENVSP-AERO: aero calculation ############################################################
        
@@ -251,7 +269,18 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             outputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"] = coef_k
         else:
             outputs["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"] = coef_k
-            
+
+        # Getting input/output files if needed
+        if self.options[OPTION_RESULT_FOLDER_PATH] != "":
+            for file_path in input_file_list:
+                new_path = pth.join(result_folder_path, 'OSWALD', pth.split(file_path)[1])
+                if pth.exists(file_path):
+                    shutil.copyfile(file_path, new_path)
+            for file_path in output_file_list:
+                new_path = pth.join(result_folder_path, 'OSWALD', pth.split(file_path)[1])
+                if pth.exists(file_path):
+                    shutil.copyfile(file_path, new_path)
+
         # Delete temporary directory    
         tmp_directory.cleanup()
 

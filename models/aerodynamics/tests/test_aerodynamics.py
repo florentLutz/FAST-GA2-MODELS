@@ -15,6 +15,7 @@ Test module for aerodynamics groups
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os.path as pth
+import shutil
 import openmdao.api as om
 import numpy as np
 
@@ -34,6 +35,8 @@ from ..components.compute_cl_max import ComputeMaxCL
 from ..components.high_lift_aero import ComputeDeltaHighLift
 from ..components.compute_L_D_max import ComputeLDMax
 from ..components.compute_reynolds import ComputeReynolds
+
+OPENVSP_RESULTS = pth.join(pth.dirname(__file__), "results")
 
 def get_indep_var_comp(var_names):
     """ Reads required input data and returns an IndepVarcomp() instance"""
@@ -235,9 +238,13 @@ def test_vlm_comp_low_speed():
 def test_openvsp_comp_high_speed():
     """ Tests openvsp components @ high speed """
 
+    # Remove existing result files
+    if pth.exists(OPENVSP_RESULTS):
+        shutil.rmtree(OPENVSP_RESULTS)
+
     # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
     input_list = [
-        "data:mission:sizing:cruise:altitude",
+        "data:mission:sizing:main_route:cruise:altitude",
         "data:geometry:wing:MAC:leading_edge:x:local",
         "data:geometry:wing:MAC:length",
         "data:geometry:fuselage:maximum_width",
@@ -257,7 +264,7 @@ def test_openvsp_comp_high_speed():
         "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
         "data:geometry:horizontal_tail:MAC:length",
         "data:geometry:horizontal_tail:MAC:at25percent:x:local",
-        "data:geometry:horizontal_tail:height",
+        "data:geometry:horizontal_tail:z:from_wingMAC25",
     ]
 
     # Research independent input value in .xml file
@@ -265,17 +272,20 @@ def test_openvsp_comp_high_speed():
     ivc.add_output("data:aerodynamics:cruise:mach", 0.8)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeOSWALDopenvsp(), ivc)
+    problem = run_system(ComputeOSWALDopenvsp(result_folder_path=OPENVSP_RESULTS), ivc)
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
     assert coef_k == pytest.approx(0.38, abs=1e-2)
-    problem = run_system(ComputeWingCLALPHAopenvsp(), ivc)
+    assert pth.exists(pth.join(OPENVSP_RESULTS, 'OSWALD'))
+    problem = run_system(ComputeWingCLALPHAopenvsp(result_folder_path=OPENVSP_RESULTS), ivc)
     cl0 = problem["data:aerodynamics:aircraft:cruise:CL0_clean"]
     assert cl0 == pytest.approx(0.016, abs=1e-3)
     cl_alpha_wing = problem["data:aerodynamics:aircraft:cruise:CL_alpha"]
     assert cl_alpha_wing == pytest.approx(0.79, abs=1e-2)
-    problem = run_system(ComputeHTPCLALPHAopenvsp(), ivc)
+    assert pth.exists(pth.join(OPENVSP_RESULTS, 'ClAlphaWING'))
+    problem = run_system(ComputeHTPCLALPHAopenvsp(result_folder_path=OPENVSP_RESULTS), ivc)
     cl_alpha_htp = problem["data:aerodynamics:horizontal_tail:cruise:CL_alpha"]
     assert cl_alpha_htp == pytest.approx(0.0022, abs=1e-3)
+    assert pth.exists(pth.join(OPENVSP_RESULTS, 'ClAlphaHT'))
 
 def test_openvsp_comp_low_speed():
     """ Tests openvsp components @ low speed """
@@ -301,7 +311,7 @@ def test_openvsp_comp_low_speed():
         "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
         "data:geometry:horizontal_tail:MAC:length",
         "data:geometry:horizontal_tail:MAC:at25percent:x:local",
-        "data:geometry:horizontal_tail:height",
+        "data:geometry:horizontal_tail:z:from_wingMAC25",
 
     ]
 
@@ -321,7 +331,7 @@ def test_openvsp_comp_low_speed():
     problem = run_system(ComputeHTPCLALPHAopenvsp(low_speed_aero=True), ivc)
     cl_alpha_htp = problem["data:aerodynamics:horizontal_tail:low_speed:CL_alpha"]
     assert cl_alpha_htp == pytest.approx(0.0034, abs=1e-3)
-    problem = run_system(ComputeHTPCLCMopenvsp(), ivc)
+    problem = run_system(ComputeHTPCLCMopenvsp(result_folder_path=OPENVSP_RESULTS), ivc)
     alpha_interp = problem["data:aerodynamics:horizontal_tail:low_speed:alpha"]
     cl_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CL"]
     cm_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CM"]
@@ -329,6 +339,7 @@ def test_openvsp_comp_low_speed():
     cm = np.interp(10.0, alpha_interp, cm_interp)
     assert cl == pytest.approx(0.00055, abs=1e-4)
     assert cm == pytest.approx(0.052, abs=1e-2)
+    assert pth.exists(pth.join(OPENVSP_RESULTS, 'ClCmHT'))
 
 
 def test_polar_low_speed():

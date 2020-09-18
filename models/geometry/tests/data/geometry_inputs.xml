@@ -15,6 +15,9 @@
 
 <FASTOAD_model>
 	<data>
+		<TLAR>
+			<NPAX>4.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
+		</TLAR>
 		<geometry>
 			<cabin>
 				<aisle_width units="m">0.75<!--cabin aisle width--></aisle_width>
@@ -66,13 +69,13 @@
 				<taper_ratio>0.3<!--taper ratio of vertical tail--></taper_ratio>
 			</vertical_tail>
 			<wing>
-				<area units="m**2">124.843<!--wing reference area--></area>
-				<aspect_ratio>9.48<!--wing aspect ratio--></aspect_ratio>
 				<MAC>
 					<at25percent>
 						<x units="m">16.457<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
 					</at25percent>
 				</MAC>
+				<area units="m**2">124.843<!--wing reference area--></area>
+				<aspect_ratio>9.48<!--wing aspect ratio--></aspect_ratio>
 				<taper_ratio>0.38<!--taper ratio of wing--></taper_ratio>
 				<thickness_ratio>0.128<!--mean thickness ratio of wing--></thickness_ratio>
 			</wing>
@@ -82,8 +85,5 @@
 				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
 			</engine>
 		</propulsion>
-		<TLAR>
-			<NPAX>4.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
-		</TLAR>
 	</data>
 </FASTOAD_model>

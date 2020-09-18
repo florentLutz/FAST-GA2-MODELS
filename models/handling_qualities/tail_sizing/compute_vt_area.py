@@ -39,17 +39,15 @@ class ComputeVTArea(om.ExplicitComponent):
         self.add_input("data:aerodynamics:vertical_tail:cruise:CnBeta", val=np.nan)
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
         self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
-        self.add_input("data:mission:sizing:cruise:altitude", val=np.nan, units="ft")
+        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
         self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:diameter", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:y", val=np.nan, units="m")
         
-        self.add_output("data:geometry:vertical_tail:wetted_area", units="m**2", ref=100.0)
-        self.add_output("data:geometry:vertical_tail:area", units="m**2", ref=50.0)
-        self.add_output("data:aerodynamics:vertical_tail:cruise:CnBeta", units="m**2")
-
+        self.add_output("data:geometry:vertical_tail:area", val=2.0, units="m**2")
+        
         self.declare_partials(
-                "data:geometry:vertical_tail:wetted_area",
+                "*",
                 [
                         "data:geometry:wing:area",
                         "data:geometry:wing:span",
@@ -59,44 +57,14 @@ class ComputeVTArea(om.ExplicitComponent):
                         "data:aerodynamics:vertical_tail:cruise:CnBeta",
                         "data:TLAR:v_cruise",
                         "data:TLAR:v_approach",
-                        "data:mission:sizing:cruise:altitude",
+                        "data:mission:sizing:main_route:cruise:altitude",
                         "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
                         "data:geometry:propulsion:nacelle:diameter",
                         "data:geometry:propulsion:nacelle:y",
+                        "data:geometry:vertical_tail:area",
                 ],
                 method="fd",
         )
-        
-        self.declare_partials(
-                "data:geometry:vertical_tail:area",
-                [
-                        "data:geometry:wing:area",
-                        "data:geometry:wing:span",
-                        "data:geometry:wing:MAC:length",
-                        "data:weight:aircraft:CG:aft:MAC_position",
-                        "data:aerodynamics:fuselage:cruise:CnBeta",
-                        "data:aerodynamics:vertical_tail:cruise:CnBeta",
-                        "data:TLAR:v_cruise",
-                        "data:TLAR:v_approach",
-                        "data:mission:sizing:cruise:altitude",
-                        "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
-                        "data:geometry:propulsion:nacelle:diameter",
-                        "data:geometry:propulsion:nacelle:y",
-                ],
-                method="fd",
-        )
-        
-        self.declare_partials(
-                "data:geometry:vertical_tail:area",
-                [
-                        "data:aerodynamics:fuselage:cruise:CnBeta",
-                        "data:TLAR:v_cruise",
-                        "data:mission:sizing:cruise:altitude",
-                ],
-                method="fd",
-        )
-        
-        
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         # Sizing constraints for the vertical tail.
@@ -113,7 +81,7 @@ class ComputeVTArea(om.ExplicitComponent):
         cn_beta_vt = inputs["data:aerodynamics:vertical_tail:cruise:CnBeta"]
         cruise_speed = inputs["data:TLAR:v_cruise"]
         approach_speed = inputs["data:TLAR:v_approach"]
-        cruise_altitude = inputs["data:mission:sizing:cruise:altitude"] 
+        cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"] 
         wing_htp_distance = inputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"]
         nac_diam = inputs["data:geometry:propulsion:nacelle:diameter"]
         y_nacelle = inputs["data:geometry:propulsion:nacelle:y"]
@@ -153,5 +121,3 @@ class ComputeVTArea(om.ExplicitComponent):
             area_2 = 0.0
         
         outputs["data:geometry:vertical_tail:area"] = max(area_1, area_2)
-        outputs["data:aerodynamics:vertical_tail:cruise:CnBeta"] = required_cnbeta_vtp
-        

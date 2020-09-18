@@ -31,8 +31,10 @@ from openmdao.utils.file_wrap import InputFileGenerator
 
 from . import resources
 from . import openvsp3201
+from ...constants import HT_POINT_COUNT
 
 OPTION_OPENVSP_EXE_PATH = "openvsp_exe_path"
+OPTION_RESULT_FOLDER_PATH = "result_folder_path"
 
 _INPUT_SCRIPT_FILE_NAME = "wing_ht_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_ht_openvsp_DegenGeom"
@@ -44,12 +46,12 @@ VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
 
 ALPHA_LIMIT = 30.0 # Limit angle for calculation
-_INPUT_AOAList = list(np.linspace(0.0, ALPHA_LIMIT, 5))
+_INPUT_AOAList = list(np.linspace(0.0, ALPHA_LIMIT, HT_POINT_COUNT))
 
 class ComputeHTPCLCMopenvsp(ExternalCodeComp):
 
     def initialize(self):
-
+        self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_OPENVSP_EXE_PATH, default="", types=str, allow_none=True)
         
     def setup(self):
@@ -73,7 +75,7 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:local", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:height", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:z:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
         
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha", shape=len(_INPUT_AOAList))
@@ -83,7 +85,12 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         self.declare_partials("*", "*", method="fd")        
     
     def compute(self, inputs, outputs):
-        
+
+        # Create result folder first (if it must fail, let it fail as soon as possible)
+        result_folder_path = self.options[OPTION_RESULT_FOLDER_PATH]
+        if result_folder_path != "":
+            os.makedirs(pth.join(result_folder_path,'ClCmHT'), exist_ok=True)
+
         # Get inputs (and calculate missing ones)
         x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
@@ -105,7 +112,7 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         lp_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"] 
         l0_htp = inputs["data:geometry:horizontal_tail:MAC:length"] 
         x0_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"]
-        height_htp = inputs["data:geometry:horizontal_tail:height"]
+        height_htp = inputs["data:geometry:horizontal_tail:z:from_wingMAC25"]
         mach = inputs["data:aerodynamics:low_speed:mach"]
         altitude = 0.0
         
@@ -196,6 +203,17 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
             
         # Run SCRIPT --------------------------------------------------------------------------------
         super().compute(inputs, outputs)
+
+        # Getting input/output files if needed
+        if self.options[OPTION_RESULT_FOLDER_PATH] != "":
+            for file_path in input_file_list:
+                new_path = pth.join(result_folder_path, 'ClCmHT', pth.split(file_path)[1])
+                if pth.exists(file_path):
+                    shutil.copyfile(file_path, new_path)
+            for file_path in output_file_list:
+                new_path = pth.join(result_folder_path, 'ClCmHT', pth.split(file_path)[1])
+                if pth.exists(file_path):
+                    shutil.copyfile(file_path, new_path)
  
         # OPENVSP-AERO: aero calculation ############################################################
        
@@ -266,6 +284,17 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         outputs['data:aerodynamics:horizontal_tail:low_speed:alpha'] = np.array(_INPUT_AOAList)
         outputs['data:aerodynamics:horizontal_tail:low_speed:CL'] = np.array(result_cl)
         outputs['data:aerodynamics:horizontal_tail:low_speed:CM'] = np.array(result_cm)
+
+        # Getting input/output files if needed
+        if self.options[OPTION_RESULT_FOLDER_PATH] != "":
+            for file_path in input_file_list:
+                new_path = pth.join(result_folder_path, 'ClCmHT', pth.split(file_path)[1])
+                if pth.exists(file_path):
+                    shutil.copyfile(file_path, new_path)
+            for file_path in output_file_list:
+                new_path = pth.join(result_folder_path, 'ClCmHT', pth.split(file_path)[1])
+                if pth.exists(file_path):
+                    shutil.copyfile(file_path, new_path)
 
         # Delete temporary directory
         tmp_directory.cleanup()

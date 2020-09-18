@@ -15,10 +15,13 @@
 
 <FASTOAD_model>
 	<data>
+		<TLAR>
+			<NPAX>4.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
+		</TLAR>
 		<geometry>
 			<cabin>
-				<aisle_width units="m">0.75<!--cabin aisle width--></aisle_width>
 				<NPAX>4.0<!--umber of passengers if all rows are complete--></NPAX>
+				<aisle_width units="m">0.75<!--cabin aisle width--></aisle_width>
 				<seats>
 					<pilot>
 						<length units="m">0.75<!--pilot seats length--></length>
@@ -111,9 +114,6 @@
 				</tip>
 			</wing>
 		</geometry>
-		<TLAR>
-			<NPAX>4.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
-		</TLAR>
 		<weight>
 			<aircraft>
 				<MFW units="kg">10.81<!--maximum fuel weight--></MFW>

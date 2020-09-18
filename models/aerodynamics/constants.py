@@ -12,3 +12,5 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 POLAR_POINT_COUNT = 150
+HT_POINT_COUNT = 5
+ELEV_POINT_COUNT = 50

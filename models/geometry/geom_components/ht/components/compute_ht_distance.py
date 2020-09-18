@@ -27,12 +27,12 @@ class ComputeHTDistance(om.ExplicitComponent):
 
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
+        self.add_input("data:geometry:vertical_tail:span", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:geometry:has_T_tail", val=np.nan)
 
         self.add_output("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", units="m")
-        self.add_output("data:geometry:horizontal_tail:height", units="m")
+        self.add_output("data:geometry:horizontal_tail:z:from_wingMAC25", units="m")
 
         self.declare_partials(
             "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
@@ -40,13 +40,13 @@ class ComputeHTDistance(om.ExplicitComponent):
             method="fd",
         )
         
-        self.declare_partials("data:geometry:horizontal_tail:height", "data:geometry:horizontal_tail:span", method="fd")
+        self.declare_partials("data:geometry:horizontal_tail:z:from_wingMAC25", "data:geometry:horizontal_tail:span", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
     
         fus_length = inputs["data:geometry:fuselage:length"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
-        span = inputs["data:geometry:horizontal_tail:span"]
+        span = inputs["data:geometry:vertical_tail:span"]
         engine_loc = inputs["data:geometry:propulsion:layout"]
         tail_type = inputs["data:geometry:has_T_tail"]
 
@@ -63,4 +63,4 @@ class ComputeHTDistance(om.ExplicitComponent):
             height_ht = 0 + span
 
         outputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"] = lp_ht
-        outputs["data:geometry:horizontal_tail:height"] = height_ht
+        outputs["data:geometry:horizontal_tail:z:from_wingMAC25"] = height_ht

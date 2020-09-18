@@ -26,7 +26,7 @@ class Cd0LandingGear(ExplicitComponent):
     def setup(self):
         self.low_speed_aero = self.options["low_speed_aero"]
         
-        self.add_input("configuration:landing_gear_type", val=np.nan)
+        self.add_input("data:geometry:landing_gear_type", val=np.nan)
         self.add_input("data:geometry:landing_gear:height", val=np.nan, units="m")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.low_speed_aero:
@@ -38,7 +38,7 @@ class Cd0LandingGear(ExplicitComponent):
 
     def compute(self, inputs, outputs):
         
-        lg_type = inputs["configuration:landing_gear_type"]
+        lg_type = inputs["data:geometry:landing_gear_type"]
         lg_height = inputs["data:geometry:landing_gear:height"]
         wing_area = inputs["data:geometry:wing:area"]
         

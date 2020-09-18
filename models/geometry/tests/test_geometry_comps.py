@@ -423,7 +423,7 @@ def test_compute_ht_distance():
     problem = run_system(ComputeHTDistance(), ivc)
     ht_x1 = problem["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
     assert ht_x1 == pytest.approx(21.5, abs=1e-1)
-    height = problem["data:geometry:horizontal_tail:height"]
+    height = problem["data:geometry:horizontal_tail:z:from_wingMAC25"]
     assert height == pytest.approx(0, abs=1e-1)
 
 

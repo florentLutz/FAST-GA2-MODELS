@@ -19,11 +19,12 @@ import math
 import openmdao.api as om
 from importlib_resources import open_text
 from scipy import interpolate
+from ..constants import ELEV_POINT_COUNT
 
 from . import resources
 
 LIFT_EFFECTIVENESS_FILENAME = "interpolation of lift effectiveness.txt"
-ELEVATOR_ANGLE_LIST = np.linspace(-25.0, 25.0, num=50)
+ELEVATOR_ANGLE_LIST = np.linspace(-25.0, 25.0, num=ELEV_POINT_COUNT)
 
 class ComputeDeltaHighLift(om.ExplicitComponent):
     """
@@ -44,7 +45,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:flap:chord_ratio", val=np.nan)
         self.add_input("data:geometry:flap:span_ratio", val=np.nan)
-        self.add_input("configuration:flap_type", val=np.nan)
+        self.add_input("data:geometry:flap_type", val=np.nan)
         self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", val=np.nan)
         self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
         self.add_input("data:mission:sizing:landing:flap_angle", val=np.nan, units="deg")
@@ -194,7 +195,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         :return: increment of drag coefficient
         """
         
-        flap_type = inputs['configuration:flap_type']
+        flap_type = inputs['data:geometry:flap_type']
         flap_chord_ratio = inputs['data:geometry:flap:chord_ratio']
         flap_area_ratio = self._compute_flap_area_ratio(inputs)
         
@@ -217,7 +218,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         Method based on Roskam vol6 book and Raymer book
         """
         
-        flap_type = inputs['configuration:flap_type']
+        flap_type = inputs['data:geometry:flap_type']
         flap_span_ratio = inputs['data:geometry:flap:span_ratio']
         flap_chord_ratio = inputs['data:geometry:flap:chord_ratio']
         cl_alpha_wing = inputs['data:aerodynamics:aircraft:low_speed:CL_alpha']
@@ -253,7 +254,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         Plain flap included (40 deg landing deflection here)
         """
 
-        flap_type = inputs['configuration:flap_type']
+        flap_type = inputs['data:geometry:flap_type']
         flap_area_ratio = self._compute_flap_area_ratio(inputs)
         
         if flap_type == 1.0: # simple slotted
