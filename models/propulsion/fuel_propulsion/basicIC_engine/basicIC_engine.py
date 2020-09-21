@@ -76,6 +76,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         
         :param flight_points.mach: Mach number
         :param flight_points.altitude: (unit=m) altitude w.r.t. to sea level
+
         :param flight_points.thrust_is_regulated: tells if thrust_rate or thrust should be used (works element-wise)
         :param flight_points.thrust_rate: thrust rate (unit=none)
         :param flight_points.thrust: required thrust (unit=N)
@@ -127,7 +128,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         # Now SFC can be computed
         sfc_pmax = self.sfc_at_max_power(atmosphere)
         sfc_ratio, mech_power = self.sfc_ratio(atmosphere, out_thrust_rate, mach)
-        sfc = (sfc_pmax * sfc_ratio * mech_power) / max(out_thrust, 0.1) # avoid 0 division
+        sfc = (sfc_pmax * sfc_ratio * mech_power) / np.maximum(out_thrust, 1e-6) # avoid 0 division
 
         # Save data in Dataframe
         flight_points.sfc = sfc
@@ -216,16 +217,16 @@ class BasicICEngine(AbstractFuelPropulsion):
         """
 
         altitude = atmosphere.get_altitude(False)
-        sigma = atmosphere(altitude).density / atmosphere(0.0).density
-        max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
+        sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
+        max_power = (self.max_power/1e3) * (sigma - (1 - sigma) / 7.55) # max power in kW
 
         if self.fuel_type == 1.:
-            if self.n_strokes == 2.:  # Gasoline 2-strokes
+            if self.strokes_nb == 2.:  # Gasoline 2-strokes
                 sfc_p = 1125.9 * max_power ** (-0.2441)
             else:  # Gasoline 4-strokes
                 sfc_p = -0.0011 * max_power ** 2 + 0.5905 * max_power + 228.58
         elif self.fuel_type == 2.:
-            if self.n_strokes == 2.:  # Diesel 2-strokes
+            if self.strokes_nb == 2.:  # Diesel 2-strokes
                 sfc_p = -0.765 * max_power + 334.94
             else:  # Diesel 4-strokes
                 sfc_p = -0.964 * max_power + 231.91
@@ -254,14 +255,14 @@ class BasicICEngine(AbstractFuelPropulsion):
         mach = np.asarray(mach)
         max_thrust = self.max_thrust(atmosphere, mach)
         altitude = atmosphere.get_altitude(False)
-        sigma = atmosphere(altitude).density / atmosphere(0.0).density
+        sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
         max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
-        prop_power = (max_thrust * thrust_rate * mach * atmosphere(altitude).speed_of_sound)
+        prop_power = (max_thrust * thrust_rate * mach * Atmosphere(altitude).speed_of_sound)
         mech_power = prop_power / PROPELLER_EFFICIENCY
 
         power_rate_1 = mech_power / max_power
-        power_rate_2 = (thrust_rate == 1.0) * max_power
-        power_rate = np.max(power_rate_1, power_rate_2)
+        power_rate_2 = (mech_power == 0.0) * thrust_rate**(3/2)
+        power_rate = np.maximum(power_rate_1, power_rate_2)
 
         sfc_ratio = (-0.9976 * power_rate ** 2 + 1.9964 * power_rate)
 
@@ -283,12 +284,12 @@ class BasicICEngine(AbstractFuelPropulsion):
         # Calculate maximum mechanical power @ given altitude
         altitude = atmosphere.get_altitude(altitude_in_feet=False)
         mach = np.asarray(mach)
-        sigma = atmosphere(altitude).density / atmosphere(0.0).density
-        max_prop_power = self.max_power * (sigma - (1 - sigma) / 7.55)
-        thrust_1 = self.ref["max_thrust"] * max_prop_power / self.ref["max_power"]
-        thrust_2 = max_prop_power / (mach * atmosphere(altitude).speed_of_sound)
+        sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
+        max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
+        thrust_1 = self.ref["max_thrust"] * max_power / self.ref["max_power"]
+        thrust_2 = max_power * PROPELLER_EFFICIENCY / (mach * Atmosphere(altitude).speed_of_sound)
 
-        return np.min(thrust_1, thrust_2)
+        return np.minimum(thrust_1, thrust_2)
 
     def installed_weight(self) -> float:
         """
@@ -298,8 +299,8 @@ class BasicICEngine(AbstractFuelPropulsion):
         """
         # FIXME : separate raw engine weight and installation factor
         installation_factor = 1.0
-
-        weight = (self.max_power * (1.35962 / 1000) - 21.55) / 0.5515
+        # FIXME: negative weight for P<17kW
+        weight = (self.max_power * (1.35962 / 1000) - 21.55) / 0.5515 # max power in SHP
 
         installed_weight = installation_factor * weight
 

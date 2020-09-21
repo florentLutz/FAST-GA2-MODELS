@@ -92,7 +92,7 @@ class _ComputeWingAreaConstraints(om.ExplicitComponent):
         self.declare_partials(
             "data:aerodynamics:aircraft:landing:additional_CL_capacity",
             [
-                "data:TLAR:approach_speed",
+                "data:TLAR:v_approach",
                 "data:weight:aircraft:MLW",
                 "data:aerodynamics:aircraft:landing:CL_max",
                 "data:geometry:wing:area",

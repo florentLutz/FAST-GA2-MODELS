@@ -18,4 +18,5 @@ Provides a parametric model for turbofan:
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from .openmdao import OMBasicICEngineComponent, OMBasicICEngineWrapper
 from .basicIC_engine import BasicICEngine

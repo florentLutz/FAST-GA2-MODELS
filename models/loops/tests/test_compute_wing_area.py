@@ -32,9 +32,8 @@ def test_compute_wing_area():
     ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.15)
     ivc.add_output("data:geometry:wing:tip:thickness_ratio", 0.11)
     ivc.add_output("data:mission:sizing:fuel", val=20500, units="kg")
-    ivc.add_output("data:TLAR:approach_speed", val=132, units="kn")
+    ivc.add_output("data:TLAR:v_approach", val=132, units="kn")
     ivc.add_output("data:weight:aircraft:MLW", val=66300, units="kg")
-
     ivc.add_output("data:weight:aircraft:MFW", val=21000, units="kg")
     ivc.add_output("data:aerodynamics:aircraft:landing:CL_max", val=2.80)
 
@@ -51,15 +50,14 @@ def test_compute_wing_area():
     ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.15)
     ivc.add_output("data:geometry:wing:tip:thickness_ratio", 0.11)
     ivc.add_output("data:mission:sizing:fuel", val=15000, units="kg")
-    ivc.add_output("data:TLAR:approach_speed", val=132, units="kn")
+    ivc.add_output("data:TLAR:v_approach", val=132, units="kn")
     ivc.add_output("data:weight:aircraft:MLW", val=66300, units="kg")
-
     ivc.add_output("data:weight:aircraft:MFW", val=21000, units="kg")
     ivc.add_output("data:aerodynamics:aircraft:landing:CL_max", val=2.80)
 
     problem = run_system(ComputeWingArea(), ivc)
-    assert_allclose(problem["data:geometry:wing:area"], 124.38, atol=1e-2)
+    assert_allclose(problem["data:geometry:wing:area"], 106.56, atol=1e-2)
     assert_allclose(
-        problem["data:aerodynamics:aircraft:landing:additional_CL_capacity"], 0.0, atol=1e-2
+        problem["data:aerodynamics:aircraft:landing:additional_CL_capacity"], 0.0, atol=1
     )
     assert_allclose(problem["data:weight:aircraft:additional_fuel_capacity"], 6000.0, atol=1.0)

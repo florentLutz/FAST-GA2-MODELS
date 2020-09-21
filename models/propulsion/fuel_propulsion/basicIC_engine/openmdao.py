@@ -85,9 +85,11 @@ class OMBasicICEngineWrapper(IOMPropulsionWrapper):
 
 @ValidityDomainChecker(
     {
-        "data:propulsion:IC_engine:max_power": (5000, 50000), # power range validity
-        "data:propulsion:IC_engine:fuel_type": [1.0, 2.0],
-        "data:propulsion:IC_engine:strokes_nb": [2.0, 4.0],
+        "data:propulsion:thrust_rate": (0.0, 1.0),
+        "data:propulsion:mach": (0.0, 0.85),
+        "data:propulsion:IC_engine:max_power": (20000, 150000), # power range validity
+        "data:propulsion:IC_engine:fuel_type": [1.0, 2.0], # fuel list
+        "data:propulsion:IC_engine:strokes_nb": [2.0, 4.0], # architecture list
     }
 )
 class OMBasicICEngineComponent(BaseOMPropulsionComponent):
