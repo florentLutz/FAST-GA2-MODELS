@@ -20,8 +20,10 @@ import pandas as pd
 from typing import Union, Sequence, Tuple, Optional
 
 from fastoad.base.flight_point import FlightPoint
-from ..basicIC_engine.exceptions import FastBasicICEngineInconsistentInputParametersError
-from ..base import AbstractFuelPropulsion
+from fastoad.constants import EngineSetting
+from fastoad.exceptions import FastUnknownEngineSettingError
+from .exceptions import FastBasicICEngineInconsistentInputParametersError
+from fastoad.models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from fastoad.utils.physics import Atmosphere
 
 # Logger for this module
@@ -54,29 +56,76 @@ class BasicICEngine(AbstractFuelPropulsion):
                 "Bad engine configuration: fuel type {0:d} model does not exist.".format(fuel_type)
             )
 
-        if strokes_nb != 4.0:
+        if (strokes_nb != 2.0) and (strokes_nb != 4.0):
             raise FastBasicICEngineInconsistentInputParametersError(
                 "Bad engine configuration: {0:d}-strokes model does not exist.".format(strokes_nb)
             )
 
-        if (strokes_nb == 4.0) and (fuel_type == 1.0):
-            self.ref = {
-                "max_power": 15000,
-                "max_thrust": 12000,
-                "length": 1.1,
-            }
-            self.max_power = max_power
-            self.fuel_type = fuel_type
-            self.strokes_nb = strokes_nb
-            self.idle_thrust_rate = 0.01
+        self.ref = {
+            "max_power": 15000,
+            "max_thrust": 2000,
+            "length": 1.1,
+            "height": 0.8,
+            "width": 0.6,
+        }
+        self.max_power = max_power
+        self.fuel_type = fuel_type
+        self.strokes_nb = strokes_nb
+        self.idle_thrust_rate = 0.01
+
+        # This dictionary is expected to have a Mixture coefficient for all EngineSetting values
+        self.mixture_values = {
+            EngineSetting.TAKEOFF: 1.5,
+            EngineSetting.CLIMB: 1.5,
+            EngineSetting.CRUISE: 1.0,
+            EngineSetting.IDLE: 1.0,
+        }
+
+        # ... so check that all EngineSetting values are in dict
+        unknown_keys = [key for key in EngineSetting if key not in self.mixture_values.keys()]
+        if unknown_keys:
+            raise FastUnknownEngineSettingError("Unknown flight phases: %s", unknown_keys)
 
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
+        # pylint: disable=too-many-arguments  # they define the trajectory
+        sfc, thrust_rate, thrust = self._compute_flight_points(
+            flight_points.mach,
+            flight_points.altitude,
+            flight_points.engine_setting,
+            flight_points.thrust_is_regulated,
+            flight_points.thrust_rate,
+            flight_points.thrust,
+        )
+        flight_points.sfc = sfc
+        flight_points.thrust_rate = thrust_rate
+        flight_points.thrust = thrust
+
+    def _compute_flight_points(
+            self,
+            mach: Union[float, Sequence],
+            altitude: Union[float, Sequence],
+            engine_setting: Union[float, Sequence],
+            thrust_is_regulated: Optional[Union[bool, Sequence]] = None,
+            thrust_rate: Optional[Union[float, Sequence]] = None,
+            thrust: Optional[Union[float, Sequence]] = None,
+    ) -> Tuple[Union[float, Sequence], Union[float, Sequence], Union[float, Sequence]]:
+        """
+        Same as :meth:`compute_flight_points`.
+
+        :param mach: Mach number
+        :param altitude: (unit=m) altitude w.r.t. to sea level
+        :param engine_setting: define engine settings
+        :param thrust_is_regulated: tells if thrust_rate or thrust should be used (works element-wise)
+        :param thrust_rate: thrust rate (unit=none)
+        :param thrust: required thrust (unit=N)
+        :return: SFC (in kg/s/N), thrust rate, thrust (in N)
+        """
         """
         Computes the Specific Fuel Consumption based on aircraft trajectory conditions.
         
         :param flight_points.mach: Mach number
         :param flight_points.altitude: (unit=m) altitude w.r.t. to sea level
-
+        :param flight_points.engine_setting: define
         :param flight_points.thrust_is_regulated: tells if thrust_rate or thrust should be used (works element-wise)
         :param flight_points.thrust_rate: thrust rate (unit=none)
         :param flight_points.thrust: required thrust (unit=N)
@@ -84,11 +133,9 @@ class BasicICEngine(AbstractFuelPropulsion):
         """
 
         # Treat inputs (with check on thrust rate <=1.0)
-        mach = np.asarray(flight_points.mach)
-        altitude = np.asarray(flight_points.altitude)
-        thrust_is_regulated = flight_points.thrust_is_regulated
-        thrust_rate = flight_points.thrust_rate
-        thrust = flight_points.thrust
+        mach = np.asarray(mach)
+        altitude = np.asarray(altitude)
+        engine_setting = np.asarray(engine_setting)
         if thrust_is_regulated is not None:
             thrust_is_regulated = np.asarray(np.round(thrust_is_regulated, 0), dtype=bool)
         thrust_is_regulated, thrust_rate, thrust = self._check_thrust_inputs(
@@ -127,13 +174,10 @@ class BasicICEngine(AbstractFuelPropulsion):
 
         # Now SFC can be computed
         sfc_pmax = self.sfc_at_max_power(atmosphere)
-        sfc_ratio, mech_power = self.sfc_ratio(atmosphere, out_thrust_rate, mach)
+        sfc_ratio, mech_power = self.sfc_ratio(altitude, out_thrust_rate, mach)
         sfc = (sfc_pmax * sfc_ratio * mech_power) / np.maximum(out_thrust, 1e-6) # avoid 0 division
 
-        # Save data in Dataframe
-        flight_points.sfc = sfc
-        flight_points.thrust_rate = out_thrust_rate
-        flight_points.thrust = out_thrust
+        return sfc, out_thrust_rate, out_thrust
 
     @staticmethod
     def _check_thrust_inputs(
@@ -237,24 +281,24 @@ class BasicICEngine(AbstractFuelPropulsion):
 
     def sfc_ratio(
             self,
-            atmosphere: Atmosphere,
+            altitude: Union[float, Sequence[float]],
             thrust_rate: Union[float, Sequence[float]],
             mach: Union[float, Sequence[float]] = 0.8,
-    ) -> np.ndarray:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Computation of ratio :math:`\\frac{SFC(P)}{SFC(Pmax)}`, given altitude
         and thrust_rate :math:`\\frac{F}{Fmax}`.
         Warning: this model is very limited
-        :param atmosphere: Atmosphere instance at intended altitude
+        :param altitude:
         :param thrust_rate:
         :param mach: Mach number(s)
         :return: SFC ratio and Power (in W)
         """
 
+        altitude = np.asarray(altitude)
         thrust_rate = np.asarray(thrust_rate)
         mach = np.asarray(mach)
-        max_thrust = self.max_thrust(atmosphere, mach)
-        altitude = atmosphere.get_altitude(False)
+        max_thrust = self.max_thrust(Atmosphere(altitude, altitude_in_feet=False), mach)
         sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
         max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
         prop_power = (max_thrust * thrust_rate * mach * Atmosphere(altitude).speed_of_sound)
@@ -289,9 +333,12 @@ class BasicICEngine(AbstractFuelPropulsion):
         thrust_1 = self.ref["max_thrust"] * max_power / self.ref["max_power"]
         thrust_2 = max_power * PROPELLER_EFFICIENCY / (mach * Atmosphere(altitude).speed_of_sound)
 
+        if np.minimum(thrust_1, thrust_2)<0:
+            print("errror")
+
         return np.minimum(thrust_1, thrust_2)
 
-    def installed_weight(self) -> float:
+    def engine_weight(self) -> float:
         """
         Computes weight of installed engine, depending on maximum power.
         Uses model described in :...
@@ -306,12 +353,14 @@ class BasicICEngine(AbstractFuelPropulsion):
 
         return installed_weight
 
-    def length(self) -> float:
+    def engine_dim(self) -> Tuple[float, float, float]:
         """
-        Computes engine length from maximum power.
+        Computes engine dimensions from maximum power.
         Model from :...
         :return: engine length (in m)
         """
         length = self.ref["length"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
+        height = self.ref["height"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
+        width = self.ref["width"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
 
-        return length
+        return length, height, width

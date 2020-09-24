@@ -24,8 +24,8 @@ from fastoad.models.geometry.geom_components.fuselage.compute_fuselage import (
     ComputeFuselageGeometryCabinSizing,
 )
 from fastoad.models.geometry.geom_components.ht import ComputeHorizontalTailGeometry
-from fastoad.models.geometry.geom_components.nacelle_pylons.compute_nacelle_pylons import (
-    ComputeNacelleAndPylonsGeometry,
+from fastoad.models.geometry.geom_components.nacelle.compute_nacelle import (
+    ComputeNacelleGeometry,
 )
 from fastoad.models.geometry.geom_components.vt import ComputeVerticalTailGeometry
 from fastoad.models.geometry.geom_components.wing.compute_wing import ComputeWingGeometry
@@ -56,7 +56,7 @@ class Geometry(om.Group):
 
         self.add_subsystem("compute_wing", ComputeWingGeometry(), promotes=["*"])
         self.add_subsystem(
-            "compute_engine_nacelle", ComputeNacelleAndPylonsGeometry(), promotes=["*"]
+            "compute_engine_nacelle", ComputeNacelleGeometry(), promotes=["*"]
         )
         self.add_subsystem("compute_ht", ComputeHorizontalTailGeometry(), promotes=["*"])
         self.add_subsystem("compute_vt", ComputeVerticalTailGeometry(), promotes=["*"])

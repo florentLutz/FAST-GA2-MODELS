@@ -53,7 +53,7 @@ from ..geom_components.vt.components import (
     ComputeVTSweep,
     ComputeVTWetArea,
 )
-from ..geom_components.nacelle_pylons.compute_nacelle_pylons import ComputeNacelleAndPylonsGeometry
+from ..geom_components.nacelle.compute_nacelle import ComputeNacelleGeometry
 from ..geom_components import ComputeTotalArea
 
 
@@ -575,7 +575,7 @@ def test_compute_vt_wet_area():
     assert wet_area == pytest.approx(52.74, abs=1e-2)
 
 
-def test_geometry_nacelle_pylons():
+def test_geometry_nacelle():
     """ Tests computation of the nacelle and pylons component """
 
     # Input list from model (not generated because of the assertion error on bad propulsion layout configuration)
@@ -595,7 +595,7 @@ def test_geometry_nacelle_pylons():
     ivc.add_output("data:geometry:wing:span", 34.4)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeNacelleAndPylonsGeometry(), ivc)
+    problem = run_system(ComputeNacelleGeometry(), ivc)
     nacelle_length = problem["data:geometry:propulsion:nacelle:length"]
     assert nacelle_length == pytest.approx(4.09, abs=1e-2)
     nacelle_dia = problem["data:geometry:propulsion:nacelle:diameter"]
@@ -608,8 +608,6 @@ def test_geometry_nacelle_pylons():
     assert nacelle_wet_area == pytest.approx(36.07, abs=1e-2)
     lg_height = problem["data:geometry:landing_gear:height"]
     assert lg_height == pytest.approx(3.08, abs=1e-2)
-    pylon_length = problem["data:geometry:propulsion:pylon:length"]
-    assert pylon_length == pytest.approx(4.50, abs=1e-2)
     y_nacell = problem["data:geometry:propulsion:nacelle:y"]
     assert y_nacell == pytest.approx(5.84, abs=1e-2)
 

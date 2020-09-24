@@ -19,7 +19,7 @@ import numpy as np
 import openmdao.api as om
 
 
-class ComputeNacelleAndPylonsGeometry(om.ExplicitComponent):
+class ComputeNacelleGeometry(om.ExplicitComponent):
     # TODO: Document equations. Cite sources
     """ Nacelle and pylon geometry estimation """
 
@@ -39,7 +39,6 @@ class ComputeNacelleAndPylonsGeometry(om.ExplicitComponent):
         self.add_output("data:geometry:propulsion:nacelle:width", units="m")
         self.add_output("data:geometry:propulsion:nacelle:wet_area", units="m**2")
         self.add_output("data:geometry:landing_gear:height", units="m")
-        self.add_output("data:geometry:propulsion:pylon:length", units="m")
         self.add_output("data:geometry:propulsion:nacelle:y", units="m")
         
         self.declare_partials("data:geometry:propulsion:nacelle:length",
@@ -79,9 +78,6 @@ class ComputeNacelleAndPylonsGeometry(om.ExplicitComponent):
                 method="fd",
         )
         
-        self.declare_partials("data:geometry:propulsion:pylon:length",
-                "data:geometry:propulsion:engine:length", method="fd")
-        
         self.declare_partials(
                 "data:geometry:propulsion:nacelle:y",
                 [
@@ -120,7 +116,6 @@ class ComputeNacelleAndPylonsGeometry(om.ExplicitComponent):
             raise ValueError('compute_fuselage model only computes propulsion layout equal to 1, 2 or 3!')
         
         lg_height = 1.4 * nac_dia # ???: always?
-        pylon_length = 1.1 * nac_length
         
         outputs["data:geometry:propulsion:nacelle:length"] = nac_length
         outputs["data:geometry:propulsion:nacelle:diameter"] = nac_dia
@@ -128,6 +123,5 @@ class ComputeNacelleAndPylonsGeometry(om.ExplicitComponent):
         outputs["data:geometry:propulsion:nacelle:width"] = nac_width
         outputs["data:geometry:propulsion:nacelle:wet_area"] = nac_wet_area
         outputs["data:geometry:landing_gear:height"] = lg_height
-        outputs["data:geometry:propulsion:pylon:length"] = pylon_length
         outputs["data:geometry:propulsion:nacelle:y"] = y_nacell
         

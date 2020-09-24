@@ -14,4 +14,4 @@ Estimation of fuselage geometry
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .compute_nacelle_pylons import ComputeNacelleAndPylonsGeometry
+from .compute_nacelle import ComputeNacelleGeometry

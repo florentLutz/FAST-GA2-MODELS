@@ -75,140 +75,53 @@ def test_compute_flight_points():
     np.testing.assert_allclose(flight_points.thrust, thrusts + thrusts, rtol=1e-4)
 
 
-def test_installed_weight():
+def test_engine_weight():
     name1 = BasicICEngine(21000.0, 1.0, 4.0)
-    np.testing.assert_allclose(name1.installed_weight(), 12, atol=1)
+    np.testing.assert_allclose(name1.engine_weight(), 12, atol=1)
     name2 = BasicICEngine(75000.0, 1.0, 4.0)
-    np.testing.assert_allclose(name2.installed_weight(), 146, atol=1)
+    np.testing.assert_allclose(name2.engine_weight(), 146, atol=1)
 
 
-def test_length():
+def test_engine_dim():
     name1 = BasicICEngine(21000.0, 1.0, 4.0)
-    np.testing.assert_allclose(name1.length(), 2.73, atol=1e-2)
+    np.testing.assert_allclose(name1.engine_dim(), [1.23, 0.89, 0.67], atol=1e-2)
     name2 = BasicICEngine(75000.0, 1.0, 4.0)
-    np.testing.assert_allclose(name2.length(), 4.39, atol=1e-2)
-
-
-def test_nacelle_diameter():
-    engine = RubberEngine(3, 0, 0, 75000, 0, 0)
-    np.testing.assert_allclose(engine.nacelle_diameter(), 1.61, atol=1e-2)
-
-    engine = RubberEngine(5.5, 0, 0, 250000, 0, 0)
-    np.testing.assert_allclose(engine.nacelle_diameter(), 3.25, atol=1e-2)
-
-
-def test_max_thrust():
-    """
-    Checks model against simplified (but analytically equivalent) formulas
-    as in p. 59 of :cite:`roux:2005`, but with correct coefficients (yes, those in report
-    are not consistent with the complete formula nor the figure 2.19 just below)
-
-    .. bibliography:: ../refs.bib
-    """
-    engine = RubberEngine(5, 30, 1500, 1, 0, 0)  # f0=1 so that output is simply fmax/f0
-    machs = np.arange(0, 1.01, 0.1)
-
-    # Check with cruise altitude
-    atm = Atmosphere(11000, altitude_in_feet=False)
-    max_thrust_ratio = engine.max_thrust(atm, machs, -100)
-    ref_max_thrust_ratio = (
-        0.94916 * atm.density / 1.225 * (1 - 0.68060 * machs + 0.51149 * machs ** 2)
-    )
-    np.testing.assert_allclose(max_thrust_ratio, ref_max_thrust_ratio, rtol=1e-4)
-
-    # Check with Takeoff altitude
-    atm = Atmosphere(0, altitude_in_feet=False)
-    max_thrust_ratio = engine.max_thrust(atm, machs, 0)
-    ref_max_thrust_ratio = (
-        0.9553 * atm.density / 1.225 * (1 - 0.72971 * machs + 0.35886 * machs ** 2)
-    )
-    np.testing.assert_allclose(max_thrust_ratio, ref_max_thrust_ratio, rtol=1e-4)
-
-    # Check Cruise above 11000 with compression rate != 30 and bypass ratio != 5
-    engine = RubberEngine(4, 35, 1500, 1, 0, 0)  # f0=1 so that output is simply fmax/f0
-    atm = Atmosphere(13000, altitude_in_feet=False)
-    max_thrust_ratio = engine.max_thrust(atm, machs, -50)
-    ref_max_thrust_ratio = (
-        0.96880 * atm.density / 1.225 * (1 - 0.63557 * machs + 0.52108 * machs ** 2)
-    )
-    np.testing.assert_allclose(max_thrust_ratio, ref_max_thrust_ratio, rtol=1e-4)
-
-    # Check with compression rate != 30 and bypass ratio != 5 and an array for altitudes (as
-    # many values as mach numbers)
-    engine = RubberEngine(6, 22, 1500, 1, 0, 0)  # f0=1 so that output is simply fmax/f0
-    atm = Atmosphere(np.arange(3000, 13100, 1000), altitude_in_feet=False)
-    max_thrust_ratio = engine.max_thrust(atm, machs, -50)
-    ref_max_thrust_ratio = [
-        0.69811,
-        0.59162,
-        0.50117,
-        0.42573,
-        0.36417,
-        0.31512,
-        0.27704,
-        0.24820,
-        0.22678,
-        0.19965,
-        0.17795,
-    ]
-    np.testing.assert_allclose(max_thrust_ratio, ref_max_thrust_ratio, rtol=1e-4)
+    np.testing.assert_allclose(name2.engine_dim(), [1.88, 1.37, 1.03], atol=1e-2)
 
 
 def test_sfc_at_max_thrust():
     """
-    Checks model against values from :cite:`roux:2005` p.40
-    (only for ground/Mach=0 values, as cruise values of the report look flawed)
+    Checks model against values from :...
 
     .. bibliography:: ../refs.bib
     """
 
     # Check with arrays
-    cfm56_3c1 = RubberEngine(6, 25.7, 0, 0, 0, 0)
+    name1 = BasicICEngine(21000.0, 1.0, 4.0)
     atm = Atmosphere([0, 10668, 13000], altitude_in_feet=False)
-    sfc = cfm56_3c1.sfc_at_max_thrust(atm, [0, 0.8, 0.8])
+    sfc = name1.sfc_at_max_power(atm)
     # Note: value for alt==10668 is different from PhD report
     #       alt=13000 is here just for testing in stratosphere
-    np.testing.assert_allclose(sfc, [0.97035e-5, 1.7756e-5, 1.7711e-5], rtol=1e-4)
+    np.testing.assert_allclose(sfc, [6.68042778e-08, 6.57954095e-08, 6.56038524e-08], rtol=1e-4)
 
     # Check with scalars
-    trent900 = RubberEngine(7.14, 41, 0, 0, 0, 0)
+    name2 = BasicICEngine(75000.0, 1.0, 4.0)
     atm = Atmosphere(0, altitude_in_feet=False)
-    sfc = trent900.sfc_at_max_thrust(atm, 0)
-    np.testing.assert_allclose(sfc, 0.73469e-5, rtol=1e-4)
-
-    atm = Atmosphere(9144, altitude_in_feet=False)
-    sfc = trent900.sfc_at_max_thrust(atm, 0.8)
-    np.testing.assert_allclose(sfc, 1.6766e-5, rtol=1e-4)  # value is different from PhD report
-
-    # Check with arrays
-    pw2037 = RubberEngine(6, 31.8, 0, 0, 0, 0)
-    atm = Atmosphere(0, altitude_in_feet=False)
-    sfc = pw2037.sfc_at_max_thrust(atm, 0)
-    np.testing.assert_allclose(sfc, 0.9063e-5, rtol=1e-4)
-
-    atm = Atmosphere(10668, altitude_in_feet=False)
-    sfc = pw2037.sfc_at_max_thrust(atm, 0.85)
-    np.testing.assert_allclose(sfc, 1.7439e-5, rtol=1e-4)  # value is different from PhD report
+    sfc = name2.sfc_at_max_power(atm)
+    np.testing.assert_allclose(sfc, 7.407777777777777e-08, rtol=1e-4)
 
 
 def test_sfc_ratio():
     """    Checks SFC ratio model    """
-    design_alt = 10000
-    engine = RubberEngine(0, 0, 0, 0, 0, design_alt)
+    engine = BasicICEngine(75000.0, 1.0, 4.0)
 
-    # Test values taken from method report (plots p. 80, see roux:2002 in refs.bib)
-    # + values where original model fails (around dh=-1562.5)
-    altitudes = design_alt + np.array([-2370, -1564, -1562.5, -1560, -846, 678, 2202, 3726])
-
-    ratio = engine.sfc_ratio(altitudes, 0.8)
+    # Test different altitude with constant thrust rate/power ratio
+    altitudes = np.array([-2370, -1564, -1562.5, -1560, -846, 678, 2202, 3726])
+    ratio, _ = engine.sfc_ratio(altitudes, 0.8)
     assert ratio == pytest.approx(
-        [1.024, 1.020, 1.020, 1.020, 1.005, 0.977, 0.948, 0.918], rel=1e-3
+        [0.958656, 0.958656, 0.958656, 0.958656, 0.958656, 0.958656, 0.958656, 0.958656], rel=1e-3
     )
-    ratio = engine.sfc_ratio(altitudes, 0.6)
-    assert ratio == pytest.approx(
-        [1.074, 1.080, 1.080, 1.080, 1.044, 0.994, 0.935, 0.877], rel=1e-3
-    )
-    assert engine.sfc_ratio(altitudes, 1.0) == pytest.approx(1.0, rel=1e-3)
 
     # Because there some code differs when we have scalars:
-    assert engine.sfc_ratio(design_alt - 1562.5, 0.6) == pytest.approx(1.080, rel=1e-3)
+    ratio, _ = engine.sfc_ratio(1562.5, 0.6)
+    assert ratio == pytest.approx(0.839, rel=1e-3)
