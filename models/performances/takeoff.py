@@ -13,9 +13,9 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import pandas as pd
 import math
 import openmdao.api as om
+
 from fastoad import BundleLoader
 from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting

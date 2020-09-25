@@ -16,10 +16,19 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-		  <v_cruise units="m/s">150<!--top-level requirement: cruise speed--></v_cruise>
+			<range units="km">1450</range>
+			<v_cruise units="m/s">78<!--top-level requirement: cruise speed--></v_cruise>
 		</TLAR>
 		<aerodynamics>
 			<aircraft>
+				<cruise>
+					<CD0>0.04</CD0>
+					<CL_alpha>4.7</CL_alpha>
+					<CL0_clean>0.1</CL0_clean>
+					<L_D_max>3.1</L_D_max>
+					<coef_k>0.05</coef_k>
+					<optimal_CL>0.8</optimal_CL>
+				</cruise>
 				<low_speed>
 					<CD0>0.04</CD0>
 					<CL_alpha>4.7</CL_alpha>
@@ -50,15 +59,30 @@
 		<mission>
 		  <sizing>
 			<main_route>
+				<climb>
+				  <thrust_rate>0.8</thrust_rate>
+				</climb>
 				<cruise>
-				  <altitude units="ft">35000.0<!--altitude during cruise phase in sizing mission--></altitude>
+				  <altitude units="ft">7500.0<!--altitude during cruise phase in sizing mission--></altitude>
 				</cruise>
+				<descent>
+					<descent_rate>0.05</descent_rate>
+				</descent>
 			</main_route>
 			<takeoff>
-			  <elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>
-			  <flap_angle units="deg">10.0<!--flap angle during takeoff phase in sizing mission--></flap_angle>
-			  <friction_coefficient_no_brake>0.015</friction_coefficient_no_brake>
+				<elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>
+				<flap_angle units="deg">10.0<!--flap angle during takeoff phase in sizing mission--></flap_angle>
+				<friction_coefficient_no_brake>0.015</friction_coefficient_no_brake>
+				<thrust_rate>1.0</thrust_rate>
 			</takeoff>
+			<taxi_in>
+				<duration units="s">300</duration>
+				<thrust_rate>0.2</thrust_rate>
+			</taxi_in>
+			<taxi_out>
+				<duration units="s">150</duration>
+				<thrust_rate>0.3</thrust_rate>
+			</taxi_out>
 		  </sizing>
 		</mission>
 		<weight>

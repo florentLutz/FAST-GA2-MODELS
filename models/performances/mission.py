@@ -13,15 +13,19 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import pandas as pd
+import warnings
 import math
 import openmdao.api as om
+
 from fastoad import BundleLoader
-from ..propulsion.fuel_propulsion.base import FuelEngineSet
+from fastoad.base.flight_point import FlightPoint
+from fastoad.constants import EngineSetting
+from fastoad.models.propulsion.fuel_propulsion.base import FuelEngineSet
 from fastoad.utils.physics import Atmosphere
 from scipy.constants import g
+from .takeoff import SAFETY_HEIGHT
 
-TIME_STEP = 0.05 # For time dependent simulation
+TIME_STEP = 1.0 # For time dependent simulation
 
 class Mission(om.Group):
     
@@ -52,32 +56,23 @@ class _compute_taxi(om.ExplicitComponent):
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
-        self.options.declare("taxi_out", default=True, types=str)
+        self.options.declare("taxi_out", default=True, types=bool)
 
     def setup(self):
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
         self.taxi_out = self.options["taxi_out"]
 
+        self.add_input("data:geometry:propulsion:engine:count", np.nan)
         if self.taxi_out:
             self.add_input("data:mission:sizing:taxi_out:thrust_rate", np.nan)
             self.add_input("data:mission:sizing:taxi_out:duration", np.nan, units="s")
-            self.add_input("data:mission:sizing:taxi_out:speed", np.nan, units="m/s")
+            self.add_output("data:mission:operational:taxi_out:fuel", units='kg')
         else:
             self.add_input("data:mission:sizing:taxi_in:thrust_rate", np.nan)
             self.add_input("data:mission:sizing:taxi_in:duration", np.nan, units="s")
-            self.add_input("data:mission:sizing:taxi_in:speed", np.nan, units="m/s")
+            self.add_output("data:mission:operational:taxi_in:fuel", units='kg')
 
-        self.add_input("data:mission:sizing:takeoff:friction_coefficient_no_brake", np.nan)
-        self.add_input("data:aerodynamics:aircraft:takeoff:CD0_clean", np.nan)
-
-        self.add_input("data:geometry:wing:area", np.nan, units='m**2')
-        self.add_input("mass", np.nan, units='kg')
-        self.add_input("duration", np.nan, units='s')
-        self.add_input("speed", np.nan, units='m/s')
-
-        self.add_output("data:mission:operational:taxi_out:fuel", units='kg')
-        
         self.declare_partials("*", "*", method="fd") 
 
     def compute(self, inputs, outputs):
@@ -88,23 +83,17 @@ class _compute_taxi(om.ExplicitComponent):
         if self.taxi_out:
             thrust_rate = inputs["data:mission:sizing:taxi_out:thrust_rate"]
             duration = inputs["data:mission:sizing:taxi_out:duration"]
-            speed = inputs["data:mission:sizing:taxi_out:speed"]
         else:
             thrust_rate = inputs["data:mission:sizing:taxi_in:thrust_rate"]
             duration = inputs["data:mission:sizing:taxi_in:duration"]
-            speed = inputs["data:mission:sizing:taxi_in:speed"]
 
-        atm =Atmosphere(0.0)
-        flight_point = {
-            'mach': [speed/atm.speed_of_sound],
-            'altitude': [0.0],
-            'thrust_is_regulated': [0],
-            'thrust_rate': [thrust_rate],
-            'thrust': [0.0],
-        }
-        flight_point = pd.DataFrame(data=flight_point)
+        # FIXME: no specific settings for taxi (to be changed in fastoad\constants.py
+        flight_point = FlightPoint(
+            mach=0.0, altitude=0.0, engine_setting=EngineSetting.TAKEOFF,
+            thrust_rate=thrust_rate
+        )  # with engine_setting as EngineSetting
         propulsion_model.compute_flight_points(flight_point)
-        fuel_mass = (flight_point.sfc * flight_point.Thrust) * duration
+        fuel_mass = propulsion_model.get_consumed_mass(flight_point, duration)
 
         if self.taxi_out:
             outputs["data:mission:operational:taxi_out:fuel"] = fuel_mass
@@ -136,8 +125,8 @@ class _compute_climb(om.ExplicitComponent):
     def setup(self):
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
-         
-        self.add_input("data:mission:sizing:main_route:climb:thrust_rate", np.nan)
+
+        self.add_input("data:geometry:propulsion:engine:count", np.nan)
         self.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
         self.add_input("data:aerodynamics:aircraft:cruise:coef_k", np.nan)
@@ -147,9 +136,11 @@ class _compute_climb(om.ExplicitComponent):
         self.add_input("data:mission:sizing:holding:fuel", 0.0, units="kg")
         self.add_input("data:mission:sizing:takeoff:fuel", np.nan, units="kg")
         self.add_input("data:mission:sizing:initial_climb:fuel", np.nan, units="kg")
+        self.add_input("data:mission:sizing:main_route:climb:thrust_rate", np.nan)
 
         self.add_output("data:mission:sizing:main_route:climb:fuel", units="kg")
         self.add_output("data:mission:sizing:main_route:climb:distance", units="m")
+        self.add_output("data:mission:sizing:main_route:climb:duration", units="s")
         
         self.declare_partials("*", "*", method="fd")
         
@@ -158,9 +149,8 @@ class _compute_climb(om.ExplicitComponent):
         propulsion_model = FuelEngineSet(
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:engine:count"]
         )
-        thrust_rate = inputs["data:mission:sizing:main_route:climb:thrust_rate"]
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
-        cd0_clean = inputs["data:aerodynamics:aircraft:cruise:CD0"]
+        cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
         coef_k = inputs["data:aerodynamics:aircraft:cruise:coef_k"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
@@ -168,16 +158,18 @@ class _compute_climb(om.ExplicitComponent):
         m_ho = inputs["data:mission:sizing:holding:fuel"]
         m_tk = inputs["data:mission:sizing:takeoff:fuel"]
         m_ic = inputs["data:mission:sizing:initial_climb:fuel"]
+        thrust_rate = inputs["data:mission:sizing:main_route:climb:thrust_rate"]
 
         # Define initial conditions
         altitude_t = 50 / 0.3048 # conversion to m
         distance_t = 0.0
+        time_t = 0.0
         mass_t = mtow - (m_to + m_ho + m_tk + m_ic)
         mass_fuel_t = 0.0
         atm_0 = Atmosphere(0.0)
 
         # FIXME: VCAS strategy is specific to ICE-propeller configuration, should be an input
-        cl = math.sqrt(3*cd0_clean/coef_k)
+        cl = math.sqrt(3*cd0/coef_k)
         atm = Atmosphere(altitude_t, altitude_in_feet=False)
         v_cas = math.sqrt((mass_t * g) / (0.5 * atm.density * wing_area * cl))
 
@@ -191,21 +183,16 @@ class _compute_climb(om.ExplicitComponent):
             mach = math.sqrt(5 * ((atm_0.pressure / atm.pressure \
                     * ((1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) \
                     ** 3.5 - 1) + 1) ** (1 / 3.5) - 1))
-            flight_point = {
-                'mach': [mach],
-                'altitude': [0],
-                'thrust_is_regulated': [altitude_t],
-                'thrust_rate': [thrust_rate],
-                'thrust': None,
-            }
-            flight_point = pd.DataFrame(data=flight_point)
+            flight_point = FlightPoint(
+                mach=mach, altitude=altitude_t, engine_setting=EngineSetting.CLIMB,
+                thrust_rate=thrust_rate
+            )  # with engine_setting as EngineSetting
             propulsion_model.compute_flight_points(flight_point)
-            Thrust = flight_point.Thrust
-            sfc = flight_point.sfc
+            Thrust = float(flight_point.thrust)
 
             # Calculates cl and drag considering constant climb rate
             cl = mass_t * g / (0.5 * atm.density * wing_area * v_tas**2)
-            cd = cd0_clean + coef_k * cl**2
+            cd = cd0 + coef_k * cl**2
 
             # Calculate climb rate and height increase
             climb_rate = Thrust / (mass_t * g) - cd / cl
@@ -214,12 +201,14 @@ class _compute_climb(om.ExplicitComponent):
             altitude_t += vz * TIME_STEP
             distance_t += vx * TIME_STEP
 
-            # Estimate mass evolution
-            mass_fuel_t += (sfc * Thrust) * TIME_STEP
-            mass_t = mass_t - (sfc * Thrust) * TIME_STEP
+            # Estimate mass evolution and update time
+            mass_fuel_t += propulsion_model.get_consumed_mass(flight_point, TIME_STEP)
+            mass_t = mass_t - propulsion_model.get_consumed_mass(flight_point, TIME_STEP)
+            time_t += TIME_STEP
 
         outputs["data:mission:sizing:main_route:climb:fuel"] = mass_fuel_t
         outputs["data:mission:sizing:main_route:climb:distance"] = distance_t
+        outputs["data:mission:sizing:main_route:climb:duration"] = time_t
 
 
 class _compute_cruise(om.ExplicitComponent):
@@ -248,9 +237,10 @@ class _compute_cruise(om.ExplicitComponent):
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
+        self.add_input("data:geometry:propulsion:engine:count", np.nan)
         self.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
+        self.add_input("data:TLAR:range", np.nan, units="m")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
-        self.add_input("data:mission:sizing:main_route:cruise:distance", np.nan, units="m")
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
         self.add_input("data:aerodynamics:aircraft:cruise:coef_k", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
@@ -262,6 +252,7 @@ class _compute_cruise(om.ExplicitComponent):
         self.add_input("data:mission:sizing:main_route:climb:fuel", np.nan, units="kg")
 
         self.add_output("data:mission:sizing:main_route:cruise:fuel", units="kg")
+        self.add_output("data:mission:sizing:main_route:cruise:duration", units="s")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -270,9 +261,9 @@ class _compute_cruise(om.ExplicitComponent):
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:engine:count"]
         )
         v_tas = inputs["data:TLAR:v_cruise"]
+        cruise_distance = inputs["data:TLAR:range"]
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
-        cruise_distance = inputs["data:mission:sizing:main_route:cruise:distance"]
-        cd0_clean = inputs["data:aerodynamics:aircraft:cruise:CD0"]
+        cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
         coef_k = inputs["data:aerodynamics:aircraft:cruise:coef_k"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
@@ -282,8 +273,12 @@ class _compute_cruise(om.ExplicitComponent):
         m_ic = inputs["data:mission:sizing:initial_climb:fuel"]
         m_cl = inputs["data:mission:sizing:main_route:climb:fuel"]
 
+        # Define specific time step ~1000 points for calculation
+        TIME_STEP = (cruise_distance/v_tas)/1000.0
+
         # Define initial conditions
         distance_t = 0.0
+        time_t = 0.0
         mass_fuel_t = 0.0
         mass_t = mtow - (m_to + m_ho + m_tk + m_ic + m_cl)
         atm_0 = Atmosphere(0.0)
@@ -294,41 +289,42 @@ class _compute_cruise(om.ExplicitComponent):
 
             # Calculate Cl - Cd and corresponding drag
             cl = mass_t * g / (0.5 * atm.density * wing_area * v_tas ** 2)
-            cd = cd0_clean + coef_k * cl ** 2
+            cd = cd0 + coef_k * cl ** 2
             Drag = 0.5 * atm.density * wing_area * cd * v_tas ** 2
 
             # Evaluate sfc
             mach = math.sqrt(5 * ((atm_0.pressure / atm.pressure \
                                    * ((1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) \
                                       ** 3.5 - 1) + 1) ** (1 / 3.5) - 1))
-            flight_point = {
-                'mach': [mach],
-                'altitude': [cruise_altitude],
-                'thrust_is_regulated': [1],
-                'thrust_rate': None,
-                'thrust': [Drag],
-            }
-            flight_point = pd.DataFrame(data=flight_point)
+            flight_point = FlightPoint(
+                mach=mach, altitude=cruise_altitude, engine_setting=EngineSetting.CRUISE,
+                thrust_is_regulated=True, thrust=Drag,
+            )  # with engine_setting as EngineSetting
             propulsion_model.compute_flight_points(flight_point)
-            Thrust = flight_point.Thrust
-            sfc = flight_point.sfc
+            # If thrust exceed max thrust exit cruise calculation
+            if float(flight_point.thrust_rate) > 1.0:
+                mass_fuel_t = 0.0 # FIXME: this point should be calculated with MTOW, crsuie condition and propulsion margin
+                time_t = 0.0
+                break
 
             # Calculate distance increase
             distance_t += v_tas * TIME_STEP
 
-            # Estimate mass evolution
-            mass_fuel_t += (sfc * Thrust) * TIME_STEP
-            mass_t = mass_t - (sfc * Thrust) * TIME_STEP
+            # Estimate mass evolution and update time
+            mass_fuel_t += propulsion_model.get_consumed_mass(flight_point, TIME_STEP)
+            mass_t = mass_t - propulsion_model.get_consumed_mass(flight_point, TIME_STEP)
+            time_t += TIME_STEP
 
         outputs["data:mission:sizing:main_route:cruise:fuel"] = mass_fuel_t
+        outputs["data:mission:sizing:main_route:cruise:duration"] = time_t
 
 
 class _compute_descent(om.ExplicitComponent):
     """
     Compute the fuel consumption on descent segment with constant VCAS and descent
-    speed Vz (<0m/s).
-    The hypothesis of small alpha/gamma angles is done.
-    Warning: Descent rate is maintained even if cd/cl < abs(desc_rate)!
+    rate.
+    The hypothesis of small alpha angle is done.
+    Warning: Descent rate is reduced if cd/cl < abs(desc_rate)!
     """
 
     def __init__(self, **kwargs):
@@ -351,10 +347,12 @@ class _compute_descent(om.ExplicitComponent):
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
+        self.add_input("data:geometry:propulsion:engine:count", np.nan)
         self.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
         self.add_input("data:mission:sizing:main_route:descent:descent_rate", np.nan)
-        self.add_input("data:aerodynamics:aircraft:cruise:L_D_max", np.nan)
         self.add_input("data:aerodynamics:aircraft:cruise:optimal_CL", np.nan)
+        self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
+        self.add_input("data:aerodynamics:aircraft:cruise:coef_k", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:taxi_out:fuel", np.nan, units="kg")
@@ -366,6 +364,7 @@ class _compute_descent(om.ExplicitComponent):
 
         self.add_output("data:mission:sizing:main_route:descent:fuel", units="kg")
         self.add_output("data:mission:sizing:main_route:descent:distance", units="m")
+        self.add_output("data:mission:sizing:main_route:descent:duration", units="s")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -374,9 +373,10 @@ class _compute_descent(om.ExplicitComponent):
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:engine:count"]
         )
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
-        descent_rate = inputs["data:mission:sizing:main_route:descent:descent_rate"]
-        cl_cd = inputs["data:aerodynamics:aircraft:cruise:L_D_max"]
+        descent_rate = -abs(inputs["data:mission:sizing:main_route:descent:descent_rate"])
         cl = inputs["data:aerodynamics:aircraft:cruise:optimal_CL"]
+        cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
+        coef_k = inputs["data:aerodynamics:aircraft:cruise:coef_k"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]
@@ -387,50 +387,48 @@ class _compute_descent(om.ExplicitComponent):
         m_cr = inputs["data:mission:sizing:main_route:cruise:fuel"]
 
         # Define initial conditions
+        gamma = math.asin(descent_rate)
         altitude_t = cruise_altitude
         distance_t = 0.0
+        time_t = 0.0
         mass_fuel_t = 0.0
         mass_t = mtow - (m_to + m_ho + m_tk + m_ic + m_cl + m_cr)
         atm_0 = Atmosphere(0.0)
+        warning = False
+        # Calculate defined VCAS at the beginning of descent (cos(gamma)~1)
+        v_cas = math.sqrt((mass_t * g) / (0.5 * atm_0.density * wing_area * cl))
 
-
-        while altitude_t > 0.0:
+        while altitude_t > SAFETY_HEIGHT:
 
             # Define air properties and calculate VTAS
             atm = Atmosphere(altitude_t, altitude_in_feet=False)
-            v_cas = math.sqrt((mass_t * g) / (0.5 * atm.density * wing_area * cl))
             v_tas = v_cas * math.sqrt(atm_0.density / atm.density)
-
-            # Is necessary thrust is 0 (desc_rate not reachable, then constant thrust
-            # rate applied to match IDLE
-            if (1/cl_cd) < abs(descent_rate):
-                flight_point = {
-                    'mach': [mach],
-                    'altitude': [altitude_t],
-                    'thrust_is_regulated': [0],
-                    'thrust_rate': [propulsion_model.idle_thrust_rate],
-                    'thrust': None,
-                }
-                descent_rate = (1/cl_cd)
-            else:
-                Thrust = (1/cl_cd + descent_rate) * (mass_t * g)
-                flight_point = {
-                    'mach': [mach],
-                    'altitude': [altitude_t],
-                    'thrust_is_regulated': [1],
-                    'thrust_rate': None,
-                    'thrust': [Thrust],
-                }
-
-            # Evaluate sfc
+            # Calculate lift and drag coefficients changes to maintain speed (cos(gamma)~1)
+            cl = ((mass_t * g) / (0.5 * atm.density * wing_area * v_tas**2))
+            cd = cd0 + coef_k * cl**2
+            cl_cd = cl/cd
+            Drag = 0.5 * atm.density * wing_area * cd * v_tas**2
+            # Evaluate mach
             mach = math.sqrt(5 * ((atm_0.pressure / atm.pressure \
                                    * ((1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) \
                                       ** 3.5 - 1) + 1) ** (1 / 3.5) - 1))
-
-            flight_point = pd.DataFrame(data=flight_point)
+            # Calculate necessary Thrust to maintain VCAS and descent rate
+            # if T<0N, VCAS is maintained reducing gamma/descent rate and engine in IDLE condition
+            Thrust = Drag + (mass_t * g) * math.sin(gamma)
+            if Thrust <= 0.0:
+                flight_point = FlightPoint(
+                    mach=mach, altitude=altitude_t, engine_setting=EngineSetting.IDLE,
+                    thrust_rate=0.2)  # with engine_setting as EngineSetting
+                descent_rate = -1/cl_cd
+                gamma = math.asin(descent_rate)
+                warning = True
+            else:
+                # FIXME: DESCENT setting on engine does not exist, replaced by CRUISE for test
+                flight_point = FlightPoint(
+                    mach=mach, altitude=altitude_t, engine_setting=EngineSetting.CRUISE,
+                    thrust_is_regulated=True, thrust=Thrust,
+                )  # with engine_setting as EngineSetting
             propulsion_model.compute_flight_points(flight_point)
-            Thrust = flight_point.Thrust
-            sfc = flight_point.sfc
 
             # Calculate distance increase
             v_x = v_tas * math.cos(descent_rate)
@@ -438,9 +436,14 @@ class _compute_descent(om.ExplicitComponent):
             distance_t += v_x * TIME_STEP
             altitude_t += v_z * TIME_STEP
 
-            # Estimate mass evolution
-            mass_fuel_t += (sfc * Thrust) * TIME_STEP
-            mass_t = mass_t - (sfc * Thrust) * TIME_STEP
+            # Estimate mass evolution and update time
+            mass_fuel_t += propulsion_model.get_consumed_mass(flight_point, TIME_STEP)
+            mass_t = mass_t - propulsion_model.get_consumed_mass(flight_point, TIME_STEP)
+            time_t += TIME_STEP
+
+        if warning:
+            warnings.warn("Descent rate has been reduced!")
 
         outputs["data:mission:sizing:main_route:descent:fuel"] = mass_fuel_t
         outputs["data:mission:sizing:main_route:descent:distance"] = distance_t
+        outputs["data:mission:sizing:main_route:descent:duration"] = time_t
