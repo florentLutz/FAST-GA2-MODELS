@@ -19,6 +19,7 @@ import math
 import numpy as np
 import copy
 import openmdao.api as om
+from typing import Union, Tuple, Optional
 
 DEFAULT_NX = 19
 DEFAULT_NY1 = 3
@@ -59,6 +60,7 @@ class VLM(om.ExplicitComponent):
         # Define elements
         self.WING = {'x_panel': np.zeros((self.nx + 1, 2 * self.ny + 1)),
                      'y_panel': np.zeros(2 * self.ny + 1),
+                     'z': np.zeros(self.nx + 1),
                      'x_LE': np.zeros(2 * self.ny + 1),
                      'chord': np.zeros(2 * self.ny + 1),
                      'panel_span': np.zeros(2 * self.ny),
@@ -151,8 +153,7 @@ class VLM(om.ExplicitComponent):
         self.HTP['x_LE'] = x_LE
         # Launch common code
         self._generate_common(self.HTP)
-        
-        
+
     def _generate_common(self, dictionnary):
         """Common code shared between wing and htp to calculate geometry/aero parameters"""
         
@@ -260,8 +261,17 @@ class VLM(om.ExplicitComponent):
         dictionnary['AIC'] = AIC
         dictionnary['AIC_wake'] = AIC_wake
         
-    def compute_wing(self, inputs, AOAList, Vinf, flaps_angle=0.0, use_airfoil=True):
-        """VLM computations for the wing alone."""
+    def compute_wing(self, inputs, AOAList, Vinf, flaps_angle=0.0,
+                     use_airfoil=True) -> Tuple[list, list, list, list]:
+        """
+        VLM computations for the wing alone.
+
+        :param AOAList: list of angle of attack to be computed (in Deg)
+        :param Vinf: air speed (in m/s)
+        :param flaps_angle: (in Deg)
+        :param use_airfoil: adds the camberline coordinates of the selected airfoil (NACA 230) (default=True)
+        :return: [Cl, Cdi, Oswald, Cm] aerodynamic parameters
+        """
         
         aspect_ratio = inputs['data:geometry:wing:aspect_ratio']
         meanchord = inputs['data:geometry:wing:MAC:length']
@@ -299,29 +309,15 @@ class VLM(om.ExplicitComponent):
             oswald = cl**2/(math.pi*aspect_ratio*cdi) * 0.955 # !!!: manual correction?
             cmpanel = np.multiply(cp, (xc[:self.nx*self.ny]-meanchord/4))
             cm = np.sum(cmpanel*panelsurf)/np.sum(panelsurf)
-            # Calculate Wake
-            w_farfield = []
-            w_i = np.zeros(self.ny)
-            gamma_r = np.reshape(gamma, (self.nx, self.ny), order='C')
-            gamma_line = np.sum(gamma_r,axis=0)
-            # Far fied induced velocity
-            for panel in range(self.ny):
-                for vortex in range(1,self.ny):
-                    w_i[panel] = w_i[panel] - gamma_line[vortex] / (2.*math.pi*(yc[panel] - y_panel[vortex]))
-                    w_i[panel] = w_i[panel] + gamma_line[vortex] / (2.*math.pi*(yc[panel] - y_panel[vortex+1]))
-                    w_i[panel] = w_i[panel] + gamma_line[vortex] / (2.*math.pi*(yc[panel] - y_panel[vortex+self.ny]))
-                    w_i[panel] = w_i[panel] - gamma_line[vortex] / (2.*math.pi*(yc[panel] - y_panel[vortex+1+self.ny]))
-                w_farfield.append(w_i)
+            # Save data
             Cl.append(cl)
             Cdi.append(cdi)
             Oswald.append(oswald)
             Cm.append(cm)
-        # Save results
-        self.WING['w_farfield'] = w_farfield
             
         return Cl, Cdi, Oswald, Cm
     
-    def compute_htp(self, inputs, AOAList, Vinf):
+    def compute_htp(self, AOAList: list, Vinf: float) -> list:
         """VLM computation for the horizontal tail."""
         
         # Initialization 
@@ -343,7 +339,7 @@ class VLM(om.ExplicitComponent):
         
         return Cl
     
-    def interpolate_w_ht(self, wi_wing):
+    def interpolate_w_ht(self, wi_wing: np.array) -> np.array:
         """Interpolates the downwash velocity to the HT control points."""
         
         yc_ht = self.HTP['yc']
@@ -363,7 +359,37 @@ class VLM(om.ExplicitComponent):
             for j in range(self.ny):
                 wi_ht_vect[i*self.nx+j] = wi_ht[j]
                 
-        return wi_ht_vect        
+        return wi_ht_vect
+
+    def get_cl_curve(self, AoA: float, Vinf: float) -> Tuple[list, list]:
+        """
+        Get wing Cl at y position.
+
+        :param AOA: angle of attack to be computed (in Deg)
+        :param Vinf: air speed (in m/s)
+        :return: [cl_curve, y_position]
+        """
+
+        yc_wing = self.WING['yc']
+        chord_wing = self.WING['chord']
+        panelangle_vect = self.WING['panelangle_vect']
+        panelchord = self.WING['panel_chord']
+        AIC = self.WING['AIC']
+        AIC_inv = np.linalg.inv(AIC)
+        AoA = AoA * math.pi / 180
+        alpha = np.add(panelangle_vect, AoA)
+        gamma = -np.dot(AIC_inv, alpha) * Vinf
+        cp = -2 / Vinf * np.divide(gamma, panelchord)
+        cl_curve = []
+        for j in range(self.ny):
+            cl_span = 0.
+            y = yc_wing[j]
+            chord = (chord_wing[j] +chord_wing[j+1]) * 0.5
+            for i in range(self.nx):
+                cl_span += -cp[i*self.ny + j] * panelchord[i*self.ny + j] / chord
+            cl_curve.append(cl_span)
+
+        return cl_curve, yc_wing
         
     def naca230(self):
         """Generates the geometry for the NACA 230xx airfoil"""

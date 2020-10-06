@@ -16,26 +16,26 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-			<NPAX>10.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
-			<v_cruise units="kt">200.0<!--top-level requirement: cruise speed--></v_cruise>
-			<v_limit units="kt">400.0<!--top-level requirement: limit speed--></v_limit>
+			<NPAX>4.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
+			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
+			<v_limit units="kn">0.0<!--top-level requirement: limit speed--></v_limit>
 		</TLAR>
 		<geometry>
 			<fuselage>
-				<length units="m">37.507<!--total fuselage length--></length>
-				<maximum_height units="m">4.06<!--maximum fuselage height--></maximum_height>
-				<maximum_width units="m">3.92<!--maximum fuselage width--></maximum_width>
+				<length units="m">8.888<!--total fuselage length--></length>
+				<maximum_height units="m">1.338<!--maximum fuselage height--></maximum_height>
+				<maximum_width units="m">1.198<!--maximum fuselage width--></maximum_width>
 			</fuselage>
 			<horizontal_tail>
 				<root>
-					<chord units="m">0.8<!--horizontal tail root chord--></chord>
+					<chord units="m">0.868<!--horizontal tail root chord--></chord>
 				</root>
-				<span units="m">1.5<!--horizontal tail span--></span>
+				<span units="m">5.095<!--horizontal tail span--></span>
 				<thickness_ratio>0.1<!--horizontal tail thickness ratio--></thickness_ratio>
-				<wetted_area units="m**2">35.171<!--horizontal tail wetted area--></wetted_area>
+				<wet_area units="m**2">7.428<!--horizontal tail wetted area--></wet_area>
 			</horizontal_tail>
 			<landing_gear>
-				<height units="m">0.5<!--height of landing gear--></height>
+				<height units="m">1.22<!--height of landing gear--></height>
 			</landing_gear>
 			<propulsion>
 				<engine>
@@ -43,37 +43,32 @@
 				</engine>
 			</propulsion>
 			<wing>
-				<area units="m**2">124.843<!--wing reference area--></area>
-				<aspect_ratio>9.48<!--wing aspect ratio--></aspect_ratio>
-				<root>
-					<thickness_ratio>0.159<!--thickness ratio at wing root--></thickness_ratio>
-				</root>
-				<sweep_25 units="deg">25.0<!--sweep angle at 25% chord of wing--></sweep_25>
-				<taper_ratio>2.0<!--wing taper ratio--></taper_ratio>
+				<area units="m**2">19.15<!--wing reference area--></area>
+				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
+				<sweep_25 units="deg">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
+				<taper_ratio>1.0<!--wing taper ratio--></taper_ratio>
+				<thickness_ratio>0.12<!--mean thickness ratio of wing--></thickness_ratio>
 			</wing>
 		</geometry>
 		<mission>
 			<sizing>
 				<cs23>
-					<sizing_factor_ultimate>2.0<!--over-sizing coefficient--></sizing_factor_ultimate>
+					<sizing_factor_ultimate>5.7<!--over-sizing coefficient--></sizing_factor_ultimate>
 				</cs23>
-				<fuel units="kg">800.0<!--consumed fuel mass during whole mission--></fuel>
+				<fuel units="kg">268.0<!--consumed fuel mass during whole mission--></fuel>
 			</sizing>
 		</mission>
 		<propulsion>
 			<engine>
-				<power_SL units="W">3000.0<!--maximum power of one engine at sea level--></power_SL>
+				<power_SL units="W">130000.0<!--maximum power of one engine at sea level--></power_SL>
 				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
 				<n_strokes>4.0<!--2=2-strokes engine / 4=4-strokes engine--></n_strokes>
 			</engine>
 		</propulsion>
 		<weight>
 			<aircraft>
-				<max_payload units="kg">500.0<!--max payload weight--></max_payload>
-				<MFW units="kg">20569.81<!--maximum fuel weight--></MFW>
-				<MLW units="kg">64870.14<!--maximum landing weight--></MLW>
-				<MTOW units="kg">75797.99<!--maximum takeoff weight--></MTOW>
-				<MZFW units="kg">61198.25<!--maximum zero fuel weight--></MZFW>
+				<max_payload units="kg">478.0<!--max payload weight--></max_payload>
+				<MTOW units="kg">1915.02<!--maximum takeoff weight--></MTOW>
 			</aircraft>
 		</weight>
 	</data>

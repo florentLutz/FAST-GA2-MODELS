@@ -29,51 +29,18 @@ class ComputeHTSweep(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
-        self.add_input("data:geometry:has_T_tail", val=np.nan)
 
         self.add_output("data:geometry:horizontal_tail:sweep_0", units="deg")
         self.add_output("data:geometry:horizontal_tail:sweep_100", units="deg")
-        self.add_output("data:geometry:horizontal_tail:aspect_ratio")
-        
-        self.declare_partials(
-            "data:geometry:horizontal_tail:sweep_0",
-                [
-                    "data:geometry:horizontal_tail:span", 
-                    "data:geometry:horizontal_tail:root:chord",
-                    "data:geometry:horizontal_tail:tip:chord",
-                    "data:geometry:horizontal_tail:sweep_25",
-                ],
-                method="fd",
-            )
-        self.declare_partials(
-                "data:geometry:horizontal_tail:sweep_100",
-                [
-                        "data:geometry:horizontal_tail:span", 
-                        "data:geometry:horizontal_tail:root:chord",
-                        "data:geometry:horizontal_tail:tip:chord",
-                        "data:geometry:horizontal_tail:sweep_25",
-                ],
-                method="fd",
-            )
-        self.declare_partials(
-                "data:geometry:horizontal_tail:aspect_ratio",
-                 [
-                        "data:geometry:horizontal_tail:sweep_25",
-                ],
-                method="fd",
-            )
+
+        self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
         b_h = inputs["data:geometry:horizontal_tail:span"]
         root_chord = inputs["data:geometry:horizontal_tail:root:chord"]
         tip_chord = inputs["data:geometry:horizontal_tail:tip:chord"]
         sweep_25 = inputs["data:geometry:horizontal_tail:sweep_25"]
-        tail_conf = inputs["data:geometry:has_T_tail"]
-        
-        if tail_conf == 1.0:
-            aspect_ratio = 5.9 * math.cos(sweep_25 / 180.0 * math.pi)**2
-        else:
-            aspect_ratio = 5.5 * math.cos(sweep_25 / 180.0 * math.pi)**2
+
         half_span = b_h / 2.0
         # TODO: The unit conversion can be handled by OpenMDAO
         sweep_0 = (
@@ -109,4 +76,3 @@ class ComputeHTSweep(ExplicitComponent):
 
         outputs["data:geometry:horizontal_tail:sweep_0"] = sweep_0
         outputs["data:geometry:horizontal_tail:sweep_100"] = sweep_100
-        outputs["data:geometry:horizontal_tail:aspect_ratio"] = aspect_ratio

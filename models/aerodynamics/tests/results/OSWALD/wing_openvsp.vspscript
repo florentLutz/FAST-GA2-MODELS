@@ -46,21 +46,21 @@ void main()
    
    ChangeXSecShape( xsec_surf, 0, XS_FILE_AIRFOIL );
    xsec = GetXSec( xsec_surf, 0 );
-   ReadFileAirfoil( xsec, "C:\\Users\\ABF4A~1.REY\\AppData\\Local\\Temp\\xf8l5s97z\\naca23012.af" );
+   ReadFileAirfoil( xsec, "C:\\Users\\ABF4A~1.REY\\AppData\\Local\\Temp\\xb_e44ftw\\naca23012.af" );
    Update();
    
    //==== Change Airfoil 1 (y=y2) shape ====//
    
    ChangeXSecShape( xsec_surf, 1, XS_FILE_AIRFOIL );
    xsec = GetXSec( xsec_surf, 1 );
-   ReadFileAirfoil( xsec, "C:\\Users\\ABF4A~1.REY\\AppData\\Local\\Temp\\xf8l5s97z\\naca23012.af" );
+   ReadFileAirfoil( xsec, "C:\\Users\\ABF4A~1.REY\\AppData\\Local\\Temp\\xb_e44ftw\\naca23012.af" );
    Update();
    
    //==== Change Airfoil 2 (y=y4) shape ====//
    
    ChangeXSecShape( xsec_surf, 2, XS_FILE_AIRFOIL );
    xsec = GetXSec( xsec_surf, 2 );
-   ReadFileAirfoil( xsec, "C:\\Users\\ABF4A~1.REY\\AppData\\Local\\Temp\\xf8l5s97z\\naca23012.af" );
+   ReadFileAirfoil( xsec, "C:\\Users\\ABF4A~1.REY\\AppData\\Local\\Temp\\xb_e44ftw\\naca23012.af" );
    Update();
    
    //==== Check For API Errors ====//
@@ -73,7 +73,7 @@ void main()
 	
 	//==== Set File Name ====//
 	
-	SetComputationFileName( DEGEN_GEOM_CSV_TYPE, "C:\\Users\\ABF4A~1.REY\\AppData\\Local\\Temp\\xf8l5s97z\\wing_openvsp_DegenGeom0.csv" );
+	SetComputationFileName( DEGEN_GEOM_CSV_TYPE, "C:\\Users\\ABF4A~1.REY\\AppData\\Local\\Temp\\xb_e44ftw\\wing_openvsp_DegenGeom0.csv" );
 	
 	//==== Run Degen Geom ====//
 	ComputeDegenGeom( SET_ALL, DEGEN_GEOM_CSV_TYPE );

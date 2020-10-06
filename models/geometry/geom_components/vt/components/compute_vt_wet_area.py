@@ -1,6 +1,7 @@
 """
-Estimation of navigation systems weight
+    Estimation of vertical tail wet area
 """
+
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
 #  FAST is free software: you can redistribute it and/or modify
@@ -13,30 +14,24 @@ Estimation of navigation systems weight
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class NavigationSystemsWeight(ExplicitComponent):
-    """
-    Weight estimation for navigation systems
-
-    # TODO: Based on :????????????
-    """
+class ComputeVTWetArea(ExplicitComponent):
+    # TODO: Document equations. Cite sources
+    """ Vertical tail wet area estimation """
 
     def setup(self):
-        
-        self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
-        
-        self.add_output("data:weight:systems:navigation:mass", units="lb")
+        self.add_input("data:geometry:vertical_tail:area", val=np.nan, units="m**2")
+
+        self.add_output("data:geometry:vertical_tail:wet_area", units="m**2")
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        mtow = inputs["data:weight:aircraft:MTOW"]
-        
-        c3 = 40 +0.008*mtow # mass formula in lb
+    def compute(self, inputs, outputs):
+        area = inputs["data:geometry:vertical_tail:area"]
 
-        outputs["data:weight:systems:navigation:mass"] = c3
+        wet_area = 2.1 * area
+
+        outputs["data:geometry:vertical_tail:wet_area"] = wet_area

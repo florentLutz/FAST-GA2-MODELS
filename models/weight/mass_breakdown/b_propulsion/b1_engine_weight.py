@@ -16,7 +16,7 @@ Estimation of engine weight
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-from models.propulsion.fuel_engine.basicIC_engine.exceptions import FastBasicICEngineInconsistentInputParametersError
+from ....propulsion.fuel_propulsion.basicIC_engine.exceptions import FastBasicICEngineInconsistentInputParametersError
 
 
 # FIXME:  the weight estimation of the engine should be defined within the engine model (handle hybrid architecture)
@@ -28,12 +28,10 @@ class EngineWeight(ExplicitComponent):
 
     def setup(self):
         
-        self.add_input("data:propulsion:engine:power_SL", val=np.nan, units="W") # Power @ see level
+        self.add_input("data:propulsion:engine:power_SL", val=np.nan, units="hp")
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
-        self.add_input("data:propulsion:engine:fuel_type", val=np.nan)
-        self.add_input("data:propulsion:engine:n_strokes", val=np.nan)
         
-        self.add_output("data:weight:propulsion:engine:mass", units="kg")
+        self.add_output("data:weight:propulsion:engine:mass", units="lb")
 
         self.declare_partials("data:weight:propulsion:engine:mass",
             ["data:propulsion:engine:power_SL"],
@@ -42,22 +40,9 @@ class EngineWeight(ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        power_sl = inputs["data:propulsion:engine:power_SL"]
+        power_sl = inputs["data:propulsion:engine:power_SL"] * (746/735.5) # conversion to european hp
         n_engines = inputs["data:geometry:propulsion:engine:count"]
-        fuel_type = inputs["data:propulsion:engine:fuel_type"]
-        n_strokes = inputs["data:propulsion:engine:n_strokes"]
         
-        if (fuel_type == 1.0) and (n_strokes == 2.0):
-            b1 = 0.593*power_sl + 8.0199
-        elif (fuel_type == 1.0) and (n_strokes == 4.0):
-            b1 = (0.7258*power_sl/n_engines + 32.223)*n_engines
-        elif (fuel_type == 2.0) and (n_strokes == 2.0):
-            b1 = 1.0053*power_sl + 24.363
-        elif (fuel_type == 2.0) and (n_strokes == 4.0):
-            b1 = (0.8755*power_sl/n_engines + 46.469)*n_engines
-        else:
-            raise FastBasicICEngineInconsistentInputParametersError(
-                "Bad engine configuration: only 2 or 4-strokes and fuel type 1/2 available."
-            )
+        b1 = ((power_sl - 21.55)/0.5515)*n_engines
             
         outputs["data:weight:propulsion:engine:mass"] = b1

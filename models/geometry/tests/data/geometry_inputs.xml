@@ -20,7 +20,7 @@
 		</TLAR>
 		<geometry>
 			<cabin>
-				<aisle_width units="m">0.75<!--cabin aisle width--></aisle_width>
+				<aisle_width units="m">0.0<!--cabin aisle width--></aisle_width>
 				<seats>
 					<pilot>
 						<length units="m">0.75<!--pilot seats length--></length>
@@ -33,10 +33,16 @@
 					</passenger>
 				</seats>
 			</cabin>
-			<has_T_tail>0.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
+			<has_T_tail>1.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
 			<horizontal_tail>
-				<area units="m**2">4.314<!--horizontal tail area--></area>
-				<aspect_ratio>5.871<!--aspect ratio of horizontal tail--></aspect_ratio>
+				<MAC>
+					<at25percent>
+						<x>
+							<from_wingMAC25 units="m">4.334<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
+						</x>
+					</at25percent>
+				</MAC>
+				<area units="m**2">4.422<!--horizontal tail area--></area>
 				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
 				<taper_ratio>1.0<!--taper ratio of horizontal tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>
@@ -50,6 +56,7 @@
 					<width units="m">0.792<!--engine width--></width>
 					<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
 				</engine>
+				<length units="m">0.960<!--total propulsion length--></length>
 				<nacelle>
 					<length units="m">1.44<!--nacelle length--></length>
 					<wet_area units="m**2">4.499<!--wetted area of nacelle--></wet_area>
@@ -59,7 +66,7 @@
 				</propeller>
 			</propulsion>
 			<vertical_tail>
-				<area units="m**2">2.472<!--vertical tail area--></area>
+				<area units="m**2">2.507<!--vertical tail area--></area>
 				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>
 				<sweep_25 units="deg">10.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
 				<taper_ratio>0.62<!--taper ratio of vertical tail--></taper_ratio>
@@ -67,10 +74,10 @@
 			<wing>
 				<MAC>
 					<at25percent>
-						<x units="m">16.457<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
+						<x units="m">3.449<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
 					</at25percent>
 				</MAC>
-				<area units="m**2">18.813<!--wing reference area--></area>
+				<area units="m**2">19.151<!--wing reference area--></area>
 				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
 				<taper_ratio>1.0<!--taper ratio of wing--></taper_ratio>
 				<thickness_ratio>0.12<!--mean thickness ratio of wing--></thickness_ratio>

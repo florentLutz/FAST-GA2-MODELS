@@ -25,7 +25,6 @@ from .components import ComputeWingToc
 from .components import ComputeWingWetArea
 from .components import ComputeWingX
 from .components import ComputeWingY
-from fastoad2.models.aerodynamics.components.compute_wing_cl_alpha import ComputeWINGCLalpha # FIXME: change fastoad2 to fastoad
 
 from openmdao.api import Group
 
@@ -36,14 +35,15 @@ class ComputeWingGeometry(Group):
 
     def setup(self):
         self.add_subsystem("mfw", ComputeMFW(), promotes=["*"])
-        self.add_subsystem("wing_b50", ComputeWingB50(), promotes=["*"])
-        self.add_subsystem("wing_l14", ComputeWingL1AndL4(), promotes=["*"])
-        self.add_subsystem("wing_l2l3", ComputeWingL2AndL3(), promotes=["*"])
-        self.add_subsystem("wing_mac", ComputeWingMAC(), promotes=["*"])
-        self.add_subsystem("wing_sweep_", ComputeWingSweep(), promotes=["*"])
-        self.add_subsystem("wing_toc_", ComputeWingToc(), promotes=["*"])
-        self.add_subsystem("wing_wet_area", ComputeWingWetArea(), promotes=["*"])
-        self.add_subsystem("wing_x", ComputeWingX(), promotes=["*"])
+        self.add_subsystem("wing_toc", ComputeWingToc(), promotes=["*"])
         self.add_subsystem("wing_y", ComputeWingY(), promotes=["*"])
-        self.add_subsystem("wing_cl_apha", ComputeWINGCLalpha(), promotes=["*"])
+        self.add_subsystem("wing_l1l4", ComputeWingL1AndL4(), promotes=["*"])
+        self.add_subsystem("wing_l2l3", ComputeWingL2AndL3(), promotes=["*"])
+        self.add_subsystem("wing_x", ComputeWingX(), promotes=["*"])
+        self.add_subsystem("wing_b50", ComputeWingB50(), promotes=["*"])
+        self.add_subsystem("wing_mac", ComputeWingMAC(), promotes=["*"])
+        self.add_subsystem("wing_sweep", ComputeWingSweep(), promotes=["*"])
+        self.add_subsystem("wing_wet_area", ComputeWingWetArea(), promotes=["*"])
+
+
         

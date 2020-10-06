@@ -90,9 +90,9 @@ class OperatingWeightEmpty(om.Group):
         self.add_subsystem("landing_gear_weight", LandingGearWeight(), promotes=["*"])
         self.add_subsystem("engine_weight", EngineWeight(), promotes=["*"])
         self.add_subsystem("fuel_lines_weight", FuelLinesWeight(), promotes=["*"])
+        self.add_subsystem("navigation_systems_weight", NavigationSystemsWeight(), promotes=["*"])
         self.add_subsystem("power_systems_weight", PowerSystemsWeight(), promotes=["*"])
         self.add_subsystem("life_support_systems_weight", LifeSupportSystemsWeight(), promotes=["*"])
-        self.add_subsystem("navigation_systems_weight", NavigationSystemsWeight(), promotes=["*"])
         self.add_subsystem("passenger_seats_weight", PassengerSeatsWeight(), promotes=["*"])
 
         # Make additions

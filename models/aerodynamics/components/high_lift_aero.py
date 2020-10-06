@@ -17,13 +17,18 @@ Computation of lift and drag increment due to high-lift devices
 import numpy as np
 import math
 import openmdao.api as om
+from pandas import read_csv
 from importlib_resources import open_text
+from typing import Union, Tuple, Optional
 from scipy import interpolate
 from ..constants import ELEV_POINT_COUNT
 
 from . import resources
 
 LIFT_EFFECTIVENESS_FILENAME = "interpolation of lift effectiveness.txt"
+DELTA_CL_PLAIN_FLAP = "delta lift plain flap.csv"
+K_PLAIN_FLAP = "k plain flap.csv"
+KB_FLAPS = "kb flaps.csv"
 ELEVATOR_ANGLE_LIST = np.linspace(-25.0, 25.0, num=ELEV_POINT_COUNT)
 
 class ComputeDeltaHighLift(om.ExplicitComponent):
@@ -59,7 +64,6 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_output("data:aerodynamics:flaps:takeoff:CD")
         self.add_output("data:aerodynamics:elevator:low_speed:angle", shape=len(ELEVATOR_ANGLE_LIST), units="deg")
         self.add_output("data:aerodynamics:elevator:low_speed:CL", shape=len(ELEVATOR_ANGLE_LIST))
-        
 
         self.declare_partials("*", "*", method="fd")
 
@@ -110,68 +114,59 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                 ELEVATOR_ANGLE_LIST,
             )
             
-    def _get_elevator_delta_cl(self, inputs, elevator_angle_array):
+    def _get_elevator_delta_cl(self, inputs, elevator_angle: Union[float, np.array]) -> Union[float, np.array]:
         """
-        Method based on on Roskam book
+        Applies the plain flap lift variation function :meth:`_delta_lift_plainflap`.
 
-        :param elevator_angle: in degrees
+        :param elevator_angle: elevator angle (in Degree)
         :return: increment of lift coefficient
         """
         
         ht_area = inputs["data:geometry:horizontal_tail:area"]
         wing_area = inputs["data:geometry:wing:area"]
-        
-        k_array = np.zeros(np.shape(elevator_angle_array))
-        k2_array = np.zeros(np.shape(elevator_angle_array))
-        cldelta_theory = 4.5 #Fig 8.14, for t/c=0.10 and cf/c=0.3
-        for idx in range(len(elevator_angle_array)):
-            elevator_angle = elevator_angle_array[idx]
-            if abs(elevator_angle)<=12: #Fig 8.13. Quick linear approximation of graph (not intended to be used)
-                k = 1.0 
-            elif abs(elevator_angle)<=20:
-                k = 1.0 - 0.0263*(abs(elevator_angle) - 12)
-            elif abs(elevator_angle)<=25:
-                k = 0.79 - 0.024* (abs(elevator_angle)-20)
-            else:
-                k = 0.67 - 0.008 * (abs(elevator_angle) - 25)
-            if abs(elevator_angle)<=15: #Fig 8.33. Quick linear approximation of graph (not intended to be used)
-                k2 = 0.46 / 15 * abs(elevator_angle) 
-            else:
-                k2 = 0.46 + 0.22/10 * (abs(elevator_angle) - 15)
-            k_array[idx] = k
-            k2_array[idx] = k2
-        #Roskam 3D flap parameters
-        k1 = 1.05 #cf/c = 0.3
-        delta_cl_elev = (cldelta_theory * k1 * k_array* k2_array * np.radians(elevator_angle_array)) \
-                        * ht_area/wing_area
+
+        # Elevator (plain flap). Default: maximum deflection (25deg)
+        cl_delta_theory, k = self._delta_lift_plainflap(abs(elevator_angle), 0.3, 0.1)
+        delta_cl_elev = (cl_delta_theory * k * elevator_angle) * ht_area / wing_area
+        delta_cl_elev *= 0.9  # Correction for the central fuselage part (no elevator there)
                         
         return delta_cl_elev
-        
 
-    def _get_flaps_delta_cl(self, inputs, flap_angle, mach):
+    def _get_flaps_delta_cl(self, inputs, flap_angle: float, mach: float) -> float:
         """
-        Method based on Roskam book and Raymer book
+        Method based on...
 
-        :param flap_angle: in degrees
-        :param mach:
+        :param flap_angle: flap angle (in Degree)
+        :param mach: air speed
         :return: increment of lift coefficient
         """
 
-        flap_angle = np.radians(flap_angle)
+        cl_alpha_wing = inputs['data:aerodynamics:aircraft:low_speed:CL_alpha']
+        span_wing = inputs['data:geometry:wing:span']
+        y1_wing = inputs['data:geometry:fuselage:maximum_width'] / 2.0
+        y2_wing = inputs['data:geometry:wing:root:y']
+        flap_span_ratio = inputs['data:geometry:flap:span_ratio']
 
         if not(self.phase == 'landing') and (flap_angle != 30.0):
-            delta_cl_flap = self._compute_delta_cl_flaps(inputs, flap_angle, mach)
+            # 2D flap lift coefficient
+            delta_cl_airfoil = self._compute_delta_cl_airfoil_2D(inputs, flap_angle, mach)
+            # Roskam 3D flap parameters
+            eta_in = y1_wing / (span_wing/2.0)
+            eta_out = ((y2_wing - y1_wing) + flap_span_ratio * (span_wing/2.0 - y2_wing)) / (span_wing/2.0 - y2_wing)
+            kb = self._compute_kb_flaps(inputs, eta_in, eta_out)
+            effect = 1.04  # fig 8.53 (cf/c=0.25, small effect of AR)
+            delta_cl_flap = kb * delta_cl_airfoil * (cl_alpha_wing / (2 * math.pi)) * effect
         else:
             delta_cl_flap = self._compute_delta_clmax_flaps(inputs)
 
         return delta_cl_flap
     
-    def _get_flaps_delta_cm(self, inputs, flap_angle, mach):
+    def _get_flaps_delta_cm(self, inputs, flap_angle: float, mach: float) -> float:
         """
-        Method based on Roskam book and Raymer book
+        Method based on Roskam book
 
-        :param flap_angle: in degrees
-        :param mach:
+        :param flap_angle: flap angle (in Degree)
+        :param mach: air speed
         :return: increment of moment coefficient
         """
         
@@ -185,13 +180,12 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         delta_cm_flap = k_p(wing_taper_ratio) * (-0.27)*(delta_cl_flap) #-0.27: Figure 8.106
 
         return delta_cm_flap
-    
 
-    def _get_flaps_delta_cd(self, inputs, flap_angle):
+    def _get_flaps_delta_cd(self, inputs, flap_angle: float) -> float:
         """
         Method from Young (in Gudmunsson book; page 725)
         
-        :param flap_angle: in degrees
+        :param flap_angle: flap angle (in Degree)
         :return: increment of drag coefficient
         """
         
@@ -210,44 +204,32 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
             delta_cd_flaps = k1 * k2 * flap_area_ratio   
             
         return delta_cd_flaps
-    
-    
-    def _compute_delta_cl_flaps(self, inputs, flap_angle, mach):
+
+    def _compute_delta_cl_airfoil_2D(self, inputs, angle: float, mach: float) -> float:
+        """
+        Compute airfoil 2D lift contribution.
+
+        :param angle: airfoil angle (in Degree)
+        :param mach: air speed
+        :return: increment of lift coefficient
         """
 
-        Method based on Roskam vol6 book and Raymer book
-        """
-        
         flap_type = inputs['data:geometry:flap_type']
-        flap_span_ratio = inputs['data:geometry:flap:span_ratio']
         flap_chord_ratio = inputs['data:geometry:flap:chord_ratio']
-        cl_alpha_wing = inputs['data:aerodynamics:aircraft:low_speed:CL_alpha']
-        
-        if flap_type == 1: # slotted flap
-            alpha_flap = self._compute_alpha_flap(flap_angle, flap_chord_ratio)
-            delta_cl_airfoil = 2*math.pi / math.sqrt(1 - mach**2)* alpha_flap * (flap_angle / 180 * math.pi)
-        else: # plain flap
-            cldelta_theory = 4.1 # Fig 8.14, for t/c=0.12 and cf/c=0.25
-            if flap_angle<=13: # Fig 8.13. Quick linear approximation of graph (not intended to be used)
-                k = 1.0 
-            elif flap_angle<=20:
-                k = 0.83
-            elif flap_angle<=30:
-                k = 0.83 - 0.018* (flap_angle-20)
-            else:
-                k = 0.65 - 0.008 * (flap_angle - 30) 
-            delta_cl_airfoil = cldelta_theory * k * (flap_angle / 180 * math.pi)
-        # Roskam 3D flap parameters
-        kb = 1.25*flap_span_ratio # !!!: PROVISIONAL (fig 8.52)
-        effect  = 1.04 # Fig 8.53 (cf/c=0.25, small effect of AR)
-        delta_cl_flap = kb * delta_cl_airfoil * (cl_alpha_wing/(2*math.pi)) * effect
 
-        return delta_cl_flap
-        
-        
-    def _compute_delta_clmax_flaps(self, inputs):
+        # 2D flap lift coefficient
+        if flap_type == 1:  # Slotted flap
+            alpha_flap = self._compute_alpha_flap(angle, flap_chord_ratio)
+            delta_cl_airfoil = 2 * math.pi / math.sqrt(1 - mach ** 2) * alpha_flap * (angle * math.pi / 180)
+        else:  # Plain flap
+            cl_delta_theory, k = self._delta_lift_plainflap(angle, flap_chord_ratio)
+            delta_cl_airfoil = cl_delta_theory * k * (angle * math.pi / 180)
+
+        return delta_cl_airfoil
+
+    def _compute_delta_clmax_flaps(self, inputs) -> float:
         """
-        
+
         Method from Roskam vol.6.  Particularised for single slotted flaps in 
         airfoils with 12% thickness (which is the design case); with
         chord ratio of 0.25 and typical flap deflections (30deg landing, 10deg TO).
@@ -279,10 +261,13 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         delta_clmax_flaps = base_increment*k1*k2*k3*k_planform * flap_area_ratio
         
         return delta_clmax_flaps
-    
-        
-    def _compute_flap_area_ratio(self, inputs):
-        
+
+    def _compute_flap_area_ratio(self, inputs) -> float:
+        """
+        Compute ratio of flap over wing (reference area).
+        Takes into account the wing portion under the fuselage.
+        """
+
         wing_span = inputs["data:geometry:wing:span"]
         wing_area = inputs["data:geometry:wing:area"]
         wing_taper_ratio = inputs['data:geometry:wing:taper_ratio']
@@ -298,12 +283,19 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         flap_area_ratio = 2*flap_area / wing_area
         
         return flap_area_ratio
-        
 
-    def _compute_alpha_flap(self, flap_angle, ratio_cf_flap):
+    def _compute_alpha_flap(self, flap_angle: float, chord_ratio: float) -> float:
+        """
+        Roskam data to calculate the effectiveness of a simple slotted flap.
+
+        :param flap_angle: flap angle (in Degree)
+        :param chord_ratio: position of flap on wing chord
+        :return: effectiveness ratio
+        """
+
         temp_array = []
-        with open_text(resources, LIFT_EFFECTIVENESS_FILENAME) as fichier:
-            for line in fichier:
+        with open_text(resources, LIFT_EFFECTIVENESS_FILENAME) as file:
+            for line in file:
                 temp_array.append([float(x) for x in line.split(",")])
         x1 = []
         y1 = []
@@ -315,7 +307,6 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         y4 = []
         x5 = []
         y5 = []
-
         for arr in temp_array:
             x1.append(arr[0])
             y1.append(arr[1])
@@ -327,7 +318,6 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
             y4.append(arr[7])
             x5.append(arr[8])
             y5.append(arr[9])
-
         tck1 = interpolate.splrep(x1, y1, s=0)
         tck2 = interpolate.splrep(x2, y2, s=0)
         tck3 = interpolate.splrep(x3, y3, s=0)
@@ -341,4 +331,105 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         zs = [0.15, 0.20, 0.25, 0.30, 0.40]
         y_final = [ynew1, ynew2, ynew3, ynew4, ynew5]
         tck6 = interpolate.splrep(zs, y_final, s=0)
-        return interpolate.splev(ratio_cf_flap, tck6, der=0)
+        effectiveness = interpolate.splev(chord_ratio, tck6, der=0)
+
+        return effectiveness
+
+    def _delta_lift_plainflap(
+            self,
+            flap_angle: Union[float, np.array],
+            chord_ratio : float,
+            thickness: Optional[float]=0.12
+    ) -> Tuple[np.array, np.array]:
+        """
+        Roskam data to estimate plain flap lift increment and correction factor K.
+
+        :param flap_angle: flap angle (in Degree)
+        :param chord_ratio: position of flap on wing chord
+        :return: lift increment and correction factor
+        """
+
+        flap_angle = np.array(flap_angle)
+
+        file = resources.__path__[0] + '\\' + DELTA_CL_PLAIN_FLAP
+        db = read_csv(file)
+
+        x_0 = db['X_0'].tolist()
+        y_0 = db['Y_0'].tolist()
+        x_04 = db['X_04'].tolist()
+        y_04 = db['Y_04'].tolist()
+        x_10 = db['X_10'].tolist()
+        y_10 = db['Y_10'].tolist()
+        x_15 = db['X_15'].tolist()
+        y_15 = db['Y_15'].tolist()
+        cld_thk0 = interpolate.interp1d(x_0, y_0)
+        cld_thk04 = interpolate.interp1d(x_04, y_04)
+        cld_thk10 = interpolate.interp1d(x_10, y_10)
+        cld_thk15 = interpolate.interp1d(x_15, y_15)
+        cld_t = [cld_thk0(chord_ratio), cld_thk04(chord_ratio), \
+                 cld_thk10(chord_ratio), cld_thk15(chord_ratio)]
+        cl_delta = interpolate.interp1d([0.0, 0.04, 0.1, 0.15], cld_t)(thickness)
+
+        file = resources.__path__[0] + '\\' + K_PLAIN_FLAP
+        db = read_csv(file)
+
+        x_10 = db['X_10'].tolist()
+        y_10 = db['Y_10'].tolist()
+        x_15 = db['X_15'].tolist()
+        y_15 = db['Y_15'].tolist()
+        x_25 = db['X_25'].tolist()
+        y_25 = db['Y_25'].tolist()
+        x_30 = db['X_30'].tolist()
+        y_30 = db['Y_30'].tolist()
+        x_40 = db['X_40'].tolist()
+        y_40 = db['Y_40'].tolist()
+        x_50 = db['X_50'].tolist()
+        y_50 = db['Y_50'].tolist()
+        k_chord10 = interpolate.interp1d(x_10, y_10)
+        k_chord15 = interpolate.interp1d(x_15, y_15)
+        k_chord25 = interpolate.interp1d(x_25, y_25)
+        k_chord30 = interpolate.interp1d(x_30, y_30)
+        k_chord40 = interpolate.interp1d(x_40, y_40)
+        k_chord50 = interpolate.interp1d(x_50, y_50)
+        k = []
+        for angle in list(flap_angle):
+            k_chord = [k_chord10(angle), k_chord15(angle), \
+                       k_chord25(angle), k_chord30(angle), \
+                       k_chord40(angle), k_chord50(angle)]
+            k.append(float(interpolate.interp1d([0.1, 0.15, 0.25, 0.3, 0.4, 0.5], k_chord)(chord_ratio)))
+        k = np.array(k)
+
+        return cl_delta, k
+
+    def _compute_kb_flaps(self, inputs, eta_in: float, eta_out: float) -> float:
+        """
+        Use Roskam graph (Figure 8.52) to interpolate kb factor.
+        This factor accounts for a finite flap contribution to the 3D lift increase, depending on its position and size
+        and the taper ratio of the wing.
+
+        :param eta_in: ????
+        :param eta_out: ????
+        :return: kb factor contribution to 3D lift
+        """
+
+        eta_in = float(eta_in)
+        eta_out = float(eta_out)
+        wing_taper_ratio = inputs['data:geometry:wing:taper_ratio']
+        file = resources.__path__[0] + '\\' + KB_FLAPS
+        db = read_csv(file)
+
+        x_0 = db['X_0'].tolist()
+        y_0 = db['Y_0'].tolist()
+        x_05 = db['X_0.5'].tolist()
+        y_05 = db['Y_0.5'].tolist()
+        x_1 = db['X_1'].tolist()
+        y_1 = db['Y_1'].tolist()
+        k_taper0 = interpolate.interp1d(x_0, y_0)
+        k_taper05 = interpolate.interp1d(x_05, y_05)
+        k_taper1 = interpolate.interp1d(x_1, y_1)
+        k_eta = [k_taper0(eta_in), k_taper05(eta_in), k_taper1(eta_in)]
+        kb_in = interpolate.interp1d([0.0, 0.5, 1.0], k_eta)(wing_taper_ratio)
+        k_eta = [k_taper0(eta_out), k_taper05(eta_out), k_taper1(eta_out)]
+        kb_out = interpolate.interp1d([0.0, 0.5, 1.0], k_eta)(wing_taper_ratio)
+
+        return float(kb_out - kb_in)

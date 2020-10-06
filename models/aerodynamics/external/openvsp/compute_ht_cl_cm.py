@@ -147,7 +147,7 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         # Pre-processing (populating temp directory) -----------------------------------------------
         # Copy resource in temp directory if needed
         if not (self.options[OPTION_OPENVSP_EXE_PATH]):
-            copy_resource_folder(openvsp3201.__path__[0], target_directory)  # FIXME: look if old version is working
+            copy_resource_folder(openvsp3201, target_directory)
             copy_resource(resources, _AIRFOIL_0_FILE_NAME, target_directory)
             copy_resource(resources, _AIRFOIL_1_FILE_NAME, target_directory)
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)

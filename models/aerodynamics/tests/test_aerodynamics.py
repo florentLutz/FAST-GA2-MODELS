@@ -397,11 +397,23 @@ def test_cnbeta():
 def test_high_lift():
     """ Tests high-lift contribution """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeDeltaHighLift(), promotes=["*"])
-    input_list = list_inputs(group)
-    # print(input_list)
+    # Input list from model (not generated because NaN values not supported by interpolation function)
+    input_list = [
+        "data:geometry:wing:span",
+        "data:geometry:wing:area",
+        "data:geometry:horizontal_tail:area",
+        "data:geometry:wing:taper_ratio",
+        "data:geometry:fuselage:maximum_width",
+        "data:geometry:wing:root:y",
+        "data:geometry:wing:root:chord",
+        "data:geometry:flap:chord_ratio",
+        "data:geometry:flap:span_ratio",
+        "data:geometry:flap_type",
+        "data:aerodynamics:aircraft:low_speed:CL_alpha",
+        "data:aerodynamics:low_speed:mach",
+        "data:mission:sizing:landing:flap_angle",
+        "data:mission:sizing:takeoff:flap_angle",
+    ]
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
@@ -417,15 +429,15 @@ def test_high_lift():
     cd_landing = problem["data:aerodynamics:flaps:landing:CD"]
     assert cd_landing == pytest.approx(0.007, abs=1e-3)
     cl_takeoff = problem["data:aerodynamics:flaps:takeoff:CL"]
-    assert cl_takeoff == pytest.approx(0.012, abs=1e-3)
+    assert cl_takeoff == pytest.approx(0.559, abs=1e-3)
     cm_takeoff = problem["data:aerodynamics:flaps:takeoff:CM"]
-    assert cm_takeoff == pytest.approx(-0.002, abs=1e-3)
+    assert cm_takeoff == pytest.approx(-0.083, abs=1e-3)
     cd_takeoff = problem["data:aerodynamics:flaps:takeoff:CD"]
     assert cd_takeoff == pytest.approx(0.001, abs=1e-3)
     angle_interp = problem["data:aerodynamics:elevator:low_speed:angle"]
     cl_interp = problem["data:aerodynamics:elevator:low_speed:CL"]
     cl_elevator = np.interp(10.0, angle_interp, cl_interp)
-    assert cl_elevator == pytest.approx(0.004, abs=1e-3)
+    assert cl_elevator == pytest.approx(0.675, abs=1e-3)
 
 
 def test_max_cl():

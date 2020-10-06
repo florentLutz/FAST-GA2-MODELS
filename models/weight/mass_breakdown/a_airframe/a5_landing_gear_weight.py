@@ -27,25 +27,25 @@ class LandingGearWeight(om.ExplicitComponent):
 
     def setup(self):
         
-        self.add_input("data:mission:sizing:cs23:sizing_factor_ultimate", val=np.nan) # TODO: confirm it's a ratio!, to be added to xml variables        
-        self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
-        self.add_input("data:geometry:landing_gear:height", val=np.nan, units="m")
+        self.add_input("data:mission:sizing:cs23:sizing_factor_ultimate", val=np.nan)
+        self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
+        self.add_input("data:geometry:landing_gear:height", val=np.nan, units="ft")
         
-        self.add_output("data:weight:airframe:landing_gear:main:mass", units="kg") # old weight_A51
-        self.add_output("data:weight:airframe:landing_gear:front:mass", units="kg") # old weight_A52
+        self.add_output("data:weight:airframe:landing_gear:main:mass", units="lb")
+        self.add_output("data:weight:airframe:landing_gear:front:mass", units="lb")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         sizing_factor_ultimate = inputs["data:mission:sizing:cs23:sizing_factor_ultimate"]
-        mtow = inputs["data:weight:aircraft:MTOW"]*2.20462 # Takeoff weight in lb
-        height = inputs["data:geometry:landing_gear:height"]*3.28084 # conversion to feet
+        mtow = inputs["data:weight:aircraft:MTOW"]
+        height = inputs["data:geometry:landing_gear:height"]
         
         l_sm = height/3 # Shock strut length for MLG
-        a5 = 0.054*l_sm**0.501*(mtow*sizing_factor_ultimate)**0.684
-        a51 = a5*2/3 # mass in lb
-        a52 = a5*1/3 # mass in lb
+        a5 = 0.054*l_sm**0.501*(mtow*sizing_factor_ultimate)**0.684 # mass formula in lb
+        a51 = a5*2/3
+        a52 = a5*1/3
 
-        outputs["data:weight:airframe:landing_gear:main:mass"] = a51/ 2.20462 # converted to kg
-        outputs["data:weight:airframe:landing_gear:front:mass"] = a52/ 2.20462 # converted to kg
+        outputs["data:weight:airframe:landing_gear:main:mass"] = a51
+        outputs["data:weight:airframe:landing_gear:front:mass"] = a52

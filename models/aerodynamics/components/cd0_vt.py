@@ -33,7 +33,7 @@ class Cd0VerticalTail(ExplicitComponent):
         self.add_input("data:geometry:vertical_tail:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:sweep_25", val=np.nan, units="deg")
-        self.add_input("data:geometry:vertical_tail:wetted_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:vertical_tail:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.low_speed_aero:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
@@ -52,7 +52,7 @@ class Cd0VerticalTail(ExplicitComponent):
         tip_chord = inputs["data:geometry:vertical_tail:tip:chord"]
         root_chord = inputs["data:geometry:vertical_tail:root:chord"]
         sweep_25_vt = inputs["data:geometry:vertical_tail:sweep_25"]
-        wet_area_vt = inputs["data:geometry:vertical_tail:wetted_area"]
+        wet_area_vt = inputs["data:geometry:vertical_tail:wet_area"]
         wing_area = inputs["data:geometry:wing:area"]
         if self.low_speed_aero:
             mach = inputs["data:aerodynamics:low_speed:mach"]

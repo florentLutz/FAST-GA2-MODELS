@@ -17,19 +17,18 @@
 
 import openmdao.api as om
 
-from fastoad.models.geometry.compute_aero_center import ComputeAeroCenter
-from fastoad.models.geometry.geom_components import ComputeTotalArea
-from fastoad.models.geometry.geom_components.fuselage.compute_fuselage import (
+from .geom_components import ComputeTotalArea
+from .geom_components.fuselage.compute_fuselage import (
     ComputeFuselageGeometryBasic,
     ComputeFuselageGeometryCabinSizing,
 )
-from fastoad.models.geometry.geom_components.ht import ComputeHorizontalTailGeometry
-from fastoad.models.geometry.geom_components.nacelle.compute_nacelle import (
+from .geom_components.ht import ComputeHorizontalTailGeometry
+from .geom_components.nacelle.compute_nacelle import (
     ComputeNacelleGeometry,
 )
-from fastoad.models.geometry.geom_components.vt import ComputeVerticalTailGeometry
-from fastoad.models.geometry.geom_components.wing.compute_wing import ComputeWingGeometry
-from fastoad.models.options import CABIN_SIZING_OPTION
+from .geom_components.vt import ComputeVerticalTailGeometry
+from .geom_components.wing.compute_wing import ComputeWingGeometry
+from fastga.models.options import CABIN_SIZING_OPTION # FIXME: put the right package name for relative import
 
 
 class Geometry(om.Group):
@@ -46,7 +45,9 @@ class Geometry(om.Group):
         self.options.declare(CABIN_SIZING_OPTION, types=float, default=1.0)
 
     def setup(self):
-
+        
+        self.add_subsystem("compute_vt", ComputeVerticalTailGeometry(), promotes=["*"])
+        self.add_subsystem("compute_ht", ComputeHorizontalTailGeometry(), promotes=["*"])
         if self.options[CABIN_SIZING_OPTION] == 1.0:
             self.add_subsystem(
                 "compute_fuselage", ComputeFuselageGeometryCabinSizing(), promotes=["*"]
@@ -58,7 +59,4 @@ class Geometry(om.Group):
         self.add_subsystem(
             "compute_engine_nacelle", ComputeNacelleGeometry(), promotes=["*"]
         )
-        self.add_subsystem("compute_ht", ComputeHorizontalTailGeometry(), promotes=["*"])
-        self.add_subsystem("compute_vt", ComputeVerticalTailGeometry(), promotes=["*"])
         self.add_subsystem("compute_total_area", ComputeTotalArea(), promotes=["*"])
-        self.add_subsystem("compute_aero_center", ComputeAeroCenter(), promotes=["*"])
