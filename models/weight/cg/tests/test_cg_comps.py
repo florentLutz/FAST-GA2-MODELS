@@ -24,17 +24,15 @@ from fastoad.io import VariableIO
 from tests.testing_utilities import run_system
 
 from ..cg import ComputeAircraftCG
-from ..cg_components import ComputeControlSurfacesCG
-from ..cg_components import ComputeEngineCG
-from ..cg_components import ComputeHTcg
-from ..cg_components import ComputeCGLoadCase
-from ..cg_components import ComputeOthersCG
-from ..cg_components import ComputeCGRatioAft
-from ..cg_components import ComputeTanksCG
-from ..cg_components import ComputeWingCG
-from ..cg_components import ComputeVTcg
-from ..cg_components import ComputeMaxCGratio
-from ..cg_components import UpdateMLG
+from ..cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, ComputeLandingGearCG
+from ..cg_components.b_propulsion import ComputeEngineCG, ComputeFuelLinesCG
+from ..cg_components.c_systems import ComputePowerSystemsCG, ComputeLifeSupportCG, ComputeNavigationSystemsCG
+from ..cg_components.d_furniture import ComputePassengerSeatsCG
+from ..cg_components.payload import ComputePayloadCG
+from ..cg_components.loadcase import ComputeCGLoadCase
+from ..cg_components.ratio_aft import ComputeCGRatioAft
+from ..cg_components.max_cg_ratio import ComputeMaxCGratio
+from ..cg_components.update_mlg import UpdateMLG
 
 
 def get_indep_var_comp(var_names):
@@ -59,21 +57,93 @@ def list_inputs(group):
     return list(dict.fromkeys(list_names))
 
 
-def test_compute_cg_control_surfaces():
-    """ Tests computation of control surfaces center of gravity """
+def test_compute_cg_wing():
+    """ Tests computation of wing center of gravity """
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", ComputeControlSurfacesCG(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeWingCG(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeControlSurfacesCG(), ivc)
-    x_cg_a4 = problem["data:weight:airframe:flight_controls:CG:x"]
-    assert x_cg_a4 == pytest.approx(20.1, abs=1e-1)
+    problem = run_system(ComputeWingCG(), ivc)
+    x_cg_a1 = problem.get_val("data:weight:airframe:wing:CG:x", units="m")
+    assert x_cg_a1 == pytest.approx(0.39, abs=1e-2)
+
+
+def test_compute_cg_fuselage():
+    """ Tests computation of fuselage center of gravity """
+
+    # Input list from model (not generated because of assertion error for bad propulsion layout values)
+    input_list = [
+        "data:geometry:propulsion:layout",
+        "data:geometry:fuselage:length",
+        "data:geometry:propulsion:propeller:depth",
+    ]
+
+    # Research independent input value in .xml file  and add values calculated from other modules
+    ivc = get_indep_var_comp(input_list)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeFuselageCG(), ivc)
+    x_cg_a2 = problem.get_val("data:weight:airframe:fuselage:CG:x", units="m")
+    assert x_cg_a2 == pytest.approx(3.99, abs=1e-2)
+
+
+def test_compute_cg_tail():
+    """ Tests computation of tail center(s) of gravity """
+
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", ComputeTailCG(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(input_list)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeTailCG(), ivc)
+    x_cg_a31 = problem.get_val("data:weight:airframe:horizontal_tail:CG:x", units="m")
+    assert x_cg_a31 == pytest.approx(7.91, abs=1e-2)
+    x_cg_a32 = problem.get_val("data:weight:airframe:vertical_tail:CG:x", units="m")
+    assert x_cg_a32 == pytest.approx(8.05, abs=1e-2)
+
+
+def test_compute_cg_flight_control():
+    """ Tests computation of flight control center of gravity """
+
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", ComputeFlightControlCG(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(input_list)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeFlightControlCG(), ivc)
+    x_cg_a4 = problem.get_val("data:weight:airframe:flight_controls:CG:x", units="m")
+    assert x_cg_a4 == pytest.approx(4.61, abs=1e-2)
+
+
+def test_compute_cg_landing_gear():
+    """ Tests computation of landing gear center(s) of gravity """
+
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", ComputeLandingGearCG(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file  and add values calculated from other modules
+    ivc = get_indep_var_comp(input_list)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeLandingGearCG(), ivc)
+    x_cg_a52 = problem.get_val("data:weight:airframe:landing_gear:front:CG:x", units="m")
+    assert x_cg_a52 == pytest.approx(2.55, abs=1e-2)
 
 
 def test_compute_cg_engine():
@@ -99,76 +169,118 @@ def test_compute_cg_engine():
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeEngineCG(), ivc)
-    x_cg_eng = problem["data:weight:propulsion:engine:CG:x"]
-    assert x_cg_eng == pytest.approx(2.2, abs=1e-1)
+    x_cg_b1 = problem.get_val("data:weight:propulsion:engine:CG:x", units="m")
+    assert x_cg_b1 == pytest.approx(2.7, abs=1e-2)
 
 
-def test_compute_cg_ht():
-    """ Tests computation of horizontal tail center of gravity """
+def test_compute_cg_fuel_lines():
+    """ Tests fuel lines center of gravity """
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", ComputeHTcg(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeFuelLinesCG(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeHTcg(), ivc)
-    x_cg_ht = problem["data:weight:airframe:horizontal_tail:CG:x"]
-    assert x_cg_ht == pytest.approx(18.5, abs=1e-1)
+    problem = run_system(ComputeFuelLinesCG(), ivc)
+    x_cg_b2 = problem.get_val("data:weight:fuel_tank:CG:x", units="m")
+    assert x_cg_b2 == pytest.approx(2.47, abs=1e-2)
 
 
-def test_compute_cg_vt():
-    """ Tests computation of vertical tail center of gravity """
-
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeVTcg(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
-
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeVTcg(), ivc)
-    x_cg_vt = problem["data:weight:airframe:vertical_tail:CG:x"]
-    assert x_cg_vt == pytest.approx(20.8, abs=1e-1)
-
-
-def test_compute_cg_tank():
-    """ Tests tank center of gravity """
+def test_compute_cg_power_systems():
+    """ Tests computation of power systems center of gravity """
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", ComputeTanksCG(), promotes=["*"])
+    group.add_subsystem("my_model", ComputePowerSystemsCG(), promotes=["*"])
     input_list = list_inputs(group)
 
-    # Research independent input value in .xml file
+    # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
+    ivc.add_output("data:weight:propulsion:engine:CG:x", 2.7, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeTanksCG(), ivc)
-    x_cg_tank = problem["data:weight:fuel_tank:CG:x"]
-    assert x_cg_tank == pytest.approx(17.57, abs=1e-2)
+    problem = run_system(ComputePowerSystemsCG(), ivc)
+    x_cg_c12 = problem.get_val("data:weight:systems:power:electric_systems:CG:x", units="m")
+    assert x_cg_c12 == pytest.approx(0, abs=1e-2)
+    x_cg_c13 = problem.get_val("data:weight:systems:power:hydraulic_systems:CG:x", units="m")
+    assert x_cg_c13 == pytest.approx(0, abs=1e-2)
 
 
-def test_compute_cg_wing():
-    """ Tests computation of wing center of gravity """
+def test_compute_cg_life_support_systems():
+    """ Tests computation of life support systems center of gravity """
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", ComputeWingCG(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeLifeSupportCG(), promotes=["*"])
     input_list = list_inputs(group)
 
-    # Research independent input value in .xml file
+    # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeWingCG(), ivc)
-    x_cg_wing = problem["data:weight:airframe:wing:CG:x"]
-    assert x_cg_wing == pytest.approx(3.47, abs=1e-2)
+    problem = run_system(ComputeLifeSupportCG(), ivc)
+    x_cg_c22 = problem.get_val("data:weight:systems:life_support:air_conditioning:CG:x", units="m")
+    assert x_cg_c22 == pytest.approx(0, abs=1e-2)
+
+
+def test_compute_cg_navigation_systems():
+    """ Tests computation of navigation systems center of gravity """
+
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", ComputeNavigationSystemsCG(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file  and add values calculated from other modules
+    ivc = get_indep_var_comp(input_list)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeNavigationSystemsCG(), ivc)
+    x_cg_c3 = problem.get_val("data:weight:systems:navigation:CG:x", units="m")
+    assert x_cg_c3 == pytest.approx(4.1, abs=1e-2)
+
+
+def test_compute_cg_passenger_seats():
+    """ Tests computation of passenger seats center of gravity """
+
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", ComputePassengerSeatsCG(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file  and add values calculated from other modules
+    ivc = get_indep_var_comp(input_list)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputePassengerSeatsCG(), ivc)
+    x_cg_d2 = problem.get_val("data:weight:furniture:passenger_seats:CG:x", units="m")
+    assert x_cg_d2 == pytest.approx(5.25, abs=1e-1)
+
+
+def test_compute_cg_payload():
+    """ Tests computation of payload center(s) of gravity """
+
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", ComputePayloadCG(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file  and add values calculated from other modules
+    ivc = get_indep_var_comp(input_list)
+    ivc.add_output("data:weight:furniture:passenger_seats:CG:x", 5.25, units="m")
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputePayloadCG(), ivc)
+    x_cg_pl = problem.get_val("data:weight:payload:PAX:CG:x", units="m")
+    assert x_cg_pl == pytest.approx(5.25, abs=1e-1)
+    x_cg_rear_fret = problem.get_val("data:weight:payload:rear_fret:CG:x", units="m")
+    assert x_cg_rear_fret == pytest.approx(3.4, abs=1e-2)
+    x_cg_front_fret = problem.get_val("data:weight:payload:front_fret:CG:x", units="m")
+    assert x_cg_front_fret == pytest.approx(3.4, abs=1e-2)
 
 
 def test_compute_cg_loadcase():
@@ -191,7 +303,7 @@ def test_compute_cg_loadcase():
     # Run problem and check obtained value(s) is/(are) correct
     for case in range(1,7):
         problem = run_system(ComputeCGLoadCase(load_case=case), ivc)
-        cg_ratio_lc = problem["data:weight:aircraft:load_case_"+str(case)+":CG:MAC_position"]
+        cg_ratio_lc = problem.get_val("data:weight:aircraft:load_case_"+str(case)+":CG:MAC_position", units="m")
         if case == 1:
             assert cg_ratio_lc == pytest.approx(1.51, abs=1e-1)
         elif case == 2:
@@ -204,56 +316,8 @@ def test_compute_cg_loadcase():
             assert cg_ratio_lc == pytest.approx(1.51, abs=1e-1)
         elif case == 6:
             assert cg_ratio_lc == pytest.approx(1.51, abs=1e-1)
-
-
-def test_compute_cg_others():
-    """ Tests computation of other components center of gravity """
-
-    # Input list from model (not generated because of assertion error for bad propulsion layout values)
-    input_list = [
-        "data:geometry:cabin:NPAX",
-        "data:geometry:propulsion:layout",
-        "data:geometry:wing:MAC:length",
-        "data:geometry:fuselage:length",
-        "data:geometry:wing:MAC:at25percent:x",
-        "data:geometry:fuselage:front_length",
-        "data:weight:propulsion:engine:CG:x",
-        "data:geometry:propulsion:propeller:depth",
-        "data:geometry:cabin:seats:passenger:count_by_row",
-        "data:geometry:cabin:seats:pilot:length",
-        "data:geometry:cabin:seats:passenger:length",
-    ]
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:weight:propulsion:engine:CG:x", 22.1)
-
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeOthersCG(), ivc)
-    x_cg_a2 = problem["data:weight:airframe:fuselage:CG:x"]
-    assert x_cg_a2 == pytest.approx(4.02, abs=1e-2)
-    x_cg_a4 = problem["data:weight:airframe:flight_controls:CG:x"]
-    assert x_cg_a4 == pytest.approx(20.91, abs=1e-2)
-    x_cg_a52 = problem["data:weight:airframe:landing_gear:front:CG:x"]
-    assert x_cg_a52 == pytest.approx(2.55, abs=1e-2)
-    x_cg_b2 = problem["data:weight:propulsion:fuel_lines:CG:x"]
-    assert x_cg_b2 == pytest.approx(22.1, abs=1e-1)
-    x_cg_c12 = problem["data:weight:systems:power:electric_systems:CG:x"]
-    assert x_cg_c12 == pytest.approx(0, abs=1e-2)
-    x_cg_c13 = problem["data:weight:systems:power:hydraulic_systems:CG:x"]
-    assert x_cg_c13 == pytest.approx(0, abs=1e-2)
-    x_cg_c22 = problem["data:weight:systems:life_support:air_conditioning:CG:x"]
-    assert x_cg_c22 == pytest.approx(0, abs=1e-2)
-    x_cg_c3 = problem["data:weight:systems:navigation:CG:x"]
-    assert x_cg_c3 == pytest.approx(4.1, abs=1e-2)
-    x_cg_d2 = problem["data:weight:furniture:passenger_seats:CG:x"]
-    assert x_cg_d2 == pytest.approx(5.25, abs=1e-1)
-    x_cg_pl = problem["data:weight:payload:PAX:CG:x"]
-    assert x_cg_pl == pytest.approx(5.25, abs=1e-1)
-    x_cg_rear_fret = problem["data:weight:payload:rear_fret:CG:x"]
-    assert x_cg_rear_fret == pytest.approx(3.4, abs=1e-2)
-    x_cg_front_fret = problem["data:weight:payload:front_fret:CG:x"]
-    assert x_cg_front_fret == pytest.approx(3.4, abs=1e-2)
+        else:
+            pass
 
 
 def test_compute_cg_ratio_aft():

@@ -19,7 +19,7 @@ import openmdao.api as om
 
 
 
-class PassengerSeatsWeight(om.ExplicitComponent):
+class ComputePassengerSeatsWeight(om.ExplicitComponent):
     """
     Weight estimation for passenger seats
 

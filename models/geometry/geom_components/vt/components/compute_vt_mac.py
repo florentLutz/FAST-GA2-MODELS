@@ -30,10 +30,12 @@ class ComputeVTMAC(ExplicitComponent):
         self.add_input("data:geometry:vertical_tail:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:sweep_25", val=np.nan, units="deg")
         self.add_input("data:geometry:vertical_tail:span", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
 
         self.add_output("data:geometry:vertical_tail:MAC:length", units="m")
         self.add_output("data:geometry:vertical_tail:MAC:at25percent:x:local", units="m")
         self.add_output("data:geometry:vertical_tail:MAC:z", units="m")
+        self.add_output("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
 
         self.declare_partials(
             "data:geometry:vertical_tail:MAC:length",
@@ -51,12 +53,20 @@ class ComputeVTMAC(ExplicitComponent):
             ],
             method="fd",
         )
+        self.declare_partials(
+            "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", 
+            [
+                "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
+            ],
+            method="fd",
+        )
 
     def compute(self, inputs, outputs):
         root_chord = inputs["data:geometry:vertical_tail:root:chord"]
         tip_chord = inputs["data:geometry:vertical_tail:tip:chord"]
         sweep_25_vt = inputs["data:geometry:vertical_tail:sweep_25"]
         b_v = inputs["data:geometry:vertical_tail:span"]
+        lp_ht = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
 
         tmp = root_chord * 0.25 + b_v * math.tan(sweep_25_vt / 180.0 * math.pi) - tip_chord * 0.25
 
@@ -68,7 +78,10 @@ class ComputeVTMAC(ExplicitComponent):
         )
         x0_vt = (tmp * (root_chord + 2 * tip_chord)) / (3 * (root_chord + tip_chord))
         z0_vt = (2 * b_v * (0.5 * root_chord + tip_chord)) / (3 * (root_chord + tip_chord))
+        
+        vt_lp = lp_ht
 
         outputs["data:geometry:vertical_tail:MAC:length"] = mac_vt
         outputs["data:geometry:vertical_tail:MAC:at25percent:x:local"] = x0_vt
         outputs["data:geometry:vertical_tail:MAC:z"] = z0_vt
+        outputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"] = vt_lp

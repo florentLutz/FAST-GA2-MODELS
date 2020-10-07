@@ -55,10 +55,11 @@ from ..geom_components.vt.components import (
 from ..geom_components.nacelle.compute_nacelle import ComputeNacelleGeometry
 from ..geom_components import ComputeTotalArea
 
+XML_FILE = "beechcraft_76.xml"
 
 def get_indep_var_comp(var_names):
     """ Reads required input data and returns an IndepVarcomp() instance"""
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", "geometry_inputs.xml"))
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     ivc = reader.read(only=var_names).to_ivc()
     return ivc
@@ -121,6 +122,9 @@ def test_compute_vt_mac():
     assert vt_x0 == pytest.approx(0.219, abs=1e-3)
     vt_z0 = problem.get_val("data:geometry:vertical_tail:MAC:z", units="m")
     assert vt_z0 == pytest.approx(0.799, abs=1e-3)
+    vt_lp = problem.get_val("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", units="m")
+    assert vt_lp == pytest.approx(4.334, abs=1e-3)
+
 
 
 def test_compute_vt_sweep():
@@ -289,6 +293,7 @@ def test_compute_fuselage_cabin_sizing():
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:geometry:horizontal_tail:MAC:length", 0.868, units="m")
     ivc.add_output("data:geometry:vertical_tail:MAC:length", 1.472, units="m")
+    ivc.add_output("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", 4.334, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuselageGeometryCabinSizing(), ivc)
@@ -303,13 +308,13 @@ def test_compute_fuselage_cabin_sizing():
     fuselage_lav = problem.get_val("data:geometry:fuselage:front_length", units="m")
     assert fuselage_lav == pytest.approx(2.274, abs=1e-3)
     fuselage_lar = problem.get_val("data:geometry:fuselage:rear_length", units="m")
-    assert fuselage_lar == pytest.approx(0.0, abs=1e-3) # !!!: not calculated on previous version
+    assert fuselage_lar == pytest.approx(2.852, abs=1e-3)
     fuselage_lpax = problem.get_val("data:geometry:fuselage:PAX_length", units="m")
     assert fuselage_lpax == pytest.approx(2.35, abs=1e-3)
     fuselage_lcabin = problem.get_val("data:geometry:cabin:length", units="m")
     assert fuselage_lcabin == pytest.approx(3.759, abs=1e-3)
     fuselage_wet_area = problem.get_val("data:geometry:fuselage:wet_area", units="m**2")
-    assert fuselage_wet_area == pytest.approx(33.354, abs=1e-1)
+    assert fuselage_wet_area == pytest.approx(30.311, abs=1e-1) # difference comes from LAR=0.0 in old version
     luggage_length = problem.get_val("data:geometry:fuselage:luggage_length", units="m")
     assert luggage_length == pytest.approx(0.709, abs=1e-3)
 

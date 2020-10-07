@@ -1,6 +1,7 @@
 """
-Estimation of flight controls weight
+    Estimation of life support systems center of gravities
 """
+
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
 #  FAST is free software: you can redistribute it and/or modify
@@ -13,30 +14,27 @@ Estimation of flight controls weight
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import numpy as np
-import openmdao.api as om
+from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeFlightControlsWeight(om.ExplicitComponent):
-    """
-    Flight controls weight estimation
-
-    # TODO: Based on :????????????
-    """
+class ComputeLifeSupportCG(ExplicitComponent):
+    # TODO: Document equations. Cite sources
+    """ Life support systems center of gravity estimation """
 
     def setup(self):
-        
-        self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
-        
-        self.add_output("data:weight:airframe:flight_controls:mass", units="lb")
 
+        self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
+
+        self.add_output("data:weight:systems:life_support:air_conditioning:CG:x", units="m")
+        
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        mtow = inputs["data:weight:aircraft:MTOW"]
-        
-        a4 = 1.066*mtow**0.626 # mass formula in lb
+    def compute(self, inputs, outputs):
 
-        outputs["data:weight:airframe:flight_controls:mass"] = a4
+        lav = inputs["data:geometry:fuselage:front_length"]
+
+        # Air conditioning system gravity center
+        x_cg_c22 = 0 * lav
+
+        outputs["data:weight:systems:life_support:air_conditioning:CG:x"] = x_cg_c22

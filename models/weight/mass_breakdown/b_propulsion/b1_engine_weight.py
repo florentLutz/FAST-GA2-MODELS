@@ -20,7 +20,7 @@ from ....propulsion.fuel_propulsion.basicIC_engine.exceptions import FastBasicIC
 
 
 # FIXME:  the weight estimation of the engine should be defined within the engine model (handle hybrid architecture)
-class EngineWeight(ExplicitComponent):
+class ComputeEngineWeight(ExplicitComponent):
     """
     Engine weight estimation
 

@@ -1,7 +1,3 @@
-"""
-Estimation of weight of all-mission systems
-"""
-
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
 #  FAST is free software: you can redistribute it and/or modify
@@ -15,6 +11,6 @@ Estimation of weight of all-mission systems
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .c1_power_systems_weight import PowerSystemsWeight
-from .c2_life_support_systems_weight import LifeSupportSystemsWeight
-from .c3_navigation_systems_weight import NavigationSystemsWeight
+from .c1_power_systems_weight import ComputePowerSystemsWeight
+from .c2_life_support_systems_weight import ComputeLifeSupportSystemsWeight
+from .c3_navigation_systems_weight import ComputeNavigationSystemsWeight

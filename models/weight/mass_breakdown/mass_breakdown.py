@@ -18,26 +18,27 @@ import openmdao.api as om
 
 from fastoad.models.options import PAYLOAD_FROM_NPAX
 from .a_airframe import (
-    WingWeight,
-    FuselageWeight,
-    EmpennageWeight,
-    FlightControlsWeight,
-    LandingGearWeight,
+    ComputeWingWeight,
+    ComputeFuselageWeight,
+    ComputeTailWeight,
+    ComputeFlightControlsWeight,
+    ComputeLandingGearWeight,
 )
 from .b_propulsion import (
-    EngineWeight,
-    FuelLinesWeight,
+    ComputeEngineWeight,
+    ComputeFuelLinesWeight,
 )
 from .c_systems import (
-    PowerSystemsWeight,
-    LifeSupportSystemsWeight,
-    NavigationSystemsWeight,
+    ComputePowerSystemsWeight,
+    ComputeLifeSupportSystemsWeight,
+    ComputeNavigationSystemsWeight,
 )
 from .d_furniture import (
-    PassengerSeatsWeight,
+    ComputePassengerSeatsWeight,
 )
 from .payload import ComputePayload
 from .update_mlw_and_mzfw import UpdateMLWandMZFW
+from .update_mtow import UpdateMTOW
 
 
 class MassBreakdown(om.Group):
@@ -63,8 +64,9 @@ class MassBreakdown(om.Group):
     def setup(self):
         if self.options[PAYLOAD_FROM_NPAX]:
             self.add_subsystem("payload", ComputePayload(), promotes=["*"])
-        self.add_subsystem("owe", OperatingWeightEmpty(), promotes=["*"])
+        self.add_subsystem("owe", ComputeOperatingWeightEmpty(), promotes=["*"])
         self.add_subsystem("update_mzfw_and_mlw", UpdateMLWandMZFW(), promotes=["*"])
+        self.add_subsystem("update_mtow", UpdateMTOW(), promotes=["*"])
 
         # Solvers setup
         self.nonlinear_solver = om.NonlinearBlockGS()
@@ -75,7 +77,7 @@ class MassBreakdown(om.Group):
         self.linear_solver.options["iprint"] = 0
 
 
-class OperatingWeightEmpty(om.Group):
+class ComputeOperatingWeightEmpty(om.Group):
     """ Operating Empty Weight (OEW) estimation
 
     This group aggregates weight from all components of the aircraft.
@@ -83,17 +85,17 @@ class OperatingWeightEmpty(om.Group):
 
     def setup(self):
         # Airframe
-        self.add_subsystem("wing_weight", WingWeight(), promotes=["*"])
-        self.add_subsystem("fuselage_weight", FuselageWeight(), promotes=["*"])
-        self.add_subsystem("empennage_weight", EmpennageWeight(), promotes=["*"])
-        self.add_subsystem("flight_controls_weight", FlightControlsWeight(), promotes=["*"])
-        self.add_subsystem("landing_gear_weight", LandingGearWeight(), promotes=["*"])
-        self.add_subsystem("engine_weight", EngineWeight(), promotes=["*"])
-        self.add_subsystem("fuel_lines_weight", FuelLinesWeight(), promotes=["*"])
-        self.add_subsystem("navigation_systems_weight", NavigationSystemsWeight(), promotes=["*"])
-        self.add_subsystem("power_systems_weight", PowerSystemsWeight(), promotes=["*"])
-        self.add_subsystem("life_support_systems_weight", LifeSupportSystemsWeight(), promotes=["*"])
-        self.add_subsystem("passenger_seats_weight", PassengerSeatsWeight(), promotes=["*"])
+        self.add_subsystem("wing_weight", ComputeWingWeight(), promotes=["*"])
+        self.add_subsystem("fuselage_weight", ComputeFuselageWeight(), promotes=["*"])
+        self.add_subsystem("empennage_weight", ComputeTailWeight(), promotes=["*"])
+        self.add_subsystem("flight_controls_weight", ComputeFlightControlsWeight(), promotes=["*"])
+        self.add_subsystem("landing_gear_weight", ComputeLandingGearWeight(), promotes=["*"])
+        self.add_subsystem("engine_weight", ComputeEngineWeight(), promotes=["*"])
+        self.add_subsystem("fuel_lines_weight", ComputeFuelLinesWeight(), promotes=["*"])
+        self.add_subsystem("navigation_systems_weight", ComputeNavigationSystemsWeight(), promotes=["*"])
+        self.add_subsystem("power_systems_weight", ComputePowerSystemsWeight(), promotes=["*"])
+        self.add_subsystem("life_support_systems_weight", ComputeLifeSupportSystemsWeight(), promotes=["*"])
+        self.add_subsystem("passenger_seats_weight", ComputePassengerSeatsWeight(), promotes=["*"])
 
         # Make additions
         self.add_subsystem(

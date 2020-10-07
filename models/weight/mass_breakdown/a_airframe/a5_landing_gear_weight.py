@@ -18,7 +18,7 @@ import numpy as np
 import openmdao.api as om
 
 
-class LandingGearWeight(om.ExplicitComponent):
+class ComputeLandingGearWeight(om.ExplicitComponent):
     """
     Weight estimation for landing gears
 

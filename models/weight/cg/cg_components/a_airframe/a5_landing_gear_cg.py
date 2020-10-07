@@ -1,6 +1,7 @@
 """
-Estimation of flight controls weight
+    Estimation of landing gear center(s) of gravity
 """
+
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
 #  FAST is free software: you can redistribute it and/or modify
@@ -13,30 +14,28 @@ Estimation of flight controls weight
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import numpy as np
-import openmdao.api as om
+from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeFlightControlsWeight(om.ExplicitComponent):
-    """
-    Flight controls weight estimation
-
-    # TODO: Based on :????????????
-    """
+class ComputeLandingGearCG(ExplicitComponent):
+    # TODO: Document equations. Cite sources
+    """ Landing gear center of gravity estimation """
 
     def setup(self):
-        
-        self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
-        
-        self.add_output("data:weight:airframe:flight_controls:mass", units="lb")
+
+        self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
+
+        self.add_output("data:weight:airframe:landing_gear:front:CG:x", units="m")
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        mtow = inputs["data:weight:aircraft:MTOW"]
-        
-        a4 = 1.066*mtow**0.626 # mass formula in lb
 
-        outputs["data:weight:airframe:flight_controls:mass"] = a4
+    def compute(self, inputs, outputs):
+
+        lav = inputs["data:geometry:fuselage:front_length"]
+        
+        # NLG gravity center
+        x_cg_a52 = lav * 0.75
+
+        outputs["data:weight:airframe:landing_gear:front:CG:x"] = x_cg_a52

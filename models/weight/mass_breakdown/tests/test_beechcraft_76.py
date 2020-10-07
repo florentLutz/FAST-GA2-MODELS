@@ -23,32 +23,34 @@ from fastoad.io import VariableIO
 
 from tests.testing_utilities import run_system
 from ..a_airframe import (
-    EmpennageWeight,
-    FlightControlsWeight,
-    FuselageWeight,
-    WingWeight,
-    LandingGearWeight,
+    ComputeTailWeight,
+    ComputeFlightControlsWeight,
+    ComputeFuselageWeight,
+    ComputeWingWeight,
+    ComputeLandingGearWeight,
 )
 from ..b_propulsion import (
-    FuelLinesWeight,
-    EngineWeight,
+    ComputeFuelLinesWeight,
+    ComputeEngineWeight,
 )
 from ..c_systems import (
-    LifeSupportSystemsWeight,
-    NavigationSystemsWeight,
-    PowerSystemsWeight,
+    ComputeLifeSupportSystemsWeight,
+    ComputeNavigationSystemsWeight,
+    ComputePowerSystemsWeight,
 )
 from ..d_furniture import (
-    PassengerSeatsWeight,
+    ComputePassengerSeatsWeight,
 )
 
-from ..mass_breakdown import MassBreakdown, OperatingWeightEmpty
+from ..mass_breakdown import MassBreakdown, ComputeOperatingWeightEmpty
 from ..payload import ComputePayload
+
+XML_FILE = "beechcraft_76.xml"
 
 
 def get_indep_var_comp(var_names):
     """ Reads required input data and returns an IndepVarcomp() instance"""
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", "mass_breakdown_inputs.xml"))
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     ivc = reader.read(only=var_names).to_ivc()
     return ivc
@@ -93,14 +95,14 @@ def test_compute_wing_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model",WingWeight(), promotes=["*"])
+    group.add_subsystem("my_model",ComputeWingWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(WingWeight(), ivc)
+    problem = run_system(ComputeWingWeight(), ivc)
     weight_a1 = problem.get_val("data:weight:airframe:wing:mass", units="kg")
     assert weight_a1 == pytest.approx(187.90, abs=1e-2) # difference because of integer conversion error
 
@@ -110,14 +112,14 @@ def test_compute_fuselage_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", FuselageWeight(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeFuselageWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(FuselageWeight(), ivc)
+    problem = run_system(ComputeFuselageWeight(), ivc)
     weight_a2 = problem.get_val("data:weight:airframe:fuselage:mass", units="kg")
     assert weight_a2 == pytest.approx(153.90, abs=1e-2)
 
@@ -127,18 +129,18 @@ def test_compute_empennage_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", EmpennageWeight(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeTailWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(EmpennageWeight(), ivc)
-    weight_a31 = problem.get_val("data:weight:airframe:vertical_tail:mass", units="kg")
-    assert weight_a31 == pytest.approx(0.0, abs=1e-2)
-    weight_a32 = problem.get_val("data:weight:airframe:horizontal_tail:mass", units="kg")
-    assert weight_a32 == pytest.approx(32.24, abs=1e-2)
+    problem = run_system(ComputeTailWeight(), ivc)
+    weight_a31 = problem.get_val("data:weight:airframe:horizontal_tail:mass", units="kg")
+    assert weight_a31 == pytest.approx(32.24, abs=1e-2)
+    weight_a32 = problem.get_val("data:weight:airframe:vertical_tail:mass", units="kg")
+    assert weight_a32 == pytest.approx(0.0, abs=1e-2)
 
 
 def test_compute_flight_controls_weight():
@@ -146,14 +148,14 @@ def test_compute_flight_controls_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", FlightControlsWeight(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeFlightControlsWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(FlightControlsWeight(), ivc)
+    problem = run_system(ComputeFlightControlsWeight(), ivc)
     weight_a4 = problem.get_val("data:weight:airframe:flight_controls:mass", units="kg")
     assert weight_a4 == pytest.approx(89.95, abs=1e-2)
 
@@ -163,14 +165,14 @@ def test_compute_landing_gear_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", LandingGearWeight(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeLandingGearWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(LandingGearWeight(), ivc)
+    problem = run_system(ComputeLandingGearWeight(), ivc)
     weight_a51 = problem.get_val("data:weight:airframe:landing_gear:main:mass", units="kg")
     assert weight_a51 == pytest.approx(18.73, abs=1e-2)
     weight_a52 = problem.get_val("data:weight:airframe:landing_gear:front:mass", units="kg")
@@ -192,7 +194,7 @@ def test_compute_engine_weight():
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(EngineWeight(), ivc)
+    problem = run_system(ComputeEngineWeight(), ivc)
     weight_b1 = problem.get_val("data:weight:propulsion:engine:mass", units="kg")
     assert weight_b1 == pytest.approx(255.41, abs=1e-2)
 
@@ -202,14 +204,14 @@ def test_compute_fuel_lines_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", FuelLinesWeight(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeFuelLinesWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(FuelLinesWeight(), ivc)
+    problem = run_system(ComputeFuelLinesWeight(), ivc)
     weight_b2 = problem.get_val("data:weight:propulsion:fuel_lines:mass", units="kg")
     assert weight_b2 == pytest.approx(32.95, abs=1e-2)
 
@@ -219,7 +221,7 @@ def test_compute_navigation_systems_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", NavigationSystemsWeight(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeNavigationSystemsWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
@@ -227,7 +229,7 @@ def test_compute_navigation_systems_weight():
 
     # Run problem and check obtained value(s) is/(are) correct
     ivc = get_indep_var_comp(input_list)
-    problem = run_system(NavigationSystemsWeight(), ivc)
+    problem = run_system(ComputeNavigationSystemsWeight(), ivc)
     weight_c3 = problem.get_val("data:weight:systems:navigation:mass", units="kg")
     assert weight_c3 == pytest.approx(33.46, abs=1e-2)
 
@@ -237,7 +239,7 @@ def test_compute_power_systems_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", PowerSystemsWeight(), promotes=["*"])
+    group.add_subsystem("my_model", ComputePowerSystemsWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
@@ -246,7 +248,7 @@ def test_compute_power_systems_weight():
     ivc.add_output("data:weight:propulsion:fuel_lines:mass", 32.95, units="kg")
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(PowerSystemsWeight(), ivc)
+    problem = run_system(ComputePowerSystemsWeight(), ivc)
     weight_c12 = problem.get_val("data:weight:systems:power:electric_systems:mass", units="kg")
     assert weight_c12 == pytest.approx(72.53, abs=1e-2)
     weight_c13 = problem.get_val("data:weight:systems:power:hydraulic_systems:mass", units="kg")
@@ -258,7 +260,7 @@ def test_compute_life_support_systems_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", LifeSupportSystemsWeight(), promotes=["*"])
+    group.add_subsystem("my_model", ComputeLifeSupportSystemsWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
@@ -266,7 +268,7 @@ def test_compute_life_support_systems_weight():
     ivc.add_output("data:weight:systems:navigation:mass", 33.46, units="kg")
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(LifeSupportSystemsWeight(), ivc)
+    problem = run_system(ComputeLifeSupportSystemsWeight(), ivc)
     weight_c22 = problem.get_val("data:weight:systems:life_support:air_conditioning:mass", units="kg")
     assert weight_c22 == pytest.approx(0.0, abs=1e-2)
 
@@ -276,51 +278,56 @@ def test_compute_passenger_seats_weight():
 
     # Generate input list from model
     group = om.Group()
-    group.add_subsystem("my_model", PassengerSeatsWeight(), promotes=["*"])
+    group.add_subsystem("my_model", ComputePassengerSeatsWeight(), promotes=["*"])
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(PassengerSeatsWeight(), ivc)
+    problem = run_system(ComputePassengerSeatsWeight(), ivc)
     weight_d2 = problem.get_val("data:weight:furniture:passenger_seats:mass", units="kg")
     assert weight_d2 == pytest.approx(86.18, abs=1e-2) # additional 2 pilots seats (differs from old version)
 
 
-def test_evaluate_oew():
-    """ Tests a simple evaluation of Operating Empty Weight from sample XML data. """
+def test_evaluate_owe():
+    """ Tests a simple evaluation of Operating Weight Empty from sample XML data. """
 
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", "mass_breakdown_inputs.xml"))
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
 
-    mass_computation = run_system(OperatingWeightEmpty(), input_vars, setup_mode="fwd")
+    mass_computation = run_system(ComputeOperatingWeightEmpty(), input_vars, setup_mode="fwd")
 
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
     assert oew == pytest.approx(986.03, abs=1e-2)
 
 
-def test_loop_compute_oew():
+def test_loop_compute_owe():
     """ Tests a weight computation loop matching the max payload criterion. """
 
     # with payload computed from NPAX
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", "mass_breakdown_inputs.xml"))
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read(
         ignore=[
             "data:weight:aircraft:max_payload",
+            "data:weight:aircraft:MTOW",
         ]
     ).to_ivc()
 
     mass_computation_1 = run_system(MassBreakdown(payload_from_npax=True), input_vars)
     oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(986.03, abs=1e-2)
+    assert oew == pytest.approx(1011.94, abs=1e-2)
 
     # with payload as input
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", "mass_breakdown_inputs.xml"))
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
-    input_vars = reader.read().to_ivc()
+    input_vars = reader.read(
+        ignore=[
+            "data:weight:aircraft:MTOW",
+        ]
+    ).to_ivc()
     mass_computation_2 = run_system(MassBreakdown(payload_from_npax=False), input_vars)
     oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(986.03, abs=1) # FIXME: the problem is that result remain the same whereas max_payload differs by 150kg
+    assert oew == pytest.approx(945.72, abs=1)

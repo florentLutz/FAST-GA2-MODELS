@@ -18,7 +18,7 @@ import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class FuelLinesWeight(ExplicitComponent):
+class ComputeFuelLinesWeight(ExplicitComponent):
     """
     Weight estimation for fuel lines
     
@@ -28,17 +28,18 @@ class FuelLinesWeight(ExplicitComponent):
     def setup(self):
         
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
-        self.add_input("data:mission:sizing:fuel", val=np.nan, units="lb")
+        self.add_input("data:mission:sizing:main_route:total:fuel", val=np.nan, units="lb")
         
         self.add_output("data:weight:propulsion:fuel_lines:mass", units="lb")
 
-        self.declare_partials("data:weight:propulsion:fuel_lines:mass", "data:mission:sizing:fuel", method="fd")
+        self.declare_partials(
+            "data:weight:propulsion:fuel_lines:mass", "data:mission:sizing:main_route:total:fuel", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         tank_nb = 2 # Number of fuel tanks is assumed to be two, 1 per semi-wing
         engine_nb = inputs["data:geometry:propulsion:engine:count"]
-        fuel_mass = inputs["data:mission:sizing:fuel"]
+        fuel_mass = inputs["data:mission:sizing:main_route:total:fuel"]
         
         b2 = 2.49*(
                 (fuel_mass/5.87)**0.6*(0.5)**0.3

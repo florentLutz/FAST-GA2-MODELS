@@ -55,7 +55,11 @@
 				<cs23>
 					<sizing_factor_ultimate>5.7<!--over-sizing coefficient--></sizing_factor_ultimate>
 				</cs23>
-				<fuel units="kg">268.0<!--consumed fuel mass during whole mission--></fuel>
+				<main_route>
+					<total>
+						<fuel units="kg">268.0<!--consumed fuel mass during whole mission--></fuel>
+					</total>
+				</main_route>
 			</sizing>
 		</mission>
 		<propulsion>

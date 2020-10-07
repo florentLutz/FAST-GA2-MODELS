@@ -1,7 +1,6 @@
 """
-    Estimation of tanks center of gravity
+Main component for mass breakdown
 """
-
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
 #  FAST is free software: you can redistribute it and/or modify
@@ -15,30 +14,27 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeTanksCG(ExplicitComponent):
-    # TODO: Document equations. Cite sources
-    """ Tanks center of gravity estimation """
+class UpdateMTOW(ExplicitComponent):
+    """
+    Computes Maximum Take-Off Weight from Maximum Zero Fuel Weight and fuel weight.
+    """
 
     def setup(self):
+        self.add_input("data:weight:aircraft:MZFW", val=np.nan, units="kg")
+        self.add_input("data:mission:sizing:main_route:total:fuel", val=np.nan, units="kg")
 
-        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
-
-        self.add_output("data:weight:fuel_tank:CG:x", units="m")
+        self.add_output("data:weight:aircraft:MTOW", units="kg")
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
-        
-        l0_wing = inputs["data:geometry:wing:MAC:length"]
-        fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
-        
-        cg_tank = (0.35+0.65)/2 * l0_wing 
-        cg_tank_abs = fa_length - 0.25*l0_wing + cg_tank
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+        mzfw = inputs["data:weight:aircraft:MZFW"]
+        fuel_mass = inputs["data:mission:sizing:main_route:total:fuel"]
 
-        outputs["data:weight:fuel_tank:CG:x"] = cg_tank_abs
+        mtow = mzfw + fuel_mass
+
+        outputs["data:weight:aircraft:MTOW"] = mtow

@@ -76,6 +76,7 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         self.add_input("data:geometry:propulsion:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
+        self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:MAC:length", val=np.nan, units="m")
 
@@ -104,7 +105,8 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         engine_loc = inputs["data:geometry:propulsion:layout"]
         propulsion_length = inputs["data:geometry:propulsion:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
-        tail_lp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
+        ht_lp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
+        vt_lp = inputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"]
         ht_length = inputs["data:geometry:horizontal_tail:MAC:length"]
         vt_length = inputs["data:geometry:vertical_tail:MAC:length"]
         
@@ -132,8 +134,8 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         else:
             lav = 1.7 * h_f 
         # Calculate fuselage length
-        fus_length = fa_length + tail_lp + max(0.75*ht_length, 0.75*vt_length)
-        lar = 0.0 #fus_length - (lav + cabin_length) # !!!: I added this because never calculated
+        fus_length = fa_length + max(ht_lp+0.75*ht_length, vt_lp+0.75*vt_length)
+        lar = fus_length - (lav + cabin_length)
         # Calculate wet area
         fus_dia = math.sqrt(b_f * h_f) # equivalent diameter of the fuselage
         cyl_length = fus_length - lav - lar

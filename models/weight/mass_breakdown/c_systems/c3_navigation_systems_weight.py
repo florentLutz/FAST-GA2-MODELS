@@ -18,7 +18,7 @@ import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class NavigationSystemsWeight(ExplicitComponent):
+class ComputeNavigationSystemsWeight(ExplicitComponent):
     """
     Weight estimation for navigation systems
 

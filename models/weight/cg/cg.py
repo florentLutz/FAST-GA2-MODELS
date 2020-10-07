@@ -17,29 +17,32 @@
 import numpy as np
 import openmdao.api as om
 
-from .cg_components import ComputeControlSurfacesCG
-from .cg_components import ComputeEngineCG
-from .cg_components import ComputeHTcg
-from .cg_components import ComputeOthersCG
-from .cg_components import ComputeTanksCG
-from .cg_components import ComputeVTcg
-from .cg_components import ComputeWingCG
-from .cg_components import ComputeGlobalCG
-from .cg_components import UpdateMLG
+from .cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, ComputeLandingGearCG
+from .cg_components.b_propulsion import ComputeEngineCG, ComputeFuelLinesCG
+from .cg_components.c_systems import ComputePowerSystemsCG, ComputeLifeSupportCG, ComputeNavigationSystemsCG
+from .cg_components.d_furniture import ComputePassengerSeatsCG
+from .cg_components.payload import ComputePayloadCG
+from .cg_components.global_cg import ComputeGlobalCG
+from .cg_components.update_mlg import UpdateMLG
 
 
 class CG(om.Group):
     """ Model that computes the global center of gravity """
 
     def setup(self):
-        
-        self.add_subsystem("compute_control_surface_cg", ComputeControlSurfacesCG(), promotes=["*"])
-        self.add_subsystem("compute_engine_cg", ComputeEngineCG(), promotes=["*"])
-        self.add_subsystem("compute_ht_cg", ComputeHTcg(), promotes=["*"])
-        self.add_subsystem("compute_cg_others", ComputeOthersCG(), promotes=["*"])
-        self.add_subsystem("compute_cg_tanks", ComputeTanksCG(), promotes=["*"])
-        self.add_subsystem("compute_vt_cg", ComputeVTcg(), promotes=["*"])
-        self.add_subsystem("compute_wing_cg", ComputeWingCG(), promotes=["*"])
+
+        self.add_subsystem("wing_cg", ComputeWingCG(), promotes=["*"])
+        self.add_subsystem("fuselage_cg", ComputeFuselageCG(), promotes=["*"])
+        self.add_subsystem("tail_cg", ComputeTailCG(), promotes=["*"])
+        self.add_subsystem("flight_control_cg", ComputeFlightControlCG(), promotes=["*"])
+        self.add_subsystem("landing_gear_cg", ComputeLandingGearCG(), promotes=["*"])
+        self.add_subsystem("engine_cg", ComputeEngineCG(), promotes=["*"])
+        self.add_subsystem("fuel_lines_cg", ComputeFuelLinesCG(), promotes=["*"])
+        self.add_subsystem("power_systems_cg", ComputePowerSystemsCG(), promotes=["*"])
+        self.add_subsystem("life_support_cg", ComputeLifeSupportCG(), promotes=["*"])
+        self.add_subsystem("navigation_systems_cg", ComputeNavigationSystemsCG(), promotes=["*"])
+        self.add_subsystem("passenger_seats_cg", ComputePassengerSeatsCG(), promotes=["*"])
+        self.add_subsystem("payload_cg", ComputePayloadCG(), promotes=["*"])
         self.add_subsystem("compute_cg", ComputeGlobalCG(), promotes=["*"])
         self.add_subsystem("update_mlg", UpdateMLG(), promotes=["*"])
         self.add_subsystem("aircraft", ComputeAircraftCG(), promotes=["*"])

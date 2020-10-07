@@ -11,4 +11,4 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .d2_passenger_seats_weight import ComputePassengerSeatsWeight
+from .d2_passenger_seats_cg import ComputePassengerSeatsCG

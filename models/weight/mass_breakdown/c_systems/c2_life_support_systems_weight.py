@@ -19,7 +19,7 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 from fastoad.utils.physics import Atmosphere
 
 
-class LifeSupportSystemsWeight(ExplicitComponent):
+class ComputeLifeSupportSystemsWeight(ExplicitComponent):
     """
     Weight estimation for life support systems
 

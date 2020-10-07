@@ -1,5 +1,5 @@
 """
-    Estimation of control surfaces center of gravity
+    Estimation of flight control center of gravity
 """
 
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
@@ -20,7 +20,7 @@ import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeControlSurfacesCG(ExplicitComponent):
+class ComputeFlightControlCG(ExplicitComponent):
     # TODO: Document equations. Cite sources
     """ Control surfaces center of gravity estimation """
 
@@ -56,12 +56,12 @@ class ComputeControlSurfacesCG(ExplicitComponent):
             x_leading_edge = 0
             l_cg_control = l2_wing
             x_cg_control = x_leading_edge + l_cg_control
-            x_cg_control_absolute = fa_length - 0.25 * l0_wing - x0_wing + x_cg_control
+            x_cg_a4 = fa_length - 0.25 * l0_wing - x0_wing + x_cg_control
         else:
             x_leading_edge = x4_wing * (y0_wing - y2_wing) / (y4_wing - y2_wing)
             l_cg_control = l2_wing + (y0_wing - y2_wing) \
                             / (y4_wing - y2_wing) * (l4_wing - l2_wing)
             x_cg_control = x_leading_edge + l_cg_control
-            x_cg_control_absolute = fa_length - 0.25 * l0_wing - x0_wing + x_cg_control
+            x_cg_a4 = fa_length - 0.25 * l0_wing - x0_wing + x_cg_control
 
-        outputs["data:weight:airframe:flight_controls:CG:x"] = x_cg_control_absolute
+        outputs["data:weight:airframe:flight_controls:CG:x"] = x_cg_a4

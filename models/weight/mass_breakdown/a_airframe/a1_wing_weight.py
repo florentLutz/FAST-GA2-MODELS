@@ -19,7 +19,7 @@ import openmdao.api as om
 import math
 
 
-class WingWeight(om.ExplicitComponent):
+class ComputeWingWeight(om.ExplicitComponent):
     """
     Wing weight estimation
 

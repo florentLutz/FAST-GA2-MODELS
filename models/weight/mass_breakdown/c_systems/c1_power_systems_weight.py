@@ -18,7 +18,7 @@ import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class PowerSystemsWeight(ExplicitComponent):
+class ComputePowerSystemsWeight(ExplicitComponent):
     """
     Weight estimation for power systems (generation and distribution)
 

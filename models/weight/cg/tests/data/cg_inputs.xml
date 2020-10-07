@@ -21,7 +21,7 @@
 		<geometry>
 			<cabin>
 				<NPAX>4.0<!--umber of passengers if all rows are complete--></NPAX>
-				<aisle_width units="m">0.75<!--cabin aisle width--></aisle_width>
+				<aisle_width units="m">0.0<!--cabin aisle width--></aisle_width>
 				<seats>
 					<pilot>
 						<length units="m">0.75<!--pilot seats length--></length>
@@ -35,112 +35,112 @@
 				</seats>
 			</cabin>
 			<fuselage>
-				<front_length units="m">3.4<!--length of front non-cylindrical part of the fuselage--></front_length>
-				<length units="m">12.3<!--total fuselage length--></length>
+				<front_length units="m">2.35<!--length of front non-cylindrical part of the fuselage--></front_length>
+				<length units="m">8.887<!--total fuselage length--></length>
 			</fuselage>
 			<horizontal_tail>
 				<MAC>
 					<at25percent>
 						<x>
-							<from_wingMAC25 units="m">17.675<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
-							<local units="m">17.675<!--X-position of the 25% of mean aerodynamic chord of horizontal tail w.r.t. leading edge of root chord--></local>
+							<from_wingMAC25 units="m">4.334<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
+							<local units="m">0.0890<!--X-position of the 25% of mean aerodynamic chord of horizontal tail w.r.t. leading edge of root chord--></local>
 						</x>
 					</at25percent>
-					<length units="m">3.141<!--mean aerodynamic chord length of horizontal tail--></length>
+					<length units="m">0.868<!--mean aerodynamic chord length of horizontal tail--></length>
 				</MAC>
 				<root>
-					<chord units="m">4.406<!--chord length at root of horizontal tail--></chord>
+					<chord units="m">0.868<!--chord length at root of horizontal tail--></chord>
 				</root>
-				<span units="m">12.28<!--horizontal tail span--></span>
-				<sweep_25 units="deg">28.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
+				<span units="m">5.095<!--horizontal tail span--></span>
+				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
 				<tip>
-					<chord units="m">1.322<!--chord length at tip of horizontal tail--></chord>
+					<chord units="m">0.868<!--chord length at tip of horizontal tail--></chord>
 				</tip>
 			</horizontal_tail>
 			<propulsion>
-				<layout>3.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
+				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
 				<nacelle>
-					<length units="m">4.457<!--nacelle length--></length>
-					<y units="m">0.0<!--Y-position of nacelle center--></y>
+					<length units="m">1.44<!--nacelle length--></length>
+					<y units="m">2.102<!--Y-position of nacelle center--></y>
 				</nacelle>
 				<propeller>
-					<depth units="m">0.1<!--propeller depth--></depth>
+					<depth units="m">0.386<!--propeller depth--></depth>
 				</propeller>
 			</propulsion>
 			<vertical_tail>
 				<MAC>
 					<at25percent>
 						<x>
-							<from_wingMAC25 units="m">17.675<!--distance along X between 25% MAC of wing and 25% MAC of vertical tail--></from_wingMAC25>
-							<local units="m">17.675<!--X-position of the 25% of mean aerodynamic chord of vertical tail w.r.t. leading edge of root chord--></local>
+							<from_wingMAC25 units="m">4.334<!--distance along X between 25% MAC of wing and 25% MAC of vertical tail--></from_wingMAC25>
+							<local units="m">0.219<!--X-position of the 25% of mean aerodynamic chord of vertical tail w.r.t. leading edge of root chord--></local>
 						</x>
 					</at25percent>
-					<length>3.141<!--mean aerodynamic chord length of vertical tail--></length>
+					<length>1.472<!--mean aerodynamic chord length of vertical tail--></length>
 				</MAC>
 				<root>
-					<chord units="m">4.406<!--chord length at root of vertical tail--></chord>
+					<chord units="m">1.785<!--chord length at root of vertical tail--></chord>
 				</root>
-				<span units="m">12.28<!--vertical tail span--></span>
-				<sweep_25 units="deg">28.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
+				<span units="m">1.735<!--vertical tail span--></span>
+				<sweep_25 units="deg">10.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
 				<tip>
-					<chord units="m">1.322<!--chord length at tip of vertical tail--></chord>
+					<chord units="m">1.106<!--chord length at tip of vertical tail--></chord>
 				</tip>
 			</vertical_tail>
 			<wing>
 				<MAC>
 					<at25percent>
-						<x units="m">16.457<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
+						<x units="m">3.449<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
 					</at25percent>
-					<y units="m">6.293<!--Y-position of mean aerodynamic chord of wing--></y>
-					<length units="m">4.457<!--length of mean aerodynamic chord of wing--></length>
+					<y units="m">3.091<!--Y-position of mean aerodynamic chord of wing--></y>
+					<length units="m">1.549<!--length of mean aerodynamic chord of wing--></length>
 					<leading_edge>
 						<x>
-							<local units="m">2.361<!--X-position of leading edge of mean aerodynamic chord w.r.t. leading edge of root chord--></local>
+							<local units="m">0.0<!--X-position of leading edge of mean aerodynamic chord w.r.t. leading edge of root chord--></local>
 						</x>
 					</leading_edge>
 				</MAC>
 				<root>
-					<chord units="m">6.26<!--chord length at wing root--></chord>
-					<y units="m">1.96<!--Y-position of wing root--></y>
+					<chord units="m">1.549<!--chord length at wing root--></chord>
+					<y units="m">0.6<!--Y-position of wing root--></y>
 				</root>
 				<tip>
-					<chord units="m">1.882<!--chord length at wing tip--></chord>
+					<chord units="m">1.549<!--chord length at wing tip--></chord>
 					<leading_edge>
 						<x>
-							<local units="m">7.222<!--X-position of leading edge at wing tip w.r.t. leading edge of root chord--></local>
+							<local units="m">0.0<!--X-position of leading edge at wing tip w.r.t. leading edge of root chord--></local>
 						</x>
 					</leading_edge>
-					<y units="m">15.801<!--Y-position of wing tip--></y>
+					<y units="m">6.181<!--Y-position of wing tip--></y>
 				</tip>
 			</wing>
 		</geometry>
 		<weight>
 			<aircraft>
-				<MFW units="kg">10.81<!--maximum fuel weight--></MFW>
+				<MFW units="kg">587.15<!--maximum fuel weight--></MFW>
 			</aircraft>
 			<airframe>
 				<flight_controls>
-					<mass units="kg">50.81<!--flight controls (A4): total mass--></mass>
+					<mass units="kg">89.95<!--flight controls (A4): total mass--></mass>
 				</flight_controls>
 				<fuselage>
-					<mass units="kg">3000.81<!--fuselage (A2): total mass--></mass>
+					<mass units="kg">153.87<!--fuselage (A2): total mass--></mass>
 				</fuselage>
 				<horizontal_tail>
-					<mass units="kg">120.81<!--horizontal tail (A31): mass--></mass>
+					<mass units="kg">32.24<!--horizontal tail (A31): mass--></mass>
 				</horizontal_tail>
 				<landing_gear>
 					<front>
-						<mass units="kg">30.81<!--front landing gear (A52): mass--></mass>
+						<mass units="kg">9.36<!--front landing gear (A52): mass--></mass>
 					</front>
 					<main>
-						<mass units="kg">80.81<!--main landing gear (A51): mass--></mass>
+						<mass units="kg">18.73<!--main landing gear (A51): mass--></mass>
 					</main>
 				</landing_gear>
 				<vertical_tail>
-					<mass units="kg">120.81<!--vertical tail (A32): mass--></mass>
+					<mass units="kg">0.0<!--vertical tail (A32): mass--></mass>
 				</vertical_tail>
 				<wing>
-					<mass units="kg">800.81<!--wing (A1): total mass--></mass>
+					<mass units="kg">187.91<!--wing (A1): total mass--></mass>
 				</wing>
 			</airframe>
 			<furniture>
@@ -150,27 +150,27 @@
 			</furniture>
 			<propulsion>
 				<engine>
-					<mass units="kg">600.81<!--engine (B1): mass--></mass>
+					<mass units="kg">255.25<!--engine (B1): mass--></mass>
 				</engine>
 				<fuel_lines>
-					<mass units="kg">200.81<!--fuel lines (B2): mass--></mass>
+					<mass units="kg">32.95<!--fuel lines (B2): mass--></mass>
 				</fuel_lines>
 			</propulsion>
 			<systems>
 				<life_support>
 					<air_conditioning>
-						<mass units="kg">10.81<!--air conditioning (C2): mass--></mass>
+						<mass units="kg">0.0<!--air conditioning (C22): mass--></mass>
 					</air_conditioning>
 				</life_support>
 				<navigation>
-					<mass units="kg">10.81<!--navigation (C3): mass--></mass>
+					<mass units="kg">33.46<!--navigation (C3): mass--></mass>
 				</navigation>
 				<power>
 					<electric_systems>
-						<mass units="kg">30.81<!--electric power (C12): mass--></mass>
+						<mass units="kg">72.53<!--electric power (C12): mass--></mass>
 					</electric_systems>
 					<hydraulic_systems>
-						<mass units="kg">30.81<!--hydraulic power (C13): mass--></mass>
+						<mass units="kg">13.41<!--hydraulic power (C13): mass--></mass>
 					</hydraulic_systems>
 				</power>
 			</systems>

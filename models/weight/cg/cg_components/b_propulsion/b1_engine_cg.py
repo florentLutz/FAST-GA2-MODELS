@@ -76,17 +76,15 @@ class ComputeEngineCG(ExplicitComponent):
                 l_wing_nac = l4_wing + (l2_wing - l4_wing) * (y4_wing - y_nacell) / (y4_wing - y2_wing)
                 delta_x_nacell = 0.05 * l_wing_nac
                 x_nacell_cg = x4_wing * (y_nacell - y2_wing) / (y4_wing - y2_wing) - delta_x_nacell - 0.2 * nacelle_length
-                x_nacell_cg_absolute = fa_length - 0.25 * l0_wing - (x0_wing - x_nacell_cg)  
+                x_cg_b1 = fa_length - 0.25 * l0_wing - (x0_wing - x_nacell_cg)
             else: #Nacelle in the straight part of the wing
                 l_wing_nac = l2_wing
                 delta_x_nacell = 0.05 * l_wing_nac
                 x_nacell_cg = -delta_x_nacell - 0.2 * nacelle_length
-                x_nacell_cg_absolute = fa_length - 0.25 * l0_wing - (x0_wing - x_nacell_cg)  
-        elif propulsion_loc == 2.0:
-            x_nacell_cg_absolute = 0# FIXME: no x_nacell_cg_absolute equation for this configuration
+                x_cg_b1 = fa_length - 0.25 * l0_wing - (x0_wing - x_nacell_cg)
         elif propulsion_loc == 3.0:
-            x_nacell_cg_absolute = nacelle_length / 2
-        else:
-            raise ValueError('compute_fuselage model only computes propulsion layout equal to 1, 2 or 3!')
+            x_cg_b1 = nacelle_length / 2
+        else: # FIXME: no equation for configuration 2.0
+            raise ValueError('Model only available for propulsion layout 1.0 or 3.0!')
             
-        outputs["data:weight:propulsion:engine:CG:x"] = x_nacell_cg_absolute
+        outputs["data:weight:propulsion:engine:CG:x"] = x_cg_b1

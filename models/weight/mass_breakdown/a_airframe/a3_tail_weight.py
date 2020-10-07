@@ -1,5 +1,5 @@
 """
-Estimation of empennage weight
+Estimation of tail weight
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -18,9 +18,9 @@ import numpy as np
 import openmdao.api as om
 
 
-class EmpennageWeight(om.ExplicitComponent):
+class ComputeTailWeight(om.ExplicitComponent):
     """
-    Weight estimation for tail planes (only horizontal)
+    Weight estimation for tail weight (only horizontal)
 
     # TODO: Based on :????????????
     """
@@ -34,8 +34,8 @@ class EmpennageWeight(om.ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:thickness_ratio", val=np.nan)
         self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="ft")
 
-        self.add_output("data:weight:airframe:vertical_tail:mass", units="lb")
         self.add_output("data:weight:airframe:horizontal_tail:mass", units="lb")
+        self.add_output("data:weight:airframe:vertical_tail:mass", units="lb")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -49,11 +49,11 @@ class EmpennageWeight(om.ExplicitComponent):
         chord = inputs["data:geometry:horizontal_tail:root:chord"]
         thickness = chord*thickness_ratio
         
-        a32 = (
+        a31 = (
             98.5*((mtow*sizing_factor_ultimate/10**5)**0.87
             *(wet_area/100)**1.2
             *0.289*(span/thickness)**0.5)**0.458
         )# mass formula in lb
 
+        outputs["data:weight:airframe:horizontal_tail:mass"] = a31
         outputs["data:weight:airframe:vertical_tail:mass"] = 0.0  # TODO: explain why not evaluated
-        outputs["data:weight:airframe:horizontal_tail:mass"] = a32
