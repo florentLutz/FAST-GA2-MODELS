@@ -35,8 +35,10 @@
 				</seats>
 			</cabin>
 			<fuselage>
-				<front_length units="m">2.35<!--length of front non-cylindrical part of the fuselage--></front_length>
+				<PAX_length units="m">2.35<!--length of passenger-dedicated zone--></PAX_length>
+				<front_length units="m">2.274<!--length of front non-cylindrical part of the fuselage--></front_length>
 				<length units="m">8.887<!--total fuselage length--></length>
+				<luggage_length units="m">0.709<!--total luggage length--></luggage_length>
 			</fuselage>
 			<horizontal_tail>
 				<MAC>

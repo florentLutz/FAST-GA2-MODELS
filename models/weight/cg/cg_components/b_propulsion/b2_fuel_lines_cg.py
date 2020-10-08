@@ -26,19 +26,16 @@ class ComputeFuelLinesCG(ExplicitComponent):
 
     def setup(self):
 
-        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
+        self.add_input("data:weight:propulsion:engine:CG:x", val=np.nan, units="m")
 
-        self.add_output("data:weight:fuel_tank:CG:x", units="m")
+        self.add_output("data:weight:propulsion:fuel_lines:CG:x", units="m")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
         
-        l0_wing = inputs["data:geometry:wing:MAC:length"]
-        fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
-        
-        cg_tank = (0.35+0.65)/2 * l0_wing 
-        cg_b2 = fa_length - 0.25*l0_wing + cg_tank
+        cg_b1 = inputs["data:weight:propulsion:engine:CG:x"]
 
-        outputs["data:weight:fuel_lines:CG:x"] = cg_b2
+        cg_b2 = cg_b1
+
+        outputs["data:weight:propulsion:fuel_lines:CG:x"] = cg_b2

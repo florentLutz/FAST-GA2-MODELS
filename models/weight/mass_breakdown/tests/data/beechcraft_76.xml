@@ -55,11 +55,6 @@
 				<cs23>
 					<sizing_factor_ultimate>5.7<!--over-sizing coefficient--></sizing_factor_ultimate>
 				</cs23>
-				<main_route>
-					<total>
-						<fuel units="kg">268.0<!--consumed fuel mass during whole mission--></fuel>
-					</total>
-				</main_route>
 			</sizing>
 		</mission>
 		<propulsion>
@@ -71,8 +66,9 @@
 		</propulsion>
 		<weight>
 			<aircraft>
-				<max_payload units="kg">478.0<!--max payload weight--></max_payload>
+				<MFW units="kg">587.15<!--maximum fuel weight--></MFW>
 				<MTOW units="kg">1915.02<!--maximum takeoff weight--></MTOW>
+				<max_payload units="kg">478.0<!--max payload weight--></max_payload>
 			</aircraft>
 		</weight>
 	</data>

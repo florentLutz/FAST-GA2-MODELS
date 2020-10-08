@@ -47,7 +47,6 @@ from ..payload import ComputePayload
 
 XML_FILE = "beechcraft_76.xml"
 
-
 def get_indep_var_comp(var_names):
     """ Reads required input data and returns an IndepVarcomp() instance"""
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
@@ -213,7 +212,7 @@ def test_compute_fuel_lines_weight():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuelLinesWeight(), ivc)
     weight_b2 = problem.get_val("data:weight:propulsion:fuel_lines:mass", units="kg")
-    assert weight_b2 == pytest.approx(32.95, abs=1e-2)
+    assert weight_b2 == pytest.approx(58.23, abs=1e-2)
 
 
 def test_compute_navigation_systems_weight():
@@ -300,7 +299,7 @@ def test_evaluate_owe():
     mass_computation = run_system(ComputeOperatingWeightEmpty(), input_vars, setup_mode="fwd")
 
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(986.03, abs=1e-2)
+    assert oew == pytest.approx(1024.28, abs=1e-2)
 
 
 def test_loop_compute_owe():
@@ -318,7 +317,7 @@ def test_loop_compute_owe():
 
     mass_computation_1 = run_system(MassBreakdown(payload_from_npax=True), input_vars)
     oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1011.94, abs=1e-2)
+    assert oew == pytest.approx(1120.25, abs=1e-2)
 
     # with payload as input
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
@@ -330,4 +329,4 @@ def test_loop_compute_owe():
     ).to_ivc()
     mass_computation_2 = run_system(MassBreakdown(payload_from_npax=False), input_vars)
     oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(945.72, abs=1)
+    assert oew == pytest.approx(1060.49, abs=1)

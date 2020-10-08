@@ -24,9 +24,10 @@ class ComputePayloadCG(ExplicitComponent):
 
     def setup(self):
 
-        self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
         self.add_input("data:weight:furniture:passenger_seats:CG:x", val=np.nan, units="m")
+        self.add_input("data:geometry:fuselage:PAX_length", val=np.nan, units="m")
+        self.add_input("data:geometry:fuselage:luggage_length", val=np.nan, units="m")
 
         self.add_output("data:weight:payload:PAX:CG:x", units="m")
         self.add_output("data:weight:payload:rear_fret:CG:x", units="m")
@@ -36,16 +37,19 @@ class ComputePayloadCG(ExplicitComponent):
 
     def compute(self, inputs, outputs):
 
-        fus_length = inputs["data:geometry:fuselage:length"]
         lav = inputs["data:geometry:fuselage:front_length"]
         x_cg_d2 = inputs["data:weight:furniture:passenger_seats:CG:x"]
+        lpax = inputs["data:geometry:fuselage:PAX_length"]
+        l_lug = inputs["data:geometry:fuselage:luggage_length"]
 
         # Passengers gravity center identical to seats
         x_cg_pax = x_cg_d2
+        # Instruments length
+        l_instr = 0.7
         # Fret center of gravity
-        x_cg_f_fret = lav + 0.0 * fus_length # ???: should be defined somewhere in the CAB
-        x_cg_r_fret = lav + 0.0 * fus_length # ???: should be defined somewhere in the CAB
+        x_cg_f_fret = lav * 0.0 # ???: should be defined somewhere in the CAB
+        x_cg_r_fret = lav + l_instr + lpax + l_lug / 2
 
         outputs["data:weight:payload:PAX:CG:x"] = x_cg_pax
-        outputs["data:weight:payload:rear_fret:CG:x"] = x_cg_f_fret
-        outputs["data:weight:payload:front_fret:CG:x"] = x_cg_r_fret
+        outputs["data:weight:payload:rear_fret:CG:x"] = x_cg_r_fret
+        outputs["data:weight:payload:front_fret:CG:x"] = x_cg_f_fret

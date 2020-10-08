@@ -16,29 +16,14 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import openmdao.api as om
+from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class UpdateMLG(om.Group):
+class UpdateMLG(ExplicitComponent):
     """ Main landing gear center of gravity estimation """
 
     def setup(self):
-        # This local group ensures quick resolution of the implicit component
-        self.add_subsystem("mlg", _UpdateMLG(), promotes=["*"])
 
-        self.nonlinear_solver = om.NewtonSolver()
-        self.nonlinear_solver.options["iprint"] = 0
-        self.nonlinear_solver.options["solve_subsystems"] = False
-        self.nonlinear_solver.linesearch = None  # Avoids a warning
-        self.linear_solver = om.DirectSolver()
-
-
-class _UpdateMLG(om.ImplicitComponent):
-    # TODO: Document equations. Cite sources
-    """ Main landing gear center of gravity estimation """
-
-    def setup(self):
-    
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan)
@@ -49,29 +34,14 @@ class _UpdateMLG(om.ImplicitComponent):
 
         self.declare_partials("data:weight:airframe:landing_gear:main:CG:x", "*", method="fd")
 
-    def apply_nonlinear(
-        self, inputs, outputs, residuals, discrete_inputs=None, discrete_outputs=None
-    ):
+    def compute(self, inputs, outputs):
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         cg_ratio = inputs["data:weight:aircraft:CG:aft:MAC_position"]
         cg_a52 = inputs["data:weight:airframe:landing_gear:front:CG:x"]
         front_lg_weight_ratio = inputs["settings:weight:airframe:landing_gear:front:weight_ratio"]
-        
-        cg_a51 = outputs["data:weight:airframe:landing_gear:main:CG:x"]
 
-        delta_lg = cg_a51 - cg_a52
         x_cg = fa_length - 0.25 * l0_wing + cg_ratio * l0_wing
-        new_cg_a51 = x_cg + front_lg_weight_ratio * delta_lg
+        cg_a51 = (x_cg - front_lg_weight_ratio * cg_a52) / (1-front_lg_weight_ratio)
 
-        residuals["data:weight:airframe:landing_gear:main:CG:x"] = cg_a51 - new_cg_a51
-
-    def guess_nonlinear(
-        self, inputs, outputs, residuals, discrete_inputs=None, discrete_outputs=None
-    ):
-        l0_wing = inputs["data:geometry:wing:MAC:length"]
-        fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
-        
-        cg_a51 = fa_length + 0.3 * l0_wing #foyer (25%CAM) + 30% CAM : 55% CAM
-        
         outputs["data:weight:airframe:landing_gear:main:CG:x"] = cg_a51

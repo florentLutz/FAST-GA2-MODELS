@@ -42,7 +42,7 @@ class ComputePassengerSeatsCG(ExplicitComponent):
         l_pilot_seat = inputs["data:geometry:cabin:seats:pilot:length"]
         l_pass_seat = inputs["data:geometry:cabin:seats:passenger:length"]
 
-        # Instruments gravity center
+        # Instruments length
         l_instr = 0.7
         # Seats and passengers gravity center (hypothesis of 2 pilots)
         nrows = int(npax1/count_by_row)

@@ -18,7 +18,7 @@ import numpy as np
 import openmdao.api as om
 
 from .cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, ComputeLandingGearCG
-from .cg_components.b_propulsion import ComputeEngineCG, ComputeFuelLinesCG
+from .cg_components.b_propulsion import ComputeEngineCG, ComputeFuelLinesCG, ComputeTankCG
 from .cg_components.c_systems import ComputePowerSystemsCG, ComputeLifeSupportCG, ComputeNavigationSystemsCG
 from .cg_components.d_furniture import ComputePassengerSeatsCG
 from .cg_components.payload import ComputePayloadCG
@@ -37,7 +37,8 @@ class CG(om.Group):
         self.add_subsystem("flight_control_cg", ComputeFlightControlCG(), promotes=["*"])
         self.add_subsystem("landing_gear_cg", ComputeLandingGearCG(), promotes=["*"])
         self.add_subsystem("engine_cg", ComputeEngineCG(), promotes=["*"])
-        self.add_subsystem("fuel_lines_cg", ComputeFuelLinesCG(), promotes=["*"])
+        self.add_subsystem("fuel_lines_cg", ComputeTankCG(), promotes=["*"])
+        self.add_subsystem("tank_cg", ComputeFuelLinesCG(), promotes=["*"])
         self.add_subsystem("power_systems_cg", ComputePowerSystemsCG(), promotes=["*"])
         self.add_subsystem("life_support_cg", ComputeLifeSupportCG(), promotes=["*"])
         self.add_subsystem("navigation_systems_cg", ComputeNavigationSystemsCG(), promotes=["*"])

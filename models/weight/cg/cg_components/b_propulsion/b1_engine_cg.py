@@ -28,7 +28,7 @@ class ComputeEngineCG(ExplicitComponent):
 
         self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:geometry:wing:MAC:leading_edge:x:local", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:y", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:leading_edge:x:local", val=np.nan, units="m")
@@ -44,7 +44,7 @@ class ComputeEngineCG(ExplicitComponent):
                 "data:weight:propulsion:engine:CG:x",
                 [
                         "data:geometry:wing:MAC:leading_edge:x:local",
-                        "data:geometry:wing:MAC:y",
+                        "data:geometry:wing:MAC:length",
                         "data:geometry:wing:root:y",
                         "data:geometry:wing:root:chord",
                         "data:geometry:wing:tip:leading_edge:x:local",
@@ -61,7 +61,7 @@ class ComputeEngineCG(ExplicitComponent):
         
         propulsion_loc = inputs["data:geometry:propulsion:layout"]
         x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
-        l0_wing = inputs["data:geometry:wing:MAC:y"]
+        l0_wing = inputs["data:geometry:wing:MAC:length"]
         y2_wing = inputs["data:geometry:wing:root:y"]
         l2_wing = inputs["data:geometry:wing:root:chord"]
         x4_wing = inputs["data:geometry:wing:tip:leading_edge:x:local"]

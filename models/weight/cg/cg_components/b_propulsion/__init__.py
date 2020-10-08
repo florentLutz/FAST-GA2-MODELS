@@ -13,3 +13,4 @@
 
 from .b1_engine_cg import ComputeEngineCG
 from .b2_fuel_lines_cg import ComputeFuelLinesCG
+from .b3_tank_cg import ComputeTankCG

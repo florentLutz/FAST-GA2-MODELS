@@ -1,5 +1,5 @@
 """
-    Estimation of navigation systems center of gravity
+    Estimation of tank center of gravity
 """
 
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
@@ -14,28 +14,31 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeNavigationSystemsCG(ExplicitComponent):
+class ComputeTankCG(ExplicitComponent):
     # TODO: Document equations. Cite sources
-    """ Navigation systems center of gravity estimation """
+    """ Fuel tank center of gravity estimation """
 
     def setup(self):
 
-        self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
 
-        self.add_output("data:weight:systems:navigation:CG:x", units="m")
-        
+        self.add_output("data:weight:propulsion:tank:CG:x", units="m")
+
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
+        
+        l0_wing = inputs["data:geometry:wing:MAC:length"]
+        fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
+        
+        cg_tank = (0.35+0.65)/2 * l0_wing 
+        cg_b3 = fa_length - 0.25*l0_wing + cg_tank
 
-        lav = inputs["data:geometry:fuselage:front_length"]
-
-        # Instruments length
-        l_instr = 0.7
-        x_cg_c3 = lav + l_instr
-
-        outputs["data:weight:systems:navigation:CG:x"] = x_cg_c3
+        outputs["data:weight:propulsion:tank:CG:x"] = cg_b3

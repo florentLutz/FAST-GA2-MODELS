@@ -37,7 +37,7 @@ class ComputeCGLoadCase(ExplicitComponent):
         self.add_input("data:weight:aircraft_empty:CG:x", val=np.nan, units="m")
         self.add_input("data:weight:aircraft_empty:mass", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:MFW", val=np.nan, units="kg")
-        self.add_input("data:weight:fuel_tank:CG:x", val=np.nan, units="m")
+        self.add_input("data:weight:propulsion:tank:CG:x", val=np.nan, units="m")
 
         self.add_output("data:weight:aircraft:load_case_"+str(self.load_case)+":CG:MAC_position")
 
@@ -52,14 +52,14 @@ class ComputeCGLoadCase(ExplicitComponent):
                 "data:weight:aircraft_empty:CG:x",
                 "data:weight:aircraft_empty:mass",
                 "data:weight:aircraft:MFW",
-                "data:weight:fuel_tank:CG:x",
+                "data:weight:propulsion:tank:CG:x",
             ],
             method="fd",
         )
 
     def compute(self, inputs, outputs):
          
-        npax = inputs["data:TLAR:NPAX"] + 2.0 # ???: addition of the 2 pilots
+        npax = inputs["data:TLAR:NPAX"] #+ 2.0 # ???: addition of the 2 pilots
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         cg_pax = inputs["data:weight:payload:PAX:CG:x"]
@@ -68,7 +68,7 @@ class ComputeCGLoadCase(ExplicitComponent):
         x_cg_plane_aft = inputs["data:weight:aircraft_empty:CG:x"]
         m_empty = inputs["data:weight:aircraft_empty:mass"]
         mfw = inputs["data:weight:aircraft:MFW"]
-        cg_tank = inputs["data:weight:fuel_tank:CG:x"]
+        cg_tank = inputs["data:weight:propulsion:tank:CG:x"]
         
         if self.load_case == 1: 
             weight_pax = npax * 80.0;
@@ -104,9 +104,10 @@ class ComputeCGLoadCase(ExplicitComponent):
             + weight_rear_fret * cg_rear_fret
             + weight_front_fret * cg_front_fret
         ) / weight_pl
-        x_cg_plane_pl = (m_empty*x_cg_plane_aft \
-                        + mfw*cg_tank + weight_pl * x_cg_pl) \
-                        / (m_empty + mfw + weight_pl)  # forward
+        x_cg_plane_pl = (
+                        m_empty*x_cg_plane_aft
+                        + mfw*cg_tank + weight_pl * x_cg_pl
+        ) / (m_empty + mfw + weight_pl)  # forward
         cg_ratio_pl = (x_cg_plane_pl - fa_length + 0.25 * l0_wing) / l0_wing
         
         
