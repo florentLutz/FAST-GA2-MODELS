@@ -35,6 +35,8 @@ class Cd0HorizontalTail(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
         self.add_input("data:geometry:horizontal_tail:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:horizontal_tail:thickness_ratio", val=np.nan)
+        self.add_input("data:geometry:horizontal_tail:max_thickness:x_c", val=0.3)
         if self.low_speed_aero:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
@@ -54,34 +56,31 @@ class Cd0HorizontalTail(ExplicitComponent):
         sweep_25_ht = inputs["data:geometry:horizontal_tail:sweep_25"]
         wet_area_ht = inputs["data:geometry:horizontal_tail:wet_area"]
         wing_area = inputs["data:geometry:wing:area"]
+        thickness = inputs["data:geometry:horizontal_tail:thickness_ratio"]
+        x_tmax = inputs["data:geometry:horizontal_tail:max_thickness:x_c"]
         if self.low_speed_aero:
             mach = inputs["data:aerodynamics:low_speed:mach"]
             reynolds = inputs["data:aerodynamics:wing:low_speed:reynolds"]
         else:
             mach = inputs["data:aerodynamics:cruise:mach"]
             reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
-        
-        #Local Reynolds: re*length
-        re = reynolds/l0_wing
-        #Airfoil data: change if airfoil is redefined (NACA 23012)
-        x_tmax = 0.3 # !!!: should be defined with parameter and data file
-        thickness = 0.1 # !!!: should be defined with parameter and data file (data:geometry:horizontal_tail:thickness_ratio?)
-        #50% NLF
+
+        re = reynolds/l0_wing # Local Reynolds: re*length
+        # Root: 50% NLF
         x_trans = 0.5
-        #Root
         x0_turb = 36.9 * x_trans**0.625 * (1/(re*root_chord))**0.375
         cf_root = 0.074 / (re*root_chord)**0.2 * (1 - (x_trans - x0_turb))**0.8
-        #Tip
+        # Tip: 50% NLF
+        x_trans = 0.5
         x0_turb = 36.9 * x_trans**0.625 * (1/(re*tip_chord))**0.375
         cf_tip = 0.074 / (re*tip_chord)**0.2 * (1 - (x_trans - x0_turb))**0.8
-        
+        # Global
         cf_ht = (cf_root + cf_tip) * 0.5
         ff = 1 + 0.6/x_tmax * thickness + 100 * thickness**4
-        ff = ff*1.05 #Due to hinged elevator (Raymer)
-        if mach>0.2:
+        ff = ff*1.05 # Due to hinged elevator (Raymer)
+        if mach > 0.2:
             ff = ff * 1.34 * mach**0.18 * (math.cos(sweep_25_ht*math.pi/180))**0.28
         interf = 1.05
-            
         cd0 = ff*interf*cf_ht * wet_area_ht / wing_area
 
         if self.low_speed_aero:

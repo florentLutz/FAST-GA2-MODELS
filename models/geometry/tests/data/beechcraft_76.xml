@@ -59,7 +59,7 @@
 				<length units="m">0.960<!--total propulsion length--></length>
 				<nacelle>
 					<length units="m">1.44<!--nacelle length--></length>
-					<wet_area units="m**2">4.499<!--wetted area of nacelle--></wet_area>
+					<wet_area units="m**2">4.499<!--wet area of nacelle--></wet_area>
 				</nacelle>
 				<propeller>
 					<diameter units="m">1.93<!--propeller diameter--></diameter>

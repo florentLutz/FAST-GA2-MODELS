@@ -33,7 +33,7 @@ class Cd0Fuselage(ExplicitComponent):
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
-        self.add_input("data:geometry:fuselage:wetted_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:fuselage:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.low_speed_aero:
             self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
@@ -50,7 +50,7 @@ class Cd0Fuselage(ExplicitComponent):
         height = inputs["data:geometry:fuselage:maximum_height"]
         width = inputs["data:geometry:fuselage:maximum_width"]
         length = inputs["data:geometry:fuselage:length"]
-        wet_area_fus = inputs["data:geometry:fuselage:wetted_area"]
+        wet_area_fus = inputs["data:geometry:fuselage:wet_area"]
         wing_area = inputs["data:geometry:wing:area"]
         if self.low_speed_aero:
             reynolds = inputs["data:aerodynamics:wing:low_speed:reynolds"]
@@ -62,10 +62,10 @@ class Cd0Fuselage(ExplicitComponent):
         #5% NLF
         x_trans = 0.05
         #Roots
-        x0_turb = 36.9 * x_trans**0.625 * (1/reynolds)**0.375
-        cf_fus = 0.074 / reynolds**0.2 * (1 - (x_trans - x0_turb))**0.8        
+        x0_turb = 36.9 * x_trans**0.625 * (1.0/reynolds)**0.375
+        cf_fus = 0.074 / reynolds**0.2 * (1.0 - (x_trans - x0_turb))**0.8
         f = length/math.sqrt(4*height*width/math.pi) 
-        ff_fus = 1 + 60/(f**3) + f/400
+        ff_fus = 1.0 + 60.0/(f**3.0) + f/400.0
         #Fuselage
         cd0_fuselage = cf_fus * ff_fus * wet_area_fus / wing_area
         #Cockpit window (Gudmunsson p727)

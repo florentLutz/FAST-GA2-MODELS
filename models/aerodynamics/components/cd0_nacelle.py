@@ -34,7 +34,7 @@ class Cd0Nacelle(ExplicitComponent):
         self.add_input("data:geometry:propulsion:nacelle:height", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:width", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:length", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:nacelle:wetted_area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:propulsion:nacelle:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.low_speed_aero:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
@@ -52,7 +52,7 @@ class Cd0Nacelle(ExplicitComponent):
                         "data:geometry:propulsion:nacelle:height",
                         "data:geometry:propulsion:nacelle:width",
                         "data:geometry:propulsion:nacelle:length",
-                        "data:geometry:propulsion:nacelle:wetted_area",
+                        "data:geometry:propulsion:nacelle:wet_area",
                         "data:geometry:wing:area",
                 ],
                 method="fd",
@@ -65,7 +65,7 @@ class Cd0Nacelle(ExplicitComponent):
         nac_height = inputs["data:geometry:propulsion:nacelle:height"]
         nac_width = inputs["data:geometry:propulsion:nacelle:width"]
         nac_length = inputs["data:geometry:propulsion:nacelle:length"]
-        wet_area_nac = inputs["data:geometry:propulsion:nacelle:wetted_area"]
+        wet_area_nac = inputs["data:geometry:propulsion:nacelle:wet_area"]
         wing_area = inputs["data:geometry:wing:area"]
         if self.low_speed_aero:
             mach = inputs["data:aerodynamics:low_speed:mach"]

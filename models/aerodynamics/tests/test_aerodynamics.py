@@ -74,14 +74,36 @@ def reshape_data(alpha, cl, cd, cdp, cm):
     return alpha, cl, cd, cdp, cm
 
 
+def test_compute_reynolds():
+    """ Tests high and low speed reynolds calculation """
+
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", ComputeReynolds(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(input_list)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeReynolds(), ivc)
+    mach = problem["data:aerodynamics:cruise:mach"]
+    assert mach == pytest.approx(0.245, abs=1e-3)
+    reynolds = problem["data:aerodynamics:wing:cruise:reynolds"]
+    assert reynolds == pytest.approx(4571770, abs=1)
+    problem = run_system(ComputeReynolds(low_speed_aero=True), ivc)
+    reynolds = problem["data:aerodynamics:wing:low_speed:reynolds"]
+    assert reynolds == pytest.approx(2329600, abs=1)
+
+
 def test_cd0_high_speed():
     """ Tests drag coefficient @ high speed """
 
     # Generate input list from model
     group = om.Group()
     ivc = om.IndepVarComp()
-    ivc.add_output("data:aerodynamics:cruise:mach", 0.8)
-    ivc.add_output("data:aerodynamics:wing:cruise:reynolds", 1e8)
+    ivc.add_output("data:aerodynamics:cruise:mach", 0.245)
+    ivc.add_output("data:aerodynamics:wing:cruise:reynolds", 4571770)
     group.add_subsystem("constants", ivc, promotes=["*"])
     group.add_subsystem("my_model", CD0(), promotes=["*"])
     input_list = list_inputs(group)
@@ -89,25 +111,25 @@ def test_cd0_high_speed():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:aerodynamics:cruise:mach", 0.8)
-    ivc.add_output("data:aerodynamics:wing:cruise:reynolds", 1e8)
+    ivc.add_output("data:aerodynamics:cruise:mach", 0.245)
+    ivc.add_output("data:aerodynamics:wing:cruise:reynolds", 4571770)
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(CD0(), ivc)
     cd0_wing = problem["data:aerodynamics:wing:cruise:CD0"]
-    assert cd0_wing == pytest.approx(0.0035, abs=1e-4)
+    assert cd0_wing == pytest.approx(0.00561, abs=1e-5)
     cd0_fus = problem["data:aerodynamics:fuselage:cruise:CD0"]
-    assert cd0_fus == pytest.approx(0.0040, abs=1e-4)
+    assert cd0_fus == pytest.approx(0.00534, abs=1e-5)
     cd0_ht = problem["data:aerodynamics:horizontal_tail:cruise:CD0"]
-    assert cd0_ht == pytest.approx(0.0013, abs=1e-4)
+    assert cd0_ht == pytest.approx(0.00137, abs=1e-5)
     cd0_vt = problem["data:aerodynamics:vertical_tail:cruise:CD0"]
-    assert cd0_vt == pytest.approx(0.0010, abs=1e-4)
+    assert cd0_vt == pytest.approx(0.00086, abs=1e-5)
     cd0_nac = problem["data:aerodynamics:nacelles:cruise:CD0"]
-    assert cd0_nac == pytest.approx(0.0010, abs=1e-4)
+    assert cd0_nac == pytest.approx(0.00216, abs=1e-5)
     cd0_lg = problem["data:aerodynamics:landing_gear:cruise:CD0"]
-    assert cd0_lg == pytest.approx(0.0, abs=1e-4)
+    assert cd0_lg == pytest.approx(0.0, abs=1e-5)
     cd0_other = problem["data:aerodynamics:other:cruise:CD0"]
-    assert cd0_other == pytest.approx(0.0007, abs=1e-4)
+    assert cd0_other == pytest.approx(0.00202, abs=1e-5)
 
 
 def test_cd0_low_speed():
@@ -116,8 +138,8 @@ def test_cd0_low_speed():
     # Generate input list from model
     group = om.Group()
     ivc = om.IndepVarComp()
-    ivc.add_output("data:aerodynamics:low_speed:mach", 0.2)
-    ivc.add_output("data:aerodynamics:wing:low_speed:reynolds", 1e7)
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1)
+    ivc.add_output("data:aerodynamics:wing:low_speed:reynolds", 2329600)
     group.add_subsystem("constants", ivc, promotes=["*"])
     group.add_subsystem("my_model", CD0(low_speed_aero=True), promotes=["*"])
     input_list = list_inputs(group)
@@ -125,25 +147,25 @@ def test_cd0_low_speed():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:aerodynamics:low_speed:mach", 0.2)
-    ivc.add_output("data:aerodynamics:wing:low_speed:reynolds", 1e7)
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1)
+    ivc.add_output("data:aerodynamics:wing:low_speed:reynolds", 2329600)
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(CD0(low_speed_aero=True), ivc)
     cd0_wing = problem["data:aerodynamics:wing:low_speed:CD0"]
-    assert cd0_wing == pytest.approx(0.0048, abs=1e-4)
+    assert cd0_wing == pytest.approx(0.00636, abs=1e-5)
     cd0_fus = problem["data:aerodynamics:fuselage:low_speed:CD0"]
-    assert cd0_fus == pytest.approx(0.0064, abs=1e-4)
+    assert cd0_fus == pytest.approx(0.00610, abs=1e-5)
     cd0_ht = problem["data:aerodynamics:horizontal_tail:low_speed:CD0"]
-    assert cd0_ht == pytest.approx(0.0019, abs=1e-4)
+    assert cd0_ht == pytest.approx(0.00156, abs=1e-5)
     cd0_vt = problem["data:aerodynamics:vertical_tail:low_speed:CD0"]
-    assert cd0_vt == pytest.approx(0.0014, abs=1e-4)
+    assert cd0_vt == pytest.approx(0.00098, abs=1e-5)
     cd0_nac = problem["data:aerodynamics:nacelles:low_speed:CD0"]
-    assert cd0_nac == pytest.approx(0.0014, abs=1e-4)
+    assert cd0_nac == pytest.approx(0.00241, abs=1e-5)
     cd0_lg = problem["data:aerodynamics:landing_gear:low_speed:CD0"]
-    assert cd0_lg == pytest.approx(0.0024, abs=1e-4)
+    assert cd0_lg == pytest.approx(0.01900, abs=1e-5)
     cd0_other = problem["data:aerodynamics:other:low_speed:CD0"]
-    assert cd0_other == pytest.approx(0.0007, abs=1e-4)
+    assert cd0_other == pytest.approx(0.00202, abs=1e-5)
 
 
 def test_vlm_comp_high_speed():
@@ -482,24 +504,3 @@ def test_L_D_max():
     assert optimal_cd == pytest.approx(0.022, abs=1e-3)
     optimal_alpha = problem["data:aerodynamics:aircraft:cruise:optimal_alpha"]
     assert optimal_alpha == pytest.approx(0.013, abs=1e-3)
-
-def test_compute_reynolds():
-    """ Tests low and high speed reynolds calculation """
-
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeReynolds(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
-
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeReynolds(), ivc)
-    mach = problem["data:aerodynamics:cruise:mach"]
-    assert mach == pytest.approx(0.50, abs=1e-2)
-    reynolds = problem["data:aerodynamics:wing:cruise:reynolds"]
-    assert reynolds == pytest.approx(86807, abs=1)
-    problem = run_system(ComputeReynolds(low_speed_aero=True), ivc)
-    reynolds = problem["data:aerodynamics:wing:low_speed:reynolds"]
-    assert reynolds == pytest.approx(4659200, abs=1)

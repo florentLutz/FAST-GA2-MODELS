@@ -29,7 +29,7 @@ class ComputeReynolds(ExplicitComponent):
         self.low_speed_aero = self.options["low_speed_aero"]
 
         if self.low_speed_aero:
-            self.add_input("data:aerodynamics:low_speed:mach", val=0.2)
+            self.add_input("data:aerodynamics:low_speed:mach", val=0.1)
             self.add_output("data:aerodynamics:wing:low_speed:reynolds")
         else:
             self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
@@ -47,7 +47,7 @@ class ComputeReynolds(ExplicitComponent):
             altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
             mach = inputs["data:TLAR:v_cruise"]/Atmosphere(altitude).speed_of_sound
             
-        reynolds = Atmosphere(altitude, altitude_in_feet=False).get_unitary_reynolds(mach)
+        reynolds = Atmosphere(altitude).get_unitary_reynolds(mach)
 
         if self.low_speed_aero:
             outputs["data:aerodynamics:wing:low_speed:reynolds"] = reynolds

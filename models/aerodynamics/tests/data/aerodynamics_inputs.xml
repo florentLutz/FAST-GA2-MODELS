@@ -16,7 +16,7 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-		  <v_cruise units="m/s">150<!--top-level requirement: cruise speed--></v_cruise>
+		  <v_cruise units="kn">158.0!--top-level requirement: cruise speed--></v_cruise>
 		</TLAR>
 		<geometry>
 			<flap>
@@ -25,41 +25,41 @@
 			</flap>
 			<flap_type>1.0<!--0=plain flap / 1=flap simple slotted--></flap_type>
 			<fuselage>
-				<front_length units="m">1.3378<!--length of front non-cylindrical part of the fuselage--></front_length>
-				<length units="m">37.507<!--total fuselage length--></length>
-				<maximum_height units="m">1.3378<!--maximum fuselage height--></maximum_height>
-				<maximum_width units="m">1.1978<!--maximum fuselage width--></maximum_width>
-				<rear_length units="m">1.3378<!--length of rear non-cylindrical part of the fuselage--></rear_length>
-				<wetted_area units="m**2">401.956<!--wetted area of fuselage--></wetted_area>
+				<front_length units="m">2.274<!--length of front non-cylindrical part of the fuselage--></front_length>
+				<length units="m">8.888<!--total fuselage length--></length>
+				<maximum_height units="m">1.338<!--maximum fuselage height--></maximum_height>
+				<maximum_width units="m">1.198<!--maximum fuselage width--></maximum_width>
+				<rear_length units="m">0.0<!--length of rear non-cylindrical part of the fuselage--></rear_length>
+				<wet_area units="m**2">33.354<!--wet area of fuselage--></wet_area>
 			</fuselage>
 			<has_T_tail>0.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
 			<horizontal_tail>
 				<MAC>
 					<at25percent>
 						<x>
-							<from_wingMAC25 units="m">6.5<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
-							<local units="m">0.5<!--X-position of the 25% of mean aerodynamic chord of horizontal tail w.r.t. leading edge of root chord--></local>
+							<from_wingMAC25 units="m">4.334<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
+							<local units="m">0.0890<!--X-position of the 25% of mean aerodynamic chord of horizontal tail w.r.t. leading edge of root chord--></local>
 						</x>
 					</at25percent>
-					<length units="m">0.5<!--mean aerodynamic chord length of horizontal tail--></length>
+					<length units="m">0.868<!--mean aerodynamic chord length of horizontal tail--></length>
 				</MAC>
-				<area units="m**2">2.1<!--horizontal_tail area--></area>
+				<area units="m**2">4.422<!--horizontal_tail area--></area>
 				<root>
-					<chord units="m">1.26<!--chord length at root of horizontal tail--></chord>
+					<chord units="m">0.868<!--chord length at root of horizontal tail--></chord>
 				</root>
-				<span units="m">0.6<!--horizontal tail span--></span>
-				<sweep_25 units="deg">28.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
+				<span units="m">5.095<!--horizontal tail span--></span>
+				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
 				<thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>
 				<tip>
-					<chord units="m">1.02<!--chord length at tip of horizontal tail--></chord>
+					<chord units="m">0.868<!--chord length at tip of horizontal tail--></chord>
 				</tip>
-				<wetted_area units="m**2">70.341<!--wetted area of horizontal tail--></wetted_area>
+				<wet_area units="m**2">7.428<!--wet area of horizontal tail--></wet_area>
 				<z>
-					<from_wingMAC25 units="m">0.9<!--height of horizontal tail from 25% MAC of wing--></from_wingMAC25>
+					<from_wingMAC25 units="m">1.734<!--height of horizontal tail from 25% MAC of wing--></from_wingMAC25>
 				</z>
 			</horizontal_tail>
 			<landing_gear>
-				<height units="m">0.997<!--mean value of (flap chord)/(section chord)--></height>
+				<height units="m">1.22<!--mean value of (flap chord)/(section chord)--></height>
 			</landing_gear>
 			<landing_gear_type>1.0<!--0=non-retractable landing gears / 1=retractable landing gear--></landing_gear_type>
 			<propulsion>
@@ -67,55 +67,55 @@
 					<count>2.0<!--number of engines--></count>
 				</engine>
 				<nacelle>
-					<height units="m">2.211<!--nacelle height--></height>
-					<length units="m">5.211<!--nacelle length--></length>
-					<wetted_area units="m**2">21.609<!--wetted area of nacelle--></wetted_area>
-					<width units="m">2.211<!--nacelle width--></width>
+					<height units="m">0.691<!--nacelle height--></height>
+					<length units="m">1.44<!--nacelle length--></length>
+					<wet_area units="m**2">4.499<!--wet area of nacelle--></wet_area>
+					<width units="m">0.871<!--nacelle width--></width>
 				</nacelle>
 			</propulsion>
 			<vertical_tail>
-				<aspect_ratio>9.48<!--aspect ratio of vertical tail--></aspect_ratio>
+				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>
 				<root>
-					<chord units="m">1.26<!--chord length at root of vertical tail--></chord>
+					<chord units="m">1.785<!--chord length at root of vertical tail--></chord>
 				</root>
-				<sweep_25 units="deg">35.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
+				<sweep_25 units="deg">10.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
 				<thickness_ratio>0.1<!--thickness ratio of vertical tail--></thickness_ratio>
 				<tip>
-					<chord units="m">1.02<!--chord length at tip of vertical tail--></chord>
+					<chord units="m">1.106<!--chord length at tip of vertical tail--></chord>
 				</tip>
-				<wetted_area units="m**2">52.749<!--wetted area of vertical tail--></wetted_area>
+				<wet_area units="m**2">5.266<!--wet area of vertical tail--></wet_area>
 			</vertical_tail>
 			<wing>
 				<MAC>
 					<at25percent>
-						<x units="m">5.40327106<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
+						<x units="m">3.449<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
 					</at25percent>
 					<leading_edge>
 						<x>
-							<local units="m">1.2<!--X-position of leading edge of mean aerodynamic chord w.r.t. leading edge of root chord--></local>
+							<local units="m">0.0<!--X-position of leading edge of mean aerodynamic chord w.r.t. leading edge of root chord--></local>
 						</x>
 					</leading_edge>
-					<length units="m">4.457<!--length of mean aerodynamic chord of wing--></length>
+					<length units="m">1.549<!--length of mean aerodynamic chord of wing--></length>
 				</MAC>
-				<area units="m**2">124.843<!--wing reference area--></area>
-				<aspect_ratio>9.48<!--wing aspect ratio--></aspect_ratio>
+				<area units="m**2">19.15<!--wing reference area--></area>
+				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
 				<kink>
-					<span_ratio>0.11<!--ratio (Y-position of kink)/(semi-span)--></span_ratio>
+					<span_ratio>0.0<!--ratio (Y-position of kink)/(semi-span)--></span_ratio>
 				</kink>
 				<root>
-					<chord units="m">1.44095577151<!--chord length at wing root--></chord>
-					<y units="m">0.2<!--Y-position of wing root--></y>
+					<chord units="m">1.549<!--chord length at wing root--></chord>
+					<y units="m">0.599<!--Y-position of wing root--></y>
 				</root>
-				<span units="m">31.603<!--wing span--></span>
+				<span units="m">12.363<!--wing span--></span>
 				<sweep_0 units="deg">0.0<!--sweep angle at leading edge of wing--></sweep_0>
-				<sweep_25 units="deg">25.0<!--sweep angle at 25% chord of wing--></sweep_25>
-				<taper_ratio>0.8<!--taper ratio of wing--></taper_ratio>
-				<thickness_ratio>0.128<!--mean thickness ratio of wing--></thickness_ratio>
+				<sweep_25 units="deg">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
+				<taper_ratio>1.0<!--taper ratio of wing--></taper_ratio>
+				<thickness_ratio>0.12<!--mean thickness ratio of wing--></thickness_ratio>
 				<tip>
-					<chord units="m">1.44095577151<!--chord length at wing tip--></chord>
-					<y units="m">5.14330874945<!--Y-position of wing tip--></y>
+					<chord units="m">1.549<!--chord length at wing tip--></chord>
+					<y units="m">6.181<!--Y-position of wing tip--></y>
 				</tip>
-				<wetted_area units="m**2">200.607<!--wetted area of wing--></wetted_area>
+				<wet_area units="m**2">37.011<!--wet area of wing--></wet_area>
 			</wing>
 		</geometry>
 		<mission>
@@ -126,7 +126,7 @@
 			</landing>
 			<main_route>
 				<cruise>
-				  <altitude units="ft">35000.0<!--altitude during cruise phase in sizing mission--></altitude>
+				  <altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
 				</cruise>
 			</main_route>
 			<takeoff>
@@ -137,7 +137,7 @@
 		</mission>
 		<weight>
 			<aircraft>
-				<MTOW units="kg">9000<!--maximum takeoff weight--></MTOW>
+				<MTOW units="kg">1915.02<!--maximum takeoff weight--></MTOW>
 			</aircraft>
 		</weight>
 	</data>

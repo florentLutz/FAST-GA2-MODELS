@@ -32,7 +32,7 @@
 				</root>
 				<span units="m">5.095<!--horizontal tail span--></span>
 				<thickness_ratio>0.1<!--horizontal tail thickness ratio--></thickness_ratio>
-				<wet_area units="m**2">7.428<!--horizontal tail wetted area--></wet_area>
+				<wet_area units="m**2">7.428<!--horizontal tail wet area--></wet_area>
 			</horizontal_tail>
 			<landing_gear>
 				<height units="m">1.22<!--height of landing gear--></height>
