@@ -112,8 +112,6 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         x_wing = fa_length-x0_wing-0.25*l0_wing
         z_wing = -(height_max - 0.12*l2_wing)*0.5
         span2_wing = y4_wing - y2_wing
-        AOAList = str(_INPUT_AOAList)
-        AOAList = AOAList[1:len(AOAList)-1]
         viscosity = atm.kinematic_viscosity
         rho = atm.density
         V_inf = max(atm.speed_of_sound * mach, 0.1) # avoid V=0 m/s crashes
@@ -145,8 +143,9 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME) + ' >nul 2>nul\n'
         batch_file = open(self.options["command"][0], "w+")
+        batch_file.write("@echo off\n")
         batch_file.write(command)
         batch_file.close()
 
@@ -215,14 +214,12 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
         for idx in range(len(_INPUT_AOAList)):
-            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + '\n')
+            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + ' >nul 2>nul\n')
             batch_file.write(command)
         batch_file.close()
         
         # standard AERO input file -----------------------------------------------------------------
         parser = InputFileGenerator()
-        pair_core = 2**np.linspace(1, 10, 10)
-        cpu_count = pair_core[np.max(np.where(pair_core<=multiprocessing.cpu_count()))]
         for idx in range(len(_INPUT_AOAList)):
             with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
                 parser.set_template_file(input_template_path)
@@ -246,8 +243,6 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
                 parser.transfer_var(float(rho), 0, 3)
                 parser.mark_anchor("ReCref")
                 parser.transfer_var(float(reynolds), 0, 3)
-                parser.mark_anchor("NumWakeNodes")
-                parser.transfer_var(int(cpu_count), 0, 3)
                 parser.generate()
         
         # Run AERO --------------------------------------------------------------------------------

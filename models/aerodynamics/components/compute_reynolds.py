@@ -29,28 +29,30 @@ class ComputeReynolds(ExplicitComponent):
         self.low_speed_aero = self.options["low_speed_aero"]
 
         if self.low_speed_aero:
-            self.add_input("data:aerodynamics:low_speed:mach", val=0.1)
-            self.add_output("data:aerodynamics:wing:low_speed:reynolds")
+            self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
+            self.add_output("data:aerodynamics:low_speed:mach")
+            self.add_output("data:aerodynamics:low_speed:unit_reynolds")
         else:
             self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
             self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
             self.add_output("data:aerodynamics:cruise:mach")
-            self.add_output("data:aerodynamics:wing:cruise:reynolds")
+            self.add_output("data:aerodynamics:cruise:unit_reynolds")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
         if self.low_speed_aero:
             altitude = 0.0
-            mach = inputs["data:aerodynamics:low_speed:mach"]
+            mach = inputs["data:TLAR:v_approach"]/Atmosphere(altitude).speed_of_sound
         else:
             altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
             mach = inputs["data:TLAR:v_cruise"]/Atmosphere(altitude).speed_of_sound
             
-        reynolds = Atmosphere(altitude).get_unitary_reynolds(mach)
+        unit_reynolds = Atmosphere(altitude).get_unitary_reynolds(mach)
 
         if self.low_speed_aero:
-            outputs["data:aerodynamics:wing:low_speed:reynolds"] = reynolds
+            outputs["data:aerodynamics:low_speed:mach"] = mach
+            outputs["data:aerodynamics:low_speed:unit_reynolds"] = unit_reynolds
         else:
             outputs["data:aerodynamics:cruise:mach"] = mach
-            outputs["data:aerodynamics:wing:cruise:reynolds"] = reynolds
+            outputs["data:aerodynamics:cruise:unit_reynolds"] = unit_reynolds

@@ -36,10 +36,10 @@ class Cd0Fuselage(ExplicitComponent):
         self.add_input("data:geometry:fuselage:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.low_speed_aero:
-            self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:fuselage:low_speed:CD0")
         else:
-            self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:cruise:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:fuselage:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
@@ -53,12 +53,12 @@ class Cd0Fuselage(ExplicitComponent):
         wet_area_fus = inputs["data:geometry:fuselage:wet_area"]
         wing_area = inputs["data:geometry:wing:area"]
         if self.low_speed_aero:
-            reynolds = inputs["data:aerodynamics:wing:low_speed:reynolds"]
+            unit_reynolds = inputs["data:aerodynamics:low_speed:unit_reynolds"]
         else:
-            reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
+            unit_reynolds = inputs["data:aerodynamics:cruise:unit_reynolds"]
         
         #Local Reynolds:
-        reynolds = reynolds*length/l0_wing
+        reynolds = unit_reynolds*length
         #5% NLF
         x_trans = 0.05
         #Roots

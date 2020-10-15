@@ -18,7 +18,7 @@ import logging
 
 import numpy as np
 import math
-from fastoad.models.aerodynamics.constants import POLAR_POINT_COUNT
+from ...constants import POLAR_POINT_COUNT
 from fastoad.utils.physics import Atmosphere
 from .vlm import VLM
 
@@ -48,8 +48,7 @@ class ComputeOSWALDvlm(VLM):
             self.add_input("data:aerodynamics:wing:cruise:CL", val=nans_array)
             self.add_input("data:aerodynamics:wing:cruise:CDp", val=nans_array)
             self.add_output("data:aerodynamics:aircraft:cruise:induced_drag_coefficient")
-        
-        
+
         self.declare_partials("*", "*", method="fd")        
     
     def compute(self, inputs, outputs):
@@ -105,7 +104,7 @@ class ComputeOSWALDvlm(VLM):
 
         # Interpolate value if within the interpolation range
         if ojective >= min(lift_coeff) and ojective <= max(lift_coeff):
-            idx_max = np.where(lift_coeff == max(lift_coeff))
+            idx_max = int(float(np.where(lift_coeff == max(lift_coeff))[0]))
             return np.interp(ojective, lift_coeff[0:idx_max+1], drag_coeff[0:idx_max+1])
         elif ojective < lift_coeff[0]:
             cdp = drag_coeff[0] + (ojective - lift_coeff[0]) * (drag_coeff[1] - drag_coeff[0]) \

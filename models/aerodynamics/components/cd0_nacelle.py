@@ -38,11 +38,11 @@ class Cd0Nacelle(ExplicitComponent):
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.low_speed_aero:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-            self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:nacelles:low_speed:CD0")
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-            self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:cruise:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:nacelles:cruise:CD0")
 
         self.declare_partials(
@@ -69,13 +69,13 @@ class Cd0Nacelle(ExplicitComponent):
         wing_area = inputs["data:geometry:wing:area"]
         if self.low_speed_aero:
             mach = inputs["data:aerodynamics:low_speed:mach"]
-            reynolds = inputs["data:aerodynamics:wing:low_speed:reynolds"]
+            unit_reynolds = inputs["data:aerodynamics:low_speed:unit_reynolds"]
         else:
             mach = inputs["data:aerodynamics:cruise:mach"]
-            reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
+            unit_reynolds = inputs["data:aerodynamics:cruise:unit_reynolds"]
         
         #Local Reynolds:
-        reynolds = reynolds*nac_length/l0_wing
+        reynolds = unit_reynolds*nac_length
         #Roskam method for wing-nacelle interaction factor (vol 6 page 3.62)
         cf_nac = 0.455 / ((1 + 0.144 * mach ** 2)**0.65 * (math.log10(reynolds)) ** (2.58)) #100% turbulent
         f = nac_length/math.sqrt(4*nac_height*nac_width/math.pi) 

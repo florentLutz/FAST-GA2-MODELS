@@ -216,7 +216,7 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
 
         alpha_ht_interp = inputs["data:aerodynamics:horizontal_tail:low_speed:alpha"]
         cl_ht_interp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL"]
-        cm_wing_interp = inputs["data:aerodynamics:horizontal_tail:low_speed:CM"]
+        cm_htp_interp = inputs["data:aerodynamics:horizontal_tail:low_speed:CM"]
         cl_alpha_ht = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha"]
         angle_elev_interp = inputs["data:aerodynamics:elevator:low_speed:angle"]
         cl_elev_interp = inputs["data:aerodynamics:elevator:low_speed:CL"]
@@ -254,7 +254,7 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         # Interpolate cl/cm and define with ht reference surface
         cl_ht = (self._extrapolate(alpha, alpha_ht_interp, cl_ht_interp) + cl_elev) \
                 * wing_area / ht_area
-        cm_ht = self._extrapolate(alpha, alpha_ht_interp, cm_wing_interp) * wing_area / ht_area
+        cm_ht = self._extrapolate(alpha, alpha_ht_interp, cm_htp_interp) * wing_area / ht_area
         # Define Cl_alpha with ht reference surface
         cl_alpha_ht = cl_alpha_ht * wing_area / ht_area
 

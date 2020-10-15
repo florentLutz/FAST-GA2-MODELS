@@ -28,7 +28,6 @@ class Cd0Wing(ExplicitComponent):
     def setup(self):
         self.low_speed_aero = self.options["low_speed_aero"]
 
-        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
@@ -41,18 +40,17 @@ class Cd0Wing(ExplicitComponent):
         self.add_input("data:geometry:wing:max_thickness:x_c", val=0.3)
         if self.low_speed_aero:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-            self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:wing:low_speed:CD0")
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-            self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:cruise:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:wing:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
-        
-        l0_wing = inputs["data:geometry:wing:MAC:length"]
+
         l2_wing = inputs["data:geometry:wing:root:chord"]
         l4_wing = inputs["data:geometry:wing:tip:chord"]
         y1_wing = inputs["data:geometry:fuselage:maximum_width"]/2.0
@@ -65,20 +63,19 @@ class Cd0Wing(ExplicitComponent):
         x_tmax = inputs["data:geometry:wing:max_thickness:x_c"]
         if self.low_speed_aero:
             mach = inputs["data:aerodynamics:low_speed:mach"]
-            reynolds = inputs["data:aerodynamics:wing:low_speed:reynolds"]
+            unit_reynolds = inputs["data:aerodynamics:low_speed:unit_reynolds"]
         else:
             mach = inputs["data:aerodynamics:cruise:mach"]
-            reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
+            unit_reynolds = inputs["data:aerodynamics:cruise:unit_reynolds"]
 
-        re = reynolds/l0_wing # Local Reynolds: re*length
         # Root: 45% NLF
         x_trans = 0.45
-        x0_turb = 36.9 * x_trans**0.625 * (1/(re*l2_wing))**0.375
-        cf_root = 0.074 / (re*l2_wing)**0.2 * (1 - (x_trans - x0_turb))**0.8
+        x0_turb = 36.9 * x_trans**0.625 * (1/(unit_reynolds*l2_wing))**0.375
+        cf_root = 0.074 / (unit_reynolds*l2_wing)**0.2 * (1 - (x_trans - x0_turb))**0.8
         # Tip: 55% NLF
         x_trans = 0.55
-        x0_turb = 36.9 * x_trans**0.625 * (1/(re*l4_wing))**0.375
-        cf_tip = 0.074 / (re*l4_wing)**0.2 * (1 - (x_trans - x0_turb))**0.8
+        x0_turb = 36.9 * x_trans**0.625 * (1/(unit_reynolds*l4_wing))**0.375
+        cf_tip = 0.074 / (unit_reynolds*l4_wing)**0.2 * (1 - (x_trans - x0_turb))**0.8
         # Global
         cf_wing = (cf_root * (y2_wing-y1_wing) + 0.5*(span/2.0-y2_wing) * (cf_root+cf_tip)) / (span/2.0-y1_wing)
         ff = 1 + 0.6/x_tmax * thickness + 100 * thickness**4

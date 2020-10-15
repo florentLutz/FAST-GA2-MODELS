@@ -38,7 +38,7 @@ OPTION_RESULT_FOLDER_PATH = "result_folder_path"
 
 _INPUT_SCRIPT_FILE_NAME = "wing_ht_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_ht_openvsp_DegenGeom"
-_INPUT_AOAList = [2.0, 4.0] # ???: why mid point is 3° ?
+_INPUT_AOAList = [0.0, 4.0] # ???: why mid point is 3° ?
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
 _AIRFOIL_2_FILE_NAME = "naca23012.af"
@@ -127,8 +127,6 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         z_wing = -(height_max - 0.12*l2_wing)*0.5
         span2_wing = y4_wing - y2_wing
         distance_htp = fa_length + lp_htp - 0.25 * l0_htp - x0_htp
-        AOAList = str(_INPUT_AOAList)
-        AOAList = AOAList[1:len(AOAList)-1]
         speed_of_sound = atm.speed_of_sound
         viscosity = atm.kinematic_viscosity
         rho = atm.density
@@ -161,8 +159,9 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME) + ' >nul 2>nul\n'
         batch_file = open(self.options["command"][0], "w+")
+        batch_file.write("@echo off\n")
         batch_file.write(command)
         batch_file.close()
         
@@ -243,14 +242,12 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
         for idx in range(len(_INPUT_AOAList)):
-            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + '\n')
+            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + ' >nul 2>nul\n')
             batch_file.write(command)
         batch_file.close()
         
         # standard AERO input file -----------------------------------------------------------------
         parser = InputFileGenerator()
-        pair_core = 2 ** np.linspace(1, 10, 10)
-        cpu_count = pair_core[np.max(np.where(pair_core <= multiprocessing.cpu_count()))]
         for idx in range(len(_INPUT_AOAList)):
             with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
                 parser.set_template_file(input_template_path)
@@ -274,8 +271,6 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
                 parser.transfer_var(float(rho), 0, 3)
                 parser.mark_anchor("ReCref")
                 parser.transfer_var(float(reynolds), 0, 3)
-                parser.mark_anchor("NumWakeNodes")
-                parser.transfer_var(int(cpu_count), 0, 3)
                 parser.generate()
         
         # Run AERO --------------------------------------------------------------------------------

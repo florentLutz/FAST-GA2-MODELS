@@ -21,6 +21,7 @@ import os.path as pth
 import tempfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import warnings
 
 import math
 import numpy as np
@@ -29,6 +30,7 @@ from fastoad.utils.resource_management.copy import copy_resource, copy_resource_
 from importlib_resources import path
 from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
+from ...constants import SPAN_MESH_POINT_OPENVSP
 
 from . import resources
 from . import openvsp3201
@@ -38,7 +40,7 @@ OPTION_RESULT_FOLDER_PATH = "result_folder_path"
 
 _INPUT_SCRIPT_FILE_NAME = "wing_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_openvsp_DegenGeom"
-_INPUT_AOAList = [0.0, 5.0] # Small angle calculation of derivative
+_INPUT_AOAList = [0.0, 7.0] # Small angle calculation of derivative
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
 _AIRFOIL_2_FILE_NAME = "naca23012.af"
@@ -71,6 +73,8 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_output("data:aerodynamics:aircraft:low_speed:CL0_clean")
             self.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
+            self.add_output("data:aerodynamics:wing:low_speed:Y_vector", shape=SPAN_MESH_POINT_OPENVSP, units="m")
+            self.add_output("data:aerodynamics:wing:low_speed:CL_vector", shape=SPAN_MESH_POINT_OPENVSP)
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
             self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units='ft')
@@ -144,8 +148,9 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME) + ' >nul 2>nul\n'
         batch_file = open(self.options["command"][0], "w+")
+        batch_file.write("@echo off\n")
         batch_file.write(command)
         batch_file.close()
         
@@ -206,6 +211,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         for idx in range(len(_INPUT_AOAList)):
             input_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx) + '.vspaero')
             output_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx) + '.polar')
+        output_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx-1) + '.lod')
         self.options["external_input_files"] = input_file_list
         self.options["external_output_files"] = output_file_list
         
@@ -214,14 +220,12 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
         for idx in range(len(_INPUT_AOAList)):
-            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + '\n')
+            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + ' >nul 2>nul\n')
             batch_file.write(command)
         batch_file.close()
         
         # standard AERO input file -----------------------------------------------------------------
         parser = InputFileGenerator()
-        pair_core = 2**np.linspace(1, 10, 10)
-        cpu_count = pair_core[np.max(np.where(pair_core<=multiprocessing.cpu_count()))]
         for idx in range(len(_INPUT_AOAList)):
             with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
                 parser.set_template_file(input_template_path)
@@ -245,8 +249,6 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
                 parser.transfer_var(float(rho), 0, 3)
                 parser.mark_anchor("ReCref")
                 parser.transfer_var(float(reynolds), 0, 3)
-                parser.mark_anchor("NumWakeNodes")
-                parser.transfer_var(int(cpu_count), 0, 3)
                 parser.generate()
         
         # Run AERO --------------------------------------------------------------------------------
@@ -260,13 +262,26 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         # Fuselage correction
         k_fus = 1 + 0.025*width_max/span_wing - 0.025*(width_max/span_wing)**2
         cl_0 = float(result_cl[0] * k_fus)
-        cl_5 = float(result_cl[1] * k_fus)
+        cl_7 = float(result_cl[1] * k_fus)
         # Calculate derivative
-        cl_alpha = (cl_5 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)
+        cl_alpha = (cl_7 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)
+        # Get lift curve
+        y_vector, cl_vector = self._read_lod_file(output_file_list[-1])
+        real_length = min(SPAN_MESH_POINT_OPENVSP, len(y_vector))
+        if real_length<len(y_vector):
+            warnings.warn("Defined maximum span mesh in constants.py exceeded!")
         
         if self.options["low_speed_aero"]:
             outputs['data:aerodynamics:aircraft:low_speed:CL0_clean'] = cl_0
             outputs['data:aerodynamics:aircraft:low_speed:CL_alpha'] = cl_alpha
+            if real_length >= len(y_vector):
+                outputs['data:aerodynamics:wing:low_speed:Y_vector'] = np.zeros(SPAN_MESH_POINT_OPENVSP)
+                outputs['data:aerodynamics:wing:low_speed:CL_vector'] = np.zeros(SPAN_MESH_POINT_OPENVSP)
+                outputs['data:aerodynamics:wing:low_speed:Y_vector'][0:real_length] = y_vector
+                outputs['data:aerodynamics:wing:low_speed:CL_vector'][0:real_length] = cl_vector
+            else:
+                outputs['data:aerodynamics:aircraft:wing:Y_vector'] = np.linspace(y_vector[0], y_vector[1], SPAN_MESH_POINT_OPENVSP)
+                outputs['data:aerodynamics:aircraft:wing:CL_vector'] = np.interp(outputs['data:aerodynamics:aircraft:low_speed:Y_vector'], y_vector, cl_vector)
         else:
             outputs['data:aerodynamics:aircraft:cruise:CL0_clean'] = cl_0
             outputs['data:aerodynamics:aircraft:cruise:CL_alpha'] = cl_alpha
@@ -303,6 +318,27 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
             cm = float(line[1][150:160].replace(' ', ''))
 
         return cl, cdi, oswald, cm
+
+    @staticmethod
+    def _read_lod_file(tmp_result_file_path: str):
+        """
+        Collect data from .lod file
+        """
+
+        with open(tmp_result_file_path, 'r') as hf:
+            y_vector = []
+            cl_vector = []
+            data = hf.readlines()
+            for i in range(len(data)):
+                line = data[i].split()
+                line.append('**')
+                if line[0] == '1':
+                    y_vector.append(float(line[2]))
+                    cl_vector.append(float(line[5]))
+                if line[0] == 'Comp':
+                    break
+
+        return np.array(y_vector), np.array(cl_vector)
     
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:

@@ -42,9 +42,10 @@ def test_compute():
         shutil.rmtree(XFOIL_RESULTS)
 
     ivc = IndepVarComp()
-    ivc.add_output("data:aerodynamics:wing:cruise:reynolds", 18000000)
+    ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 18000000)
     ivc.add_output("data:aerodynamics:cruise:mach", 0.80)
     ivc.add_output("data:geometry:wing:thickness_ratio", 0.1284)
+    ivc.add_output("data:geometry:wing:MAC:length", 1.0)
 
     xfoil_comp = XfoilPolar(
         alpha_start=15.0, alpha_end=25.0, iter_limit=20, xfoil_exe_path=xfoil_path
@@ -82,9 +83,10 @@ def test_compute():
 def test_compute_with_provided_path():
     """ Test that option "use_exe_path" works """
     ivc = IndepVarComp()
-    ivc.add_output("data:aerodynamics:wing:cruise:reynolds", 18000000)
+    ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 18000000)
     ivc.add_output("data:aerodynamics:cruise:mach", 0.20)
     ivc.add_output("data:geometry:wing:thickness_ratio", 0.1284)
+    vc.add_output("data:geometry:wing:MAC:length", 1.0)
 
     xfoil_comp = XfoilPolar(alpha_start=18.0, alpha_end=21.0, iter_limit=20)
     xfoil_comp.options["xfoil_exe_path"] = "Dummy"  # bad name

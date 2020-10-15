@@ -21,6 +21,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import warnings
 
 import numpy as np
 from fastoad.models.aerodynamics.external.xfoil import xfoil699
@@ -29,7 +30,7 @@ from fastoad.utils.resource_management.copy import copy_resource
 from importlib_resources import path
 from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
-from fastoad.models.aerodynamics.constants import POLAR_POINT_COUNT
+from ...constants import POLAR_POINT_COUNT
 
 from . import resources
 
@@ -64,7 +65,6 @@ class XfoilPolar(ExternalCodeComp):
     """Column names in XFOIL polar result"""
 
     def initialize(self):
-        self.options.declare("low_speed_aero", default=False, types=bool)
         
         self.options.declare(OPTION_XFOIL_EXE_PATH, default="", types=str, allow_none=True)
         self.options.declare(OPTION_PROFILE_NAME, default="BACJ.txt", types=str)
@@ -75,27 +75,17 @@ class XfoilPolar(ExternalCodeComp):
         self.options.declare(OPTION_ITER_LIMIT, default=500, types=int)
 
     def setup(self):
-        self.low_speed_aero = self.options["low_speed_aero"]
         
         self.add_input("data:geometry:wing:thickness_ratio", val=np.nan)
-        if self.low_speed_aero:
-            self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-            self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
-            self.add_output("data:aerodynamics:wing:low_speed:alpha", shape=POLAR_POINT_COUNT, units="deg")
-            self.add_output("data:aerodynamics:wing:low_speed:CL", shape=POLAR_POINT_COUNT)
-            self.add_output("data:aerodynamics:wing:low_speed:CD", shape=POLAR_POINT_COUNT)
-            self.add_output("data:aerodynamics:wing:low_speed:CDp", shape=POLAR_POINT_COUNT)
-            self.add_output("data:aerodynamics:wing:low_speed:CM", shape=POLAR_POINT_COUNT)
-            self.add_output("data:aerodynamics:wing:low_speed:CL_max_2D")
-        else:
-            self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-            self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
-            self.add_output("data:aerodynamics:wing:cruise:alpha", shape=POLAR_POINT_COUNT, units="deg")
-            self.add_output("data:aerodynamics:wing:cruise:CL", shape=POLAR_POINT_COUNT)
-            self.add_output("data:aerodynamics:wing:cruise:CD", shape=POLAR_POINT_COUNT)
-            self.add_output("data:aerodynamics:wing:cruise:CDp", shape=POLAR_POINT_COUNT)
-            self.add_output("data:aerodynamics:wing:cruise:CM", shape=POLAR_POINT_COUNT)
-            self.add_output("data:aerodynamics:wing:cruise:CL_max_2D")
+        self.add_input("xfoil:length", val=np.nan, units="m")
+        self.add_input("xfoil:mach", val=np.nan)
+        self.add_input("xfoil:unit_reynolds", val=np.nan)
+        self.add_output("xfoil:alpha", shape=POLAR_POINT_COUNT, units="deg")
+        self.add_output("xfoil:CL", shape=POLAR_POINT_COUNT)
+        self.add_output("xfoil:CD", shape=POLAR_POINT_COUNT)
+        self.add_output("xfoil:CDp", shape=POLAR_POINT_COUNT)
+        self.add_output("xfoil:CM", shape=POLAR_POINT_COUNT)
+        self.add_output("xfoil:CL_max_2D")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -108,22 +98,9 @@ class XfoilPolar(ExternalCodeComp):
 
         # Get inputs and initialise outputs
         thickness_ratio = inputs["data:geometry:wing:thickness_ratio"]
-        if self.low_speed_aero:
-            mach = inputs["data:aerodynamics:low_speed:mach"]
-            reynolds = inputs["data:aerodynamics:wing:low_speed:reynolds"]
-            outputs["data:aerodynamics:wing:low_speed:alpha"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["data:aerodynamics:wing:low_speed:CL"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["data:aerodynamics:wing:low_speed:CD"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["data:aerodynamics:wing:low_speed:CDp"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["data:aerodynamics:wing:low_speed:CM"] = np.zeros(POLAR_POINT_COUNT)
-        else:
-            mach = inputs["data:aerodynamics:cruise:mach"]
-            reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
-            outputs["data:aerodynamics:wing:cruise:alpha"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["data:aerodynamics:wing:cruise:CL"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["data:aerodynamics:wing:cruise:CD"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["data:aerodynamics:wing:cruise:CDp"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["data:aerodynamics:wing:cruise:CM"] = np.zeros(POLAR_POINT_COUNT)
+        length = inputs["xfoil:length"]
+        mach = inputs["xfoil:mach"]
+        reynolds = inputs["xfoil:unit_reynolds"]*length
 
         # Pre-processing (populating temp directory) -----------------------------------------------
         # XFoil exe
@@ -186,21 +163,25 @@ class XfoilPolar(ExternalCodeComp):
         result_array = self._read_polar(tmp_result_file_path)
         CL_max_2D = self._get_max_cl(result_array["alpha"], result_array["CL"])
         real_length = min(POLAR_POINT_COUNT, len(result_array["alpha"]))
-
-        if self.low_speed_aero:
-            outputs["data:aerodynamics:wing:low_speed:alpha"][0:real_length] = result_array["alpha"]
-            outputs["data:aerodynamics:wing:low_speed:CL"][0:real_length] = result_array["CL"]
-            outputs["data:aerodynamics:wing:low_speed:CD"][0:real_length] = result_array["CD"]
-            outputs["data:aerodynamics:wing:low_speed:CDp"][0:real_length] = result_array["CDp"]
-            outputs["data:aerodynamics:wing:low_speed:CM"][0:real_length] = result_array["CM"]
-            outputs["data:aerodynamics:wing:low_speed:CL_max_2D"] = CL_max_2D
+        if real_length<len(result_array["alpha"]):
+            warnings.warn("Defined maximum polar point count in constants.py exceeded!")
+            outputs["xfoil:alpha"] = np.linspace(result_array["alpha"][0], result_array["alpha"][-1], POLAR_POINT_COUNT)
+            outputs["xfoil:CL"] = np.interp(outputs["xfoil:alpha"], result_array["alpha"], result_array["CL"])
+            outputs["xfoil:CD"] = np.interp(outputs["xfoil:alpha"], result_array["alpha"], result_array["CD"])
+            outputs["xfoil:CDp"] = np.interp(outputs["xfoil:alpha"], result_array["alpha"], result_array["CDp"])
+            outputs["xfoil:CDp"] = np.interp(outputs["xfoil:alpha"], result_array["alpha"], result_array["CM"])
         else:
-            outputs["data:aerodynamics:wing:cruise:alpha"][0:real_length] = result_array["alpha"]
-            outputs["data:aerodynamics:wing:cruise:CL"][0:real_length] = result_array["CL"]
-            outputs["data:aerodynamics:wing:cruise:CD"][0:real_length] = result_array["CD"]
-            outputs["data:aerodynamics:wing:cruise:CDp"][0:real_length] = result_array["CDp"]
-            outputs["data:aerodynamics:wing:cruise:CM"][0:real_length] = result_array["CM"]
-            outputs["data:aerodynamics:wing:cruise:CL_max_2D"] = CL_max_2D
+            outputs["xfoil:alpha"] = np.zeros(POLAR_POINT_COUNT)
+            outputs["xfoil:CL"] = np.zeros(POLAR_POINT_COUNT)
+            outputs["xfoil:CD"] = np.zeros(POLAR_POINT_COUNT)
+            outputs["xfoil:CDp"] = np.zeros(POLAR_POINT_COUNT)
+            outputs["xfoil:CM"] = np.zeros(POLAR_POINT_COUNT)
+            outputs["xfoil:alpha"][0:real_length] = result_array["alpha"]
+            outputs["xfoil:CL"][0:real_length] = result_array["CL"]
+            outputs["xfoil:CD"][0:real_length] = result_array["CD"]
+            outputs["xfoil:CDp"][0:real_length] = result_array["CDp"]
+            outputs["xfoil:CM"][0:real_length] = result_array["CM"]
+        outputs["xfoil:CL_max_2D"] = CL_max_2D
         
 
         # Getting output files if needed

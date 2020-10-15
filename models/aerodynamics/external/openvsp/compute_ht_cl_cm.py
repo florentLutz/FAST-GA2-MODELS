@@ -78,7 +78,7 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:horizontal_tail:z:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
         
-        self.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha", shape=len(_INPUT_AOAList))
+        self.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha", shape=len(_INPUT_AOAList), units="deg")
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL", shape=len(_INPUT_AOAList))
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:CM", shape=len(_INPUT_AOAList))
         
@@ -153,8 +153,9 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME) + ' >nul 2>nul\n'
         batch_file = open(self.options["command"][0], "w+")
+        batch_file.write("@echo off\n")
         batch_file.write(command)
         batch_file.close()
         
@@ -235,14 +236,12 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
         for idx in range(len(_INPUT_AOAList)):
-            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + '\n')
+            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + ' >nul 2>nul\n')
             batch_file.write(command)
         batch_file.close()
         
         # standard AERO input file -----------------------------------------------------------------
         parser = InputFileGenerator()
-        pair_core = 2 ** np.linspace(1, 10, 10)
-        cpu_count = pair_core[np.max(np.where(pair_core <= multiprocessing.cpu_count()))]
         for idx in range(len(_INPUT_AOAList)):
             with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
                 parser.set_template_file(input_template_path)
@@ -266,8 +265,6 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
                 parser.transfer_var(float(rho), 0, 3)
                 parser.mark_anchor("ReCref")
                 parser.transfer_var(float(reynolds), 0, 3)
-                parser.mark_anchor("NumWakeNodes")
-                parser.transfer_var(int(cpu_count), 0, 3)
                 parser.generate()
         
         # Run AERO --------------------------------------------------------------------------------
@@ -305,7 +302,7 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         Collect data from .lod file
         """
         cl_htp = 0.0
-        cm_wing = 0.0
+        cm_htp = 0.0
         with open(tmp_result_file_path, 'r') as lf:
             data = lf.readlines()
             for i in range(len(data)):
@@ -313,9 +310,9 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
                 line.append('**') # avoid void line error
                 if line[0] == 'Comp':
                     cl_htp = float(data[i+3].split()[5])+float(data[i+4].split()[5]) # sum CL on left and right part of htp
-                    cm_wing = float(data[i+1].split()[12])+float(data[i+2].split()[12]) # sum CM on left and right part of htp
+                    cm_htp = float(data[i+3].split()[12])+float(data[i+4].split()[12]) # sum CM on left and right part of htp
                 
-        return cl_htp, cm_wing
+        return cl_htp, cm_htp
     
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:

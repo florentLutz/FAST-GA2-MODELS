@@ -18,7 +18,6 @@ import math
 
 import numpy as np
 import openmdao.api as om
-from fastoad.utils.physics import Atmosphere
 
 
 class ComputeCnBetaVT(om.ExplicitComponent):

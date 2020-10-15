@@ -367,12 +367,12 @@ class VLM(om.ExplicitComponent):
 
         :param AOA: angle of attack to be computed (in Deg)
         :param Vinf: air speed (in m/s)
-        :return: [cl_curve, y_position]
+        :return: [y_position, cl_curve]
         """
 
         yc_wing = self.WING['yc']
         chord_wing = self.WING['chord']
-        panelangle_vect = self.WING['panelangle_vect']
+        panelangle_vect = self.WING['panel_angle_vect']
         panelchord = self.WING['panel_chord']
         AIC = self.WING['AIC']
         AIC_inv = np.linalg.inv(AIC)
@@ -381,15 +381,17 @@ class VLM(om.ExplicitComponent):
         gamma = -np.dot(AIC_inv, alpha) * Vinf
         cp = -2 / Vinf * np.divide(gamma, panelchord)
         cl_curve = []
+        y_position = []
         for j in range(self.ny):
-            cl_span = 0.
+            cl_span = 0.0
             y = yc_wing[j]
-            chord = (chord_wing[j] +chord_wing[j+1]) * 0.5
+            chord = (chord_wing[j] + chord_wing[j+1]) / 2.0
             for i in range(self.nx):
                 cl_span += -cp[i*self.ny + j] * panelchord[i*self.ny + j] / chord
             cl_curve.append(cl_span)
+            y_position.append(y)
 
-        return cl_curve, yc_wing
+        return y_position, cl_curve
         
     def naca230(self):
         """Generates the geometry for the NACA 230xx airfoil"""

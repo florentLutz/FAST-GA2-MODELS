@@ -39,11 +39,11 @@ class Cd0VerticalTail(ExplicitComponent):
         self.add_input("data:geometry:vertical_tail:max_thickness:x_c", val=0.3)
         if self.low_speed_aero:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-            self.add_input("data:aerodynamics:wing:low_speed:reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:vertical_tail:low_speed:CD0")
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-            self.add_input("data:aerodynamics:wing:cruise:reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:cruise:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:vertical_tail:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
@@ -60,20 +60,19 @@ class Cd0VerticalTail(ExplicitComponent):
         x_tmax = inputs["data:geometry:vertical_tail:max_thickness:x_c"]
         if self.low_speed_aero:
             mach = inputs["data:aerodynamics:low_speed:mach"]
-            reynolds = inputs["data:aerodynamics:wing:low_speed:reynolds"]
+            unit_reynolds = inputs["data:aerodynamics:low_speed:unit_reynolds"]
         else:
             mach = inputs["data:aerodynamics:cruise:mach"]
-            reynolds = inputs["data:aerodynamics:wing:cruise:reynolds"]
+            unit_reynolds = inputs["data:aerodynamics:cruise:unit_reynolds"]
 
-        re = reynolds/l0_wing # Local Reynolds: re*length
         # Root: 50% NLF
         x_trans = 0.5
-        x0_turb = 36.9 * x_trans**0.625 * (1/(re*root_chord))**0.375
-        cf_root = 0.074 / (re*root_chord)**0.2 * (1 - (x_trans - x0_turb))**0.8
+        x0_turb = 36.9 * x_trans**0.625 * (1/(unit_reynolds*root_chord))**0.375
+        cf_root = 0.074 / (unit_reynolds*root_chord)**0.2 * (1 - (x_trans - x0_turb))**0.8
         # Tip: 50% NLF
         x_trans = 0.5
-        x0_turb = 36.9 * x_trans**0.625 * (1/(re*tip_chord))**0.375
-        cf_tip = 0.074 / (re*tip_chord)**0.2 * (1 - (x_trans - x0_turb))**0.8
+        x0_turb = 36.9 * x_trans**0.625 * (1/(unit_reynolds*tip_chord))**0.375
+        cf_tip = 0.074 / (unit_reynolds*tip_chord)**0.2 * (1 - (x_trans - x0_turb))**0.8
         # Global
         cf_vt = (cf_root + cf_tip) * 0.5
         ff = 1 + 0.6/x_tmax * thickness + 100 * thickness**4

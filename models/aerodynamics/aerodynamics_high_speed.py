@@ -25,7 +25,6 @@ from .components.cd0_wing import Cd0Wing
 from .components.cd0_other import Cd0Other
 from .components.compute_L_D_max import ComputeLDMax
 from .components.compute_reynolds import ComputeReynolds
-from .components.high_lift_aero import ComputeDeltaHighLift
 from .components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
 from .components.compute_cnbeta_vt import ComputeCnBetaVT
 
@@ -35,9 +34,12 @@ from .external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, C
 from .external.xfoil import XfoilPolar
 
 from openmdao.core.group import Group
+from openmdao.core.explicitcomponent import ExplicitComponent
+import numpy as np
 
 _OSWALD_BY_VLM = True
 _CLALPHA_BY_VLM = True
+
 
 class AerodynamicsHighSpeed(Group):
     """
@@ -45,6 +47,9 @@ class AerodynamicsHighSpeed(Group):
     """
 
     def setup(self):
+        self.add_subsystem("comp_re", ComputeReynolds(), promotes=["*"])
+        self.add_subsystem("connect_xfoil", Connection(), promotes=["*"])
+        self.add_subsystem("comp_polar", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio", "xfoil:length"])
         if _OSWALD_BY_VLM:
             self.add_subsystem("oswald", ComputeOSWALDvlm(), promotes=["*"])
         else:
@@ -53,7 +58,7 @@ class AerodynamicsHighSpeed(Group):
             self.add_subsystem("cl_alpha", ComputeWingCLALPHAvlm(), promotes=["*"])
         else:
             self.add_subsystem("cl_alpha", ComputeWingCLALPHAopenvsp(), promotes=["*"])
-        self.add_subsystem("comp_re", ComputeReynolds(), promotes=["*"])
+
         self.add_subsystem("cd0_wing", Cd0Wing(), promotes=["*"])
         self.add_subsystem("cd0_fuselage", Cd0Fuselage(), promotes=["*"])
         self.add_subsystem("cd0_ht", Cd0HorizontalTail(), promotes=["*"])
@@ -62,8 +67,22 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("cd0_l_gear", Cd0LandingGear(), promotes=["*"])
         self.add_subsystem("cd0_other", Cd0Other(), promotes=["*"])
         self.add_subsystem("cd0_total", Cd0Total(), promotes=["*"])
-        self.add_subsystem("comp_polar", XfoilPolar(), promotes=["*"])
         self.add_subsystem("cl_alpha_ht", ComputeHTPCLALPHAopenvsp(), promotes=["*"])
         self.add_subsystem("L_D_max", ComputeLDMax(), promotes=["*"])
         self.add_subsystem("cnBeta_fuse", ComputeCnBetaFuselage(), promotes=["*"])
         self.add_subsystem("cnBeta_vt", ComputeCnBetaVT(), promotes=["*"])
+        
+        self.connect("data:aerodynamics:cruise:mach", "comp_polar.xfoil:mach")
+        self.connect("data:aerodynamics:cruise:unit_reynolds", "comp_polar.xfoil:unit_reynolds")
+        self.connect("comp_polar.xfoil:CL", "data:aerodynamics:wing:cruise:CL")
+        self.connect("comp_polar.xfoil:CDp", "data:aerodynamics:wing:cruise:CDp")
+
+
+class Connection(ExplicitComponent):
+    def setup(self):
+        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
+        self.add_output("xfoil:length", units="m")
+        self.declare_partials("*", "*", method="fd")
+
+    def compute(self, inputs, outputs):
+        outputs["xfoil:length"] = inputs["data:geometry:wing:MAC:length"]
