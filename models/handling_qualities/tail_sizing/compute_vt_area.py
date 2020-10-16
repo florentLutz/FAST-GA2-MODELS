@@ -36,7 +36,7 @@ class ComputeVTArea(om.ExplicitComponent):
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan, units="m")
         self.add_input("data:aerodynamics:fuselage:cruise:CnBeta", val=np.nan)
-        self.add_input("data:aerodynamics:vertical_tail:cruise:CnBeta", val=np.nan)
+        self.add_input("data:aerodynamics:vertical_tail:cruise:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
         self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
@@ -54,7 +54,7 @@ class ComputeVTArea(om.ExplicitComponent):
                         "data:geometry:wing:MAC:length",
                         "data:weight:aircraft:CG:aft:MAC_position",
                         "data:aerodynamics:fuselage:cruise:CnBeta",
-                        "data:aerodynamics:vertical_tail:cruise:CnBeta",
+                        "data:aerodynamics:vertical_tail:cruise:CL_alpha",
                         "data:TLAR:v_cruise",
                         "data:TLAR:v_approach",
                         "data:mission:sizing:main_route:cruise:altitude",
@@ -78,7 +78,7 @@ class ComputeVTArea(om.ExplicitComponent):
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         cg_mac_position = inputs["data:weight:aircraft:CG:aft:MAC_position"]
         cn_beta_fuselage = inputs["data:aerodynamics:fuselage:cruise:CnBeta"]
-        cn_beta_vt = inputs["data:aerodynamics:vertical_tail:cruise:CnBeta"]
+        cl_alpha_vt = inputs["data:aerodynamics:vertical_tail:cruise:CL_alpha"]
         cruise_speed = inputs["data:TLAR:v_cruise"]
         approach_speed = inputs["data:TLAR:v_approach"]
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"] 
@@ -97,7 +97,7 @@ class ComputeVTArea(om.ExplicitComponent):
 
         required_cnbeta_vtp = cn_beta_goal - cn_beta_fuselage
         distance_to_cg = wing_htp_distance + 0.25 * l0_wing - cg_mac_position * l0_wing
-        area_1 = required_cnbeta_vtp / (distance_to_cg / wing_area / span * cn_beta_vt)
+        area_1 = required_cnbeta_vtp / (distance_to_cg / wing_area / span * cl_alpha_vt)
         
         # CASE2: ENGINE FAILURE COMPENSATION###################################
         
@@ -113,7 +113,7 @@ class ComputeVTArea(om.ExplicitComponent):
             engine_power = 1200 # FIXME: should get engine compute_manual function or max power @ 5000ft
             # Calculation of engine thrust and nacelle drag (failed one) 
             Tmot = engine_power / MC_speed
-            Dnac = 0.07 * math.pi * (nac_diam / 2) **2
+            Dnac = 0.07 * math.pi * (nac_diam / 2) **2 # FIXME: a wet area should be given instead!
             # Torque compensation
             area_2 = 2 * (y_nacelle / wing_htp_distance) * (Tmot + Dnac) \
                         / (pressure * MC_mach**2 * 0.9 * 0.42 * 10)

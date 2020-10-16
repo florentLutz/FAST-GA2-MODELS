@@ -57,9 +57,11 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_input("data:mission:sizing:takeoff:flap_angle", val=np.nan, units="deg")
         
         self.add_output("data:aerodynamics:flaps:landing:CL")
+        self.add_output("data:aerodynamics:flaps:landing:CL_max")
         self.add_output("data:aerodynamics:flaps:landing:CM")
         self.add_output("data:aerodynamics:flaps:landing:CD")
         self.add_output("data:aerodynamics:flaps:takeoff:CL")
+        self.add_output("data:aerodynamics:flaps:takeoff:CL_max")
         self.add_output("data:aerodynamics:flaps:takeoff:CM")
         self.add_output("data:aerodynamics:flaps:takeoff:CD")
         self.add_output("data:aerodynamics:elevator:low_speed:angle", shape=len(ELEVATOR_ANGLE_LIST), units="deg")
@@ -75,7 +77,8 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         for self.phase in ['landing', 'takeoff']:
             if self.phase == 'landing':
                 flap_angle = inputs["data:mission:sizing:landing:flap_angle"]
-                outputs["data:aerodynamics:flaps:landing:CL"] = self._get_flaps_delta_cl(
+                outputs["data:aerodynamics:flaps:landing:CL"],\
+                    outputs["data:aerodynamics:flaps:landing:CL_max"] = self._get_flaps_delta_cl(
                     inputs,
                     flap_angle,
                     mach,
@@ -91,7 +94,8 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                 )
             else:
                 flap_angle = inputs["data:mission:sizing:takeoff:flap_angle"]
-                outputs["data:aerodynamics:flaps:takeoff:CL"] = self._get_flaps_delta_cl(
+                outputs["data:aerodynamics:flaps:takeoff:CL"],\
+                    outputs["data:aerodynamics:flaps:takeoff:CL_max"] = self._get_flaps_delta_cl(
                     inputs,
                     flap_angle,
                     mach,
@@ -132,7 +136,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                         
         return delta_cl_elev
 
-    def _get_flaps_delta_cl(self, inputs, flap_angle: float, mach: float) -> float:
+    def _get_flaps_delta_cl(self, inputs, flap_angle: float, mach: float) -> Tuple[float, float]:
         """
         Method based on...
 
@@ -147,19 +151,17 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         y2_wing = inputs['data:geometry:wing:root:y']
         flap_span_ratio = inputs['data:geometry:flap:span_ratio']
 
-        if not(self.phase == 'landing') and (flap_angle != 30.0):
-            # 2D flap lift coefficient
-            delta_cl_airfoil = self._compute_delta_cl_airfoil_2D(inputs, flap_angle, mach)
-            # Roskam 3D flap parameters
-            eta_in = y1_wing / (span_wing/2.0)
-            eta_out = ((y2_wing - y1_wing) + flap_span_ratio * (span_wing/2.0 - y2_wing)) / (span_wing/2.0 - y2_wing)
-            kb = self._compute_kb_flaps(inputs, eta_in, eta_out)
-            effect = 1.04  # fig 8.53 (cf/c=0.25, small effect of AR)
-            delta_cl_flap = kb * delta_cl_airfoil * (cl_alpha_wing / (2 * math.pi)) * effect
-        else:
-            delta_cl_flap = self._compute_delta_clmax_flaps(inputs)
+        # 2D flap lift coefficient
+        delta_cl_airfoil = self._compute_delta_cl_airfoil_2D(inputs, flap_angle, mach)
+        # Roskam 3D flap parameters
+        eta_in = y1_wing / (span_wing/2.0)
+        eta_out = ((y2_wing - y1_wing) + flap_span_ratio * (span_wing/2.0 - y2_wing)) / (span_wing/2.0 - y2_wing)
+        kb = self._compute_kb_flaps(inputs, eta_in, eta_out)
+        effect = 1.04  # fig 8.53 (cf/c=0.25, small effect of AR)
+        delta_cl0_flaps = kb * delta_cl_airfoil * (cl_alpha_wing / (2 * math.pi)) * effect
+        delta_clmax_flaps = self._compute_delta_clmax_flaps(inputs)
 
-        return delta_cl_flap
+        return delta_cl0_flaps, delta_clmax_flaps
     
     def _get_flaps_delta_cm(self, inputs, flap_angle: float, mach: float) -> float:
         """
@@ -176,7 +178,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         #at 25% MAC, cf/c+0.25)
         k_p = interpolate.interp1d([0.,0.2,0.33,0.5,1.],[0.65,0.75,0.7,0.63,0.5])
         #k_p: Figure 8.105, interpolated function of taper ratio (span ratio fixed)
-        delta_cl_flap = self._get_flaps_delta_cl(inputs, flap_angle, mach)
+        delta_cl_flap = self._get_flaps_delta_cl(inputs, flap_angle, mach) [0]
         delta_cm_flap = k_p(wing_taper_ratio) * (-0.27)*(delta_cl_flap) #-0.27: Figure 8.106
 
         return delta_cm_flap
@@ -242,7 +244,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         if flap_type == 1.0: # simple slotted
             base_increment = 1.3 # Figure 8.31
             k1 = 1.0 # Figure 8.32 (chord ratio correction)
-            if self.options["landing_flag"]: # Deflection correction
+            if self.phase == 'landing': # Deflection correction
                 k2 = 0.87 # Figure 8.33
                 k3 = 0.77 # Figure 8.34
             else: # Takeoff position
@@ -251,7 +253,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         else: # plain flap
             base_increment = 0.9 # Figure 8.31
             k1 = 1.0 # Figure 8.32 (chord ratio correction)
-            if self.options["landing_flag"]: # Deflection correction
+            if self.phase == 'landing': # Deflection correction
                 k2 = 0.87 # Figure 8.33
                 k3 = 1.0 # Figure 8.34
             else: # Takeoff position

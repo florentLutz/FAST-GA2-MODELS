@@ -42,39 +42,43 @@ def test_compute():
         shutil.rmtree(XFOIL_RESULTS)
 
     ivc = IndepVarComp()
-    ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 18000000)
-    ivc.add_output("data:aerodynamics:cruise:mach", 0.80)
+    ivc.add_output("xfoil:unit_reynolds", 18000000)
+    ivc.add_output("xfoil:mach", 0.80)
     ivc.add_output("data:geometry:wing:thickness_ratio", 0.1284)
-    ivc.add_output("data:geometry:wing:MAC:length", 1.0)
+    ivc.add_output("xfoil:length", 1.0)
 
     xfoil_comp = XfoilPolar(
         alpha_start=15.0, alpha_end=25.0, iter_limit=20, xfoil_exe_path=xfoil_path
     )
     problem = run_system(xfoil_comp, ivc)
-    assert problem["data:aerodynamics:wing:cruise:CL_max_2D"] == pytest.approx(1.98, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.98, 1e-2)
     assert not pth.exists(XFOIL_RESULTS)
 
     xfoil_comp = XfoilPolar(
         alpha_start=12.0, alpha_end=20.0, iter_limit=20, xfoil_exe_path=xfoil_path
     )  # will stop before real max CL
     problem = run_system(xfoil_comp, ivc)
-    assert problem["data:aerodynamics:wing:cruise:CL_max_2D"] == pytest.approx(1.9, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.9, 1e-2)
     assert not pth.exists(XFOIL_RESULTS)
 
     xfoil_comp = XfoilPolar(
         alpha_start=50.0, alpha_end=55.0, iter_limit=2, xfoil_exe_path=xfoil_path
     )  # will not converge
     problem = run_system(xfoil_comp, ivc)
-    assert problem["data:aerodynamics:wing:cruise:CL_max_2D"] == pytest.approx(DEFAULT_2D_CL_MAX, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(DEFAULT_2D_CL_MAX, 1e-2)
     assert not pth.exists(XFOIL_RESULTS)
 
     xfoil_comp = XfoilPolar(
         iter_limit=20, result_folder_path=XFOIL_RESULTS, xfoil_exe_path=xfoil_path
     )
     problem = run_system(xfoil_comp, ivc)
-    assert problem["data:aerodynamics:wing:cruise:CL_max_2D"] == pytest.approx(1.9, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.9, 1e-2)
     assert pth.exists(XFOIL_RESULTS)
     assert pth.exists(pth.join(XFOIL_RESULTS, "polar_result.txt"))
+    
+    # remove folder
+    if pth.exists(XFOIL_RESULTS):
+        shutil.rmtree(XFOIL_RESULTS)
 
 
 @pytest.mark.skipif(
@@ -83,10 +87,10 @@ def test_compute():
 def test_compute_with_provided_path():
     """ Test that option "use_exe_path" works """
     ivc = IndepVarComp()
-    ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 18000000)
-    ivc.add_output("data:aerodynamics:cruise:mach", 0.20)
+    ivc.add_output("xfoil:unit_reynolds", 18000000)
+    ivc.add_output("xfoil:mach", 0.20)
     ivc.add_output("data:geometry:wing:thickness_ratio", 0.1284)
-    vc.add_output("data:geometry:wing:MAC:length", 1.0)
+    ivc.add_output("xfoil:length", 1.0)
 
     xfoil_comp = XfoilPolar(alpha_start=18.0, alpha_end=21.0, iter_limit=20)
     xfoil_comp.options["xfoil_exe_path"] = "Dummy"  # bad name
@@ -99,4 +103,4 @@ def test_compute_with_provided_path():
         else pth.join(pth.dirname(__file__), pth.pardir, "xfoil699", "xfoil.exe")
     )
     problem = run_system(xfoil_comp, ivc)
-    assert problem["data:aerodynamics:wing:cruise:CL_max_2D"] == pytest.approx(1.94, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.94, 1e-2)
