@@ -25,13 +25,13 @@ class ComputePayload(om.ExplicitComponent):
         self.add_input("data:TLAR:NPAX", val=np.nan)
         self.add_input(
             "settings:weight:aircraft:payload:design_mass_per_passenger",
-            val=90.72,
+            val=80.0,
             units="kg",
             desc="Design value of mass per passenger",
         )
         self.add_input(
             "settings:weight:aircraft:payload:max_mass_per_passenger",
-            val=130.72,
+            val=90.0,
             units="kg",
             desc="Maximum value of mass per passenger",
         )

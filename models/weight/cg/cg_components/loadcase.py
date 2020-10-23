@@ -32,12 +32,27 @@ class ComputeCGLoadCase(ExplicitComponent):
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:weight:payload:PAX:CG:x", val=np.nan, units="m")
+        self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
+        self.add_input("data:geometry:cabin:seats:pilot:length", val=np.nan, units="m")
+        self.add_input("data:geometry:cabin:seats:passenger:length", val=np.nan, units="m")
         self.add_input("data:weight:payload:rear_fret:CG:x", val=np.nan, units="m")
         self.add_input("data:weight:payload:front_fret:CG:x", val=np.nan, units="m")
         self.add_input("data:weight:aircraft_empty:CG:x", val=np.nan, units="m")
         self.add_input("data:weight:aircraft_empty:mass", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:MFW", val=np.nan, units="kg")
         self.add_input("data:weight:propulsion:tank:CG:x", val=np.nan, units="m")
+        self.add_input(
+            "settings:weight:aircraft:payload:design_mass_per_passenger",
+            val=80.0,
+            units="kg",
+            desc="Design value of mass per passenger",
+        )
+        self.add_input(
+            "settings:weight:aircraft:payload:max_mass_per_passenger",
+            val=90.0,
+            units="kg",
+            desc="Maximum value of mass per passenger",
+        )
 
         self.add_output("data:weight:aircraft:load_case_"+str(self.load_case)+":CG:MAC_position")
 
@@ -47,6 +62,9 @@ class ComputeCGLoadCase(ExplicitComponent):
                 "data:geometry:wing:MAC:length",
                 "data:geometry:wing:MAC:at25percent:x",
                 "data:weight:payload:PAX:CG:x",
+                "data:geometry:fuselage:front_length",
+                "data:geometry:cabin:seats:pilot:length",
+                "data:geometry:cabin:seats:passenger:length",
                 "data:weight:payload:rear_fret:CG:x",
                 "data:weight:payload:front_fret:CG:x",
                 "data:weight:aircraft_empty:CG:x",
@@ -59,42 +77,51 @@ class ComputeCGLoadCase(ExplicitComponent):
 
     def compute(self, inputs, outputs):
          
-        npax = inputs["data:TLAR:NPAX"] #+ 2.0 # ???: addition of the 2 pilots
+        npax = inputs["data:TLAR:NPAX"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         cg_pax = inputs["data:weight:payload:PAX:CG:x"]
+        lav = inputs["data:geometry:fuselage:front_length"]
+        l_pilot_seat = inputs["data:geometry:cabin:seats:pilot:length"]
+        l_pass_seat = inputs["data:geometry:cabin:seats:passenger:length"]
         cg_rear_fret = inputs["data:weight:payload:rear_fret:CG:x"]
         cg_front_fret = inputs["data:weight:payload:front_fret:CG:x"]
         x_cg_plane_aft = inputs["data:weight:aircraft_empty:CG:x"]
         m_empty = inputs["data:weight:aircraft_empty:mass"]
         mfw = inputs["data:weight:aircraft:MFW"]
         cg_tank = inputs["data:weight:propulsion:tank:CG:x"]
-        
-        if self.load_case == 1: 
-            weight_pax = npax * 80.0;
-            weight_rear_fret = 1.0;
-            weight_front_fret = 0.0;
-        elif self.load_case == 2: 
-            weight_pax = npax * 80.0;
-            weight_rear_fret = npax * 20.0;
-            weight_front_fret = 0.0;
-        elif self.load_case == 3:
-            weight_pax = npax * 80.0;
-            weight_rear_fret = npax * 20.0;
-            weight_front_fret = 0.0;
-            mfw = 0.0;
-        elif self.load_case == 4:
-            weight_pax = npax * 90.0;
-            weight_rear_fret = 0.0;
-            weight_front_fret = 0.0;
-        elif self.load_case == 5:
-            weight_pax = 80;
-            weight_rear_fret = 0.0;
-            weight_front_fret = 0.0;
-        elif self.load_case == 6:
-            weight_pax = 160;
-            weight_rear_fret = 0.0;
-            weight_front_fret = 0.0;
+        design_mass_p_pax = inputs["settings:weight:aircraft:payload:design_mass_per_passenger"]
+        max_mass_p_pax = inputs["settings:weight:aircraft:payload:max_mass_per_passenger"]
+
+        if self.load_case == 1:  # all passengers, max fuel but no luggage
+            weight_pax = (npax+2) * design_mass_p_pax
+            weight_rear_fret = 0.0
+            weight_front_fret = 0.0
+        elif self.load_case == 2:  # all passengers, max fuel and 20kg luggage per pax
+            weight_pax = (npax+2) * design_mass_p_pax
+            weight_rear_fret = npax * 20.0
+            weight_front_fret = 0.0
+        elif self.load_case == 3:  # all passengers, no fuel and 20kg luggage per pax
+            weight_pax = (npax+2) * design_mass_p_pax
+            weight_rear_fret = npax * 20.0
+            weight_front_fret = 0.0
+            mfw = 0.0
+        elif self.load_case == 4:  # all passengers (max mass), max fuel but no luggage
+            weight_pax = (npax+2) * max_mass_p_pax
+            weight_rear_fret = 0.0
+            weight_front_fret = 0.0
+        elif self.load_case == 5:  # only 1 pilot (over-write pax-CG), max fuel, no luggage
+            l_instr = 0.7
+            cg_pax = lav + l_instr + l_pilot_seat/2.0
+            weight_pax = design_mass_p_pax
+            weight_rear_fret = 0.0
+            weight_front_fret = 0.0
+        elif self.load_case == 6:  # only 1 pilot and 1 passenger (over-write pax-CG), max fuel, no luggage
+            l_instr = 0.7
+            cg_pax = lav + l_instr + l_pilot_seat*0.75 + l_pass_seat*0.25
+            weight_pax = 160
+            weight_rear_fret = 0.0
+            weight_front_fret = 0.0
         else:
             raise ValueError('compute_cg_loadcase model only computes load case 1 to 6!')
         
@@ -105,8 +132,9 @@ class ComputeCGLoadCase(ExplicitComponent):
             + weight_front_fret * cg_front_fret
         ) / weight_pl
         x_cg_plane_pl = (
-                        m_empty*x_cg_plane_aft
-                        + mfw*cg_tank + weight_pl * x_cg_pl
+                        m_empty * x_cg_plane_aft
+                        + mfw * cg_tank
+                        + weight_pl * x_cg_pl
         ) / (m_empty + mfw + weight_pl)  # forward
         cg_ratio_pl = (x_cg_plane_pl - fa_length + 0.25 * l0_wing) / l0_wing
         

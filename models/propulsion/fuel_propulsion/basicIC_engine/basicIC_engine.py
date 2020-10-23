@@ -62,12 +62,13 @@ class BasicICEngine(AbstractFuelPropulsion):
             )
 
         self.ref = {
-            "max_power": 15000,
-            "max_thrust": 2000,
-            "length": 1.1,
-            "height": 0.8,
-            "width": 0.6,
-        }
+            "max_power": 132480,
+            "max_thrust": 3600,
+            "length": 0.83,
+            "height": 0.57,
+            "width": 0.85,
+            "mass": 136,
+        } # Lycoming IO-360-B1A
         self.max_power = max_power
         self.fuel_type = fuel_type
         self.strokes_nb = strokes_nb
@@ -260,7 +261,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         :return: SFC_P (in kg/s/W)
         """
 
-        altitude = atmosphere.get_altitude(False)
+        altitude = atmosphere.get_altitude(altitude_in_feet=True)
         sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
         max_power = (self.max_power/1e3) * (sigma - (1 - sigma) / 7.55) # max power in kW
 
@@ -299,14 +300,12 @@ class BasicICEngine(AbstractFuelPropulsion):
         thrust_rate = np.asarray(thrust_rate)
         mach = np.asarray(mach)
         max_thrust = self.max_thrust(Atmosphere(altitude, altitude_in_feet=False), mach)
-        sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
-        max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
+        sigma = Atmosphere(altitude, altitude_in_feet=False).density / Atmosphere(0.0).density
+        max_power = min(self.max_power * (sigma - (1 - sigma) / 7.55), max_thrust * mach * Atmosphere(altitude).speed_of_sound / PROPELLER_EFFICIENCY)
         prop_power = (max_thrust * thrust_rate * mach * Atmosphere(altitude).speed_of_sound)
-        mech_power = prop_power / PROPELLER_EFFICIENCY
+        mech_power = prop_power / PROPELLER_EFFICIENCY  # FIXME: low speed efficiency drop down leading to high mechanical power!
 
-        power_rate_1 = mech_power / max_power
-        power_rate_2 = (mech_power == 0.0) * thrust_rate**(3/2)
-        power_rate = np.maximum(power_rate_1, power_rate_2)
+        power_rate = mech_power / max_power
 
         sfc_ratio = (-0.9976 * power_rate ** 2 + 1.9964 * power_rate)
 
@@ -326,15 +325,12 @@ class BasicICEngine(AbstractFuelPropulsion):
         """
 
         # Calculate maximum mechanical power @ given altitude
-        altitude = atmosphere.get_altitude(altitude_in_feet=False)
+        altitude = atmosphere.get_altitude(altitude_in_feet=True)
         mach = np.asarray(mach)
         sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
         max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
         thrust_1 = self.ref["max_thrust"] * max_power / self.ref["max_power"]
         thrust_2 = max_power * PROPELLER_EFFICIENCY / (mach * Atmosphere(altitude).speed_of_sound)
-
-        if np.minimum(thrust_1, thrust_2)<0:
-            print("errror")
 
         return np.minimum(thrust_1, thrust_2)
 
@@ -346,8 +342,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         """
         # FIXME : separate raw engine weight and installation factor
         installation_factor = 1.0
-        # FIXME: negative weight for P<17kW
-        weight = (self.max_power * (1.35962 / 1000) - 21.55) / 0.5515 # max power in SHP
+        weight = self.ref["mass"] * (self.max_power / self.ref["max_power"])
 
         installed_weight = installation_factor * weight
 

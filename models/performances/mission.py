@@ -41,19 +41,6 @@ class _compute_taxi(om.ExplicitComponent):
     Compute the fuel consumption for taxi based on speed and duration.
     """
 
-    def __init__(self, **kwargs):
-        """
-        Computes thrust, SFC and thrust rate by direct call to engine model.
-        Options:
-          - propulsion_id: (mandatory) the identifier of the propulsion wrapper.
-          - out_file: if provided, a csv file will be written at provided path with all computed
-                      flight points. If path is relative, it will be resolved from working
-                      directory
-        """
-        super().__init__(**kwargs)
-        self.flight_points = None
-        self._engine_wrapper = None
-
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
         self.options.declare("taxi_out", default=True, types=bool)
@@ -67,11 +54,13 @@ class _compute_taxi(om.ExplicitComponent):
         if self.taxi_out:
             self.add_input("data:mission:sizing:taxi_out:thrust_rate", np.nan)
             self.add_input("data:mission:sizing:taxi_out:duration", np.nan, units="s")
-            self.add_output("data:mission:operational:taxi_out:fuel", units='kg')
+            self.add_input("data:mission:sizing:taxi_out:speed", np.nan, units="m/s")
+            self.add_output("data:mission:sizing:taxi_out:fuel", units='kg')
         else:
             self.add_input("data:mission:sizing:taxi_in:thrust_rate", np.nan)
             self.add_input("data:mission:sizing:taxi_in:duration", np.nan, units="s")
-            self.add_output("data:mission:operational:taxi_in:fuel", units='kg')
+            self.add_input("data:mission:sizing:taxi_in:speed", np.nan, units="m/s")
+            self.add_output("data:mission:sizing:taxi_in:fuel", units='kg')
 
         self.declare_partials("*", "*", method="fd") 
 
@@ -83,41 +72,30 @@ class _compute_taxi(om.ExplicitComponent):
         if self.taxi_out:
             thrust_rate = inputs["data:mission:sizing:taxi_out:thrust_rate"]
             duration = inputs["data:mission:sizing:taxi_out:duration"]
+            mach = inputs["data:mission:sizing:taxi_out:speed"]/Atmosphere(0.0).speed_of_sound
         else:
             thrust_rate = inputs["data:mission:sizing:taxi_in:thrust_rate"]
             duration = inputs["data:mission:sizing:taxi_in:duration"]
+            mach = inputs["data:mission:sizing:taxi_in:speed"] / Atmosphere(0.0).speed_of_sound
 
         # FIXME: no specific settings for taxi (to be changed in fastoad\constants.py
         flight_point = FlightPoint(
-            mach=0.0, altitude=0.0, engine_setting=EngineSetting.TAKEOFF,
+            mach=mach, altitude=0.0, engine_setting=EngineSetting.TAKEOFF,
             thrust_rate=thrust_rate
         )  # with engine_setting as EngineSetting
         propulsion_model.compute_flight_points(flight_point)
         fuel_mass = propulsion_model.get_consumed_mass(flight_point, duration)
 
         if self.taxi_out:
-            outputs["data:mission:operational:taxi_out:fuel"] = fuel_mass
+            outputs["data:mission:sizing:taxi_out:fuel"] = fuel_mass
         else:
-            outputs["data:mission:operational:taxi_in:fuel"] = fuel_mass
+            outputs["data:mission:sizing:taxi_in:fuel"] = fuel_mass
 
 class _compute_climb(om.ExplicitComponent):
     """
     Compute the fuel consumption on climb segment with constant VCAS and fixed thrust ratio.
     The hypothesis of small alpha/gamma angles is done.
     """
-
-    def __init__(self, **kwargs):
-        """
-        Computes thrust, SFC and thrust rate by direct call to engine model.
-        Options:
-          - propulsion_id: (mandatory) the identifier of the propulsion wrapper.
-          - out_file: if provided, a csv file will be written at provided path with all computed
-                      flight points. If path is relative, it will be resolved from working
-                      directory
-        """
-        super().__init__(**kwargs)
-        self.flight_points = None
-        self._engine_wrapper = None
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
@@ -141,6 +119,7 @@ class _compute_climb(om.ExplicitComponent):
         self.add_output("data:mission:sizing:main_route:climb:fuel", units="kg")
         self.add_output("data:mission:sizing:main_route:climb:distance", units="m")
         self.add_output("data:mission:sizing:main_route:climb:duration", units="s")
+        self.add_output("data:mission:sizing:main_route:climb:v_cas", units="m/s")
         
         self.declare_partials("*", "*", method="fd")
         
@@ -209,6 +188,7 @@ class _compute_climb(om.ExplicitComponent):
         outputs["data:mission:sizing:main_route:climb:fuel"] = mass_fuel_t
         outputs["data:mission:sizing:main_route:climb:distance"] = distance_t
         outputs["data:mission:sizing:main_route:climb:duration"] = time_t
+        outputs["data:mission:sizing:main_route:climb:v_cas"] = v_cas
 
 
 class _compute_cruise(om.ExplicitComponent):
@@ -216,19 +196,6 @@ class _compute_cruise(om.ExplicitComponent):
     Compute the fuel consumption on cruise segment with constant VTAS and altitude.
     The hypothesis of small alpha/gamma angles is done.
     """
-
-    def __init__(self, **kwargs):
-        """
-        Computes thrust, SFC and thrust rate by direct call to engine model.
-        Options:
-          - propulsion_id: (mandatory) the identifier of the propulsion wrapper.
-          - out_file: if provided, a csv file will be written at provided path with all computed
-                      flight points. If path is relative, it will be resolved from working
-                      directory
-        """
-        super().__init__(**kwargs)
-        self.flight_points = None
-        self._engine_wrapper = None
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
@@ -250,8 +217,11 @@ class _compute_cruise(om.ExplicitComponent):
         self.add_input("data:mission:sizing:takeoff:fuel", np.nan, units="kg")
         self.add_input("data:mission:sizing:initial_climb:fuel", np.nan, units="kg")
         self.add_input("data:mission:sizing:main_route:climb:fuel", np.nan, units="kg")
+        self.add_input("data:mission:sizing:main_route:climb:distance", np.nan,units="m")
+        self.add_input("data:mission:sizing:main_route:descent:distance", 0.0, units="m")
 
         self.add_output("data:mission:sizing:main_route:cruise:fuel", units="kg")
+        self.add_output("data:mission:sizing:main_route:cruise:distance", units="m")
         self.add_output("data:mission:sizing:main_route:cruise:duration", units="s")
 
         self.declare_partials("*", "*", method="fd")
@@ -261,7 +231,14 @@ class _compute_cruise(om.ExplicitComponent):
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:engine:count"]
         )
         v_tas = inputs["data:TLAR:v_cruise"]
-        cruise_distance = inputs["data:TLAR:range"]
+        cruise_distance = max(
+            0.0,
+            (
+                inputs["data:TLAR:range"]
+                - inputs["data:mission:sizing:main_route:climb:distance"]
+                - inputs["data:mission:sizing:main_route:descent:distance"]
+            )
+        )
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
         cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
         coef_k = inputs["data:aerodynamics:aircraft:cruise:coef_k"]
@@ -303,19 +280,21 @@ class _compute_cruise(om.ExplicitComponent):
             propulsion_model.compute_flight_points(flight_point)
             # If thrust exceed max thrust exit cruise calculation
             if float(flight_point.thrust_rate) > 1.0:
-                mass_fuel_t = 0.0 # FIXME: this point should be calculated with MTOW, crsuie condition and propulsion margin
+                warnings.warn("The cruise strategy exceeds propulsion power!")
+                mass_fuel_t = 0.0
                 time_t = 0.0
                 break
 
             # Calculate distance increase
-            distance_t += v_tas * TIME_STEP
+            distance_t += v_tas * min(TIME_STEP, (cruise_distance-distance_t)/v_tas)
 
             # Estimate mass evolution and update time
-            mass_fuel_t += propulsion_model.get_consumed_mass(flight_point, TIME_STEP)
-            mass_t = mass_t - propulsion_model.get_consumed_mass(flight_point, TIME_STEP)
-            time_t += TIME_STEP
+            mass_fuel_t += propulsion_model.get_consumed_mass(flight_point, min(TIME_STEP, (cruise_distance-distance_t)/v_tas))
+            mass_t = mass_t - propulsion_model.get_consumed_mass(flight_point, min(TIME_STEP, (cruise_distance-distance_t)/v_tas))
+            time_t += min(TIME_STEP, (cruise_distance-distance_t)/v_tas)
 
         outputs["data:mission:sizing:main_route:cruise:fuel"] = mass_fuel_t
+        outputs["data:mission:sizing:main_route:cruise:distance"] = distance_t
         outputs["data:mission:sizing:main_route:cruise:duration"] = time_t
 
 
@@ -326,19 +305,6 @@ class _compute_descent(om.ExplicitComponent):
     The hypothesis of small alpha angle is done.
     Warning: Descent rate is reduced if cd/cl < abs(desc_rate)!
     """
-
-    def __init__(self, **kwargs):
-        """
-        Computes thrust, SFC and thrust rate by direct call to engine model.
-        Options:
-          - propulsion_id: (mandatory) the identifier of the propulsion wrapper.
-          - out_file: if provided, a csv file will be written at provided path with all computed
-                      flight points. If path is relative, it will be resolved from working
-                      directory
-        """
-        super().__init__(**kwargs)
-        self.flight_points = None
-        self._engine_wrapper = None
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
@@ -396,7 +362,7 @@ class _compute_descent(om.ExplicitComponent):
         atm_0 = Atmosphere(0.0)
         warning = False
         # Calculate defined VCAS at the beginning of descent (cos(gamma)~1)
-        v_cas = math.sqrt((mass_t * g) / (0.5 * atm_0.density * wing_area * cl))
+        v_cas = math.sqrt((mass_t * g) * math.cos(descent_rate)/ (0.5 * atm_0.density * wing_area * cl))
 
         while altitude_t > SAFETY_HEIGHT:
 
@@ -404,7 +370,7 @@ class _compute_descent(om.ExplicitComponent):
             atm = Atmosphere(altitude_t, altitude_in_feet=False)
             v_tas = v_cas * math.sqrt(atm_0.density / atm.density)
             # Calculate lift and drag coefficients changes to maintain speed (cos(gamma)~1)
-            cl = ((mass_t * g) / (0.5 * atm.density * wing_area * v_tas**2))
+            cl = ((mass_t * g) * math.cos(descent_rate) / (0.5 * atm.density * wing_area * v_tas**2))
             cd = cd0 + coef_k * cl**2
             cl_cd = cl/cd
             Drag = 0.5 * atm.density * wing_area * cd * v_tas**2

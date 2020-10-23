@@ -74,10 +74,10 @@ def test_compute_payload():
     ivc = om.IndepVarComp()
 
     # Run problem and check obtained value(s) is/(are) correct
-    ivc.add_output("data:TLAR:NPAX", val=4.0)
+    ivc.add_output("data:TLAR:NPAX", val=2.0)
     problem = run_system(ComputePayload(), ivc)
-    assert problem["data:weight:aircraft:payload"] == pytest.approx(544.32, abs=1e-2)
-    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(784.32, abs=1e-2)
+    assert problem["data:weight:aircraft:payload"] == pytest.approx(320.0, abs=1e-2)
+    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(360.0, abs=1e-2)
 
     ivc = om.IndepVarComp()
 
@@ -317,7 +317,7 @@ def test_loop_compute_owe():
 
     mass_computation_1 = run_system(MassBreakdown(payload_from_npax=True), input_vars)
     oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1120.25, abs=1e-2)
+    assert oew == pytest.approx(1072.96, abs=1e-2)
 
     # with payload as input
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))

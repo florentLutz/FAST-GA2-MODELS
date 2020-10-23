@@ -46,12 +46,10 @@ class MassBreakdown(om.Group):
     Computes analytically the mass of each part of the aircraft, and the resulting sum,
     the Overall Weight Empty (OWE).
 
-    Some models depend on MZFW (Max Zero Fuel Weight), MLW (Max Landing Weight) and
-    MTOW (Max TakeOff Weight), which depend on OWE.
+    Some models depend on MZFW (Max Zero Fuel Weight) and MTOW (Max TakeOff Weight),
+    which depend on OWE.
 
-    This model cycles for having consistent OWE, MZFW and MLW.
-    Consistency with MTOW can be achieved by cycling with a model that computes MTOW from OWE,
-    which should come from a mission computation that will assess needed block fuel.
+    This model cycles for having consistent OWE, MZFW and MTOW based on MFW.
 
     Options:
     - payload_from_npax: If True (default), payload masses will be computed from NPAX, if False

@@ -16,11 +16,11 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-			<NPAX>4.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
+			<NPAX>2.0<!--number of passengers (2 pilots not included)--></NPAX>
 		</TLAR>
 		<geometry>
 			<cabin>
-				<NPAX>4.0<!--umber of passengers if all rows are complete--></NPAX>
+				<NPAX>2.0<!--number of passengers seats if all rows filled-up--></NPAX>
 				<aisle_width units="m">0.0<!--cabin aisle width--></aisle_width>
 				<seats>
 					<pilot>

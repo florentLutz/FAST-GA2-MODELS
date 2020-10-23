@@ -268,6 +268,7 @@ def test_compute_cg_passenger_seats():
 
     # Input list from model (not generated because of NaN convertion problem to integer)
     input_list = [
+        "data:TLAR:NPAX",
         "data:geometry:cabin:NPAX",
         "data:geometry:fuselage:front_length",
         "data:geometry:cabin:seats:passenger:count_by_row",
@@ -281,7 +282,7 @@ def test_compute_cg_passenger_seats():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputePassengerSeatsCG(), ivc)
     x_cg_d2 = problem.get_val("data:weight:furniture:passenger_seats:CG:x", units="m")
-    assert x_cg_d2 == pytest.approx(4.13, abs=1e-1)
+    assert x_cg_d2 == pytest.approx(3.92, abs=1e-2) # modified with new cabin definition
 
 
 def test_compute_cg_payload():
@@ -294,7 +295,7 @@ def test_compute_cg_payload():
 
     # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:weight:furniture:passenger_seats:CG:x", 4.13, units="m")
+    ivc.add_output("data:weight:furniture:passenger_seats:CG:x", 4.13, units="m")  # use old fast-version for calculation
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputePayloadCG(), ivc)
@@ -351,7 +352,7 @@ def test_compute_cg_loadcase():
 
     # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:weight:payload:PAX:CG:x", 4.13)
+    ivc.add_output("data:weight:payload:PAX:CG:x", 4.13)  # use old fast-version for calculation
     ivc.add_output("data:weight:payload:rear_fret:CG:x", 5.68)
     ivc.add_output("data:weight:payload:front_fret:CG:x", 0.0)
     ivc.add_output("data:weight:aircraft_empty:CG:x", 2.66)
@@ -365,15 +366,15 @@ def test_compute_cg_loadcase():
         if case == 1:
             assert cg_ratio_lc == pytest.approx(0.14, abs=1e-2)
         elif case == 2:
-            assert cg_ratio_lc == pytest.approx(0.20, abs=1e-2)
+            assert cg_ratio_lc == pytest.approx(0.17, abs=1e-2)
         elif case == 3:
-            assert cg_ratio_lc == pytest.approx(0.08, abs=1e-2)
+            assert cg_ratio_lc == pytest.approx(0.03, abs=1e-2)
         elif case == 4:
             assert cg_ratio_lc == pytest.approx(0.15, abs=1e-2)
         elif case == 5:
-            assert cg_ratio_lc == pytest.approx(0.06, abs=1e-2)
+            assert cg_ratio_lc == pytest.approx(0.03, abs=1e-2)
         elif case == 6:
-            assert cg_ratio_lc == pytest.approx(0.09, abs=1e-2)
+            assert cg_ratio_lc == pytest.approx(0.06, abs=1e-2)
         else:
             pass
 
@@ -429,4 +430,4 @@ def test_compute_aircraft_cg():
     cg_global = problem.get_val("data:weight:aircraft:CG:aft:x", units="m")
     assert cg_global == pytest.approx(3.46, abs=1e-1)
     cg_ratio = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")
-    assert cg_ratio == pytest.approx(0.26, abs=1e-2)
+    assert cg_ratio == pytest.approx(0.20, abs=1e-2)
