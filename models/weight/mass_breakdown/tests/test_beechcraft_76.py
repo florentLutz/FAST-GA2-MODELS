@@ -317,7 +317,7 @@ def test_loop_compute_owe():
 
     mass_computation_1 = run_system(MassBreakdown(payload_from_npax=True), input_vars)
     oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1072.96, abs=1e-2)
+    assert oew == pytest.approx(944.99, abs=1e-2)
 
     # with payload as input
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
@@ -329,4 +329,4 @@ def test_loop_compute_owe():
     ).to_ivc()
     mass_computation_2 = run_system(MassBreakdown(payload_from_npax=False), input_vars)
     oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1060.49, abs=1)
+    assert oew == pytest.approx(929.83, abs=1)

@@ -402,8 +402,8 @@ def test_loop_cruise_distance():
     register_wrappers()
     problem = run_system(Sizing(
         propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), input_vars)
-    mfw = problem.get_val("data:weight:aircraft:MFW", units="kg")
-    assert mfw == pytest.approx(214.0, abs=1e-1)
+    m_total = problem.get_val("data:mission:sizing:fuel", units="kg")
+    assert m_total == pytest.approx(214.0, abs=1e-1)
     climb_distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="NM")
     cruise_distance = problem.get_val("data:mission:sizing:main_route:cruise:distance", units="NM")
     descent_distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="NM")

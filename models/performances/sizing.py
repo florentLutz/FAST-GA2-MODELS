@@ -92,7 +92,7 @@ class UpdateMFW(om.ExplicitComponent):
         self.add_input("data:mission:sizing:main_route:descent:fuel", np.nan, units="kg")
         self.add_input("data:mission:sizing:taxi_in:fuel", np.nan, units="kg")
 
-        self.add_output("data:weight:aircraft:MFW", units="kg")
+        self.add_output("data:mission:sizing:fuel", units="kg")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -108,7 +108,7 @@ class UpdateMFW(om.ExplicitComponent):
         m_taxi_in = inputs["data:mission:sizing:taxi_in:fuel"]
 
 
-        mfw = (
+        m_total = (
             m_taxi_out
             + m_takeoff
             + m_initial_climb
@@ -119,5 +119,5 @@ class UpdateMFW(om.ExplicitComponent):
             + m_taxi_in
         )
 
-        outputs["data:weight:aircraft:MFW"] = mfw
+        outputs["data:mission:sizing:fuel"] = m_total
 

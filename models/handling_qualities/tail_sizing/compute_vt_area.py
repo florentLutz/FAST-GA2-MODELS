@@ -18,6 +18,10 @@ import numpy as np
 import math
 import openmdao.api as om
 from fastoad.utils.physics import Atmosphere
+from fastoad import BundleLoader
+from fastoad.models.propulsion.fuel_propulsion.base import FuelEngineSet
+from fastoad.base.flight_point import FlightPoint
+from fastoad.constants import EngineSetting
 
 
 class ComputeVTArea(om.ExplicitComponent):
@@ -28,8 +32,14 @@ class ComputeVTArea(om.ExplicitComponent):
     for dual-engine aircraft.
     """
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.options.declare("propulsion_id", default="", types=str)
+        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
+
     def setup(self):
-        
+        self._engine_wrapper.setup(self)
+
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
@@ -43,27 +53,27 @@ class ComputeVTArea(om.ExplicitComponent):
         self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:diameter", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:y", val=np.nan, units="m")
-        
+
         self.add_output("data:geometry:vertical_tail:area", val=2.0, units="m**2")
-        
+
         self.declare_partials(
-                "*",
-                [
-                        "data:geometry:wing:area",
-                        "data:geometry:wing:span",
-                        "data:geometry:wing:MAC:length",
-                        "data:weight:aircraft:CG:aft:MAC_position",
-                        "data:aerodynamics:fuselage:cruise:CnBeta",
-                        "data:aerodynamics:vertical_tail:cruise:CL_alpha",
-                        "data:TLAR:v_cruise",
-                        "data:TLAR:v_approach",
-                        "data:mission:sizing:main_route:cruise:altitude",
-                        "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
-                        "data:geometry:propulsion:nacelle:diameter",
-                        "data:geometry:propulsion:nacelle:y",
-                        "data:geometry:vertical_tail:area",
-                ],
-                method="fd",
+            "*",
+            [
+                "data:geometry:wing:area",
+                "data:geometry:wing:span",
+                "data:geometry:wing:MAC:length",
+                "data:weight:aircraft:CG:aft:MAC_position",
+                "data:aerodynamics:fuselage:cruise:CnBeta",
+                "data:aerodynamics:vertical_tail:cruise:CL_alpha",
+                "data:TLAR:v_cruise",
+                "data:TLAR:v_approach",
+                "data:mission:sizing:main_route:cruise:altitude",
+                "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
+                "data:geometry:propulsion:nacelle:diameter",
+                "data:geometry:propulsion:nacelle:y",
+                "data:geometry:vertical_tail:area",
+            ],
+            method="fd",
         )
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
@@ -72,6 +82,9 @@ class ComputeVTArea(om.ExplicitComponent):
         # compensation of engine failure induced torque at approach speed/altitude. 
         # Returns maximum area.
 
+        propulsion_model = FuelEngineSet(
+            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:engine:count"]
+        )
         engine_number = inputs["data:geometry:propulsion:engine:count"]
         wing_area = inputs["data:geometry:wing:area"]
         span = inputs["data:geometry:wing:span"]
@@ -81,14 +94,13 @@ class ComputeVTArea(om.ExplicitComponent):
         cl_alpha_vt = inputs["data:aerodynamics:vertical_tail:cruise:CL_alpha"]
         cruise_speed = inputs["data:TLAR:v_cruise"]
         approach_speed = inputs["data:TLAR:v_approach"]
-        cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"] 
+        cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
         wing_htp_distance = inputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"]
         nac_diam = inputs["data:geometry:propulsion:nacelle:diameter"]
         y_nacelle = inputs["data:geometry:propulsion:nacelle:y"]
-        
-        
-        # CASE1: OBJECTIVE TORQUE @ CRUISE ####################################
-        
+
+        # CASE1: OBJECTIVE TORQUE @ CRUISE #############################################################################
+
         atm = Atmosphere(cruise_altitude)
         speed_of_sound = atm.speed_of_sound
         cruise_mach = cruise_speed / speed_of_sound
@@ -98,26 +110,32 @@ class ComputeVTArea(om.ExplicitComponent):
         required_cnbeta_vtp = cn_beta_goal - cn_beta_fuselage
         distance_to_cg = wing_htp_distance + 0.25 * l0_wing - cg_mac_position * l0_wing
         area_1 = required_cnbeta_vtp / (distance_to_cg / wing_area / span * cl_alpha_vt)
-        
-        # CASE2: ENGINE FAILURE COMPENSATION###################################
-        
-        failure_altitude = 5000 # CS23 for Twin engine - at 5000ft
+
+        # CASE2: ENGINE FAILURE COMPENSATION DURING CLIMB ##############################################################
+
+        failure_altitude = 5000.0  # CS23 for Twin engine - at 5000ft
         atm = Atmosphere(failure_altitude)
         speed_of_sound = atm.speed_of_sound
         pressure = atm.pressure
         if engine_number == 2.0:
             stall_speed = approach_speed / 1.3
-            MC_speed = 1.2 * stall_speed # Flights mechanics from GA - Serge Bonnet CS23
-            MC_mach = MC_speed / speed_of_sound
+            mc_speed = 1.2 * stall_speed  # Flights mechanics from GA - Serge Bonnet CS23
+            mc_mach = mc_speed / speed_of_sound
             # Calculation of engine power for given conditions
-            engine_power = 1200 # FIXME: should get engine compute_manual function or max power @ 5000ft
-            # Calculation of engine thrust and nacelle drag (failed one) 
-            Tmot = engine_power / MC_speed
-            Dnac = 0.07 * math.pi * (nac_diam / 2) **2 # FIXME: a wet area should be given instead!
+            flight_point = FlightPoint(
+                mach=mc_mach, altitude=failure_altitude, engine_setting=EngineSetting.CLIMB,
+                thrust_rate=1.0
+            )  # forced to maximum thrust
+            propulsion_model.compute_flight_points(flight_point)
+            thrust = float(flight_point.thrust)
+            # Calculation of engine thrust and nacelle drag (failed one)
+            nac_drag = 0.07 * math.pi * (nac_diam / 2) ** 2  # FIXME: a wet area should be given instead!
             # Torque compensation
-            area_2 = 2 * (y_nacelle / wing_htp_distance) * (Tmot + Dnac) \
-                        / (pressure * MC_mach**2 * 0.9 * 0.42 * 10)
+            area_2 = (
+                    2 * (y_nacelle / wing_htp_distance) * (thrust + nac_drag)
+                    / (pressure * mc_mach ** 2 * 0.9 * 0.42 * 10)
+            )
         else:
             area_2 = 0.0
-        
+
         outputs["data:geometry:vertical_tail:area"] = max(area_1, area_2)
