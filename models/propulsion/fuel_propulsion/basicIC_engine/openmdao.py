@@ -25,7 +25,7 @@ from .basicIC_engine import BasicICEngine
     "fastoad.wrapper.propulsion.basicIC_engine",
     desc="""
 Parametric engine model as OpenMDAO component.
-Implementation of E. Roux models for fuel consumption of low bypass ratio engines
+Implementation of basic scaled power propeller-engine model with fixed efficiency.
 For more information, see BasicICEngine class in FAST-OAD developer documentation.
 """,
 )

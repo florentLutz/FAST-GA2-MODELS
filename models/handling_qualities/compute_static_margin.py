@@ -17,9 +17,20 @@ Estimation of static margin
 
 import numpy as np
 import openmdao.api as om
+from .aero_center import ComputeAeroCenter
 
 
-class ComputeStaticMargin(om.ExplicitComponent):
+class ComputeStaticMargin(om.Group):
+    """
+    Calculate aero-center and global static margin
+    """
+
+    def setup(self):
+        self.add_subsystem("aero_center", ComputeAeroCenter(), promotes=["*"])
+        self.add_subsystem("static_margin", _ComputeStaticMargin(), promotes=["*"])
+
+
+class _ComputeStaticMargin(om.ExplicitComponent):
     """
     Computation of static margin i.e. difference between CG ratio and neutral
     point.
