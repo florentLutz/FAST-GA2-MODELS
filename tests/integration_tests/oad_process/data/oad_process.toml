@@ -2,7 +2,7 @@
 
 title = "OAD Process"
 
-module_folders = ["..../models"]
+module_folders = ["../../../../"]
 
 input_file = "../data/beechcraft_76.xml"
 output_file = "../results/oad_process_outputs.xml"
@@ -20,9 +20,9 @@ output_file = "../results/oad_process_outputs.xml"
         id = "fastga.aerodynamics.lowspeed.legacy"
         use_xfoil = false
     [model.performance]
-        id = "fastga.performances.breguet"
+        id = "fastga.performances.sizing"
     [model.propulsion]
-        id = "fastga.propulsion.rubber_engine"
+        id = "fastga.propulsion.basicIC_engine"
     [model.hq.tail_sizing]
         id = "fastga.handling_qualities.tail_sizing"
     [model.hq.static_margin]

@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 from fastoad.io import VariableIO
-from fastoad.models.aerodynamics.constants import HT_POINT_COUNT, ELEV_POINT_COUNT
+from ...aerodynamics.constants import HT_POINT_COUNT, ELEV_POINT_COUNT
 
 from tests.testing_utilities import run_system
 from ..tail_sizing.compute_ht_area import ComputeHTArea

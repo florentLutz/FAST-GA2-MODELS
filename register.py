@@ -23,7 +23,7 @@ from .models.handling_qualities.tail_sizing.compute_tail_areas import ComputeTai
 from .models.loops.compute_wing_area import ComputeWingArea
 from .models.performances.sizing import Sizing
 from .models.propulsion.fuel_propulsion.basicIC_engine import OMBasicICEngineComponent
-from fastoad.models.weight.weight import Weight
+from .models.weight.weight import Weight
 from fastoad.module_management import OpenMDAOSystemRegistry
 from fastoad.module_management.constants import ModelDomain
 
