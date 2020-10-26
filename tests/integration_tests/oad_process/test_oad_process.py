@@ -52,8 +52,6 @@ def test_oad_process(cleanup):
         pth.join(DATA_FOLDER_PATH, "oad_process.toml")
     ).get_problem()
 
-    ref_inputs = pth.join(DATA_FOLDER_PATH, "CeRAS01_baseline.xml")
-    problem.write_needed_inputs(ref_inputs, VariableLegacy1XmlFormatter())
     problem.read_inputs()
     problem.setup()
     problem.run_model()
