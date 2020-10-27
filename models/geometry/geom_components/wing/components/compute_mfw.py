@@ -17,34 +17,52 @@
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
-# TODO: This belongs more to mass breakdown than geometry
+
 class ComputeMFW(ExplicitComponent):
 
     """ Max fuel weight estimation based o RAYMER table 10.5 p269"""
 
     def setup(self):
-    
-        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
+
         self.add_input("data:propulsion:engine:fuel_type", val=np.nan)
+        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:wing:root:chord", val=np.nan)
+        self.add_input("data:geometry:wing:tip:chord", val=np.nan)
+        self.add_input("data:geometry:wing:root:thickness_ratio", val=np.nan)
+        self.add_input("data:geometry:wing:tip:thickness_ratio", val=np.nan)
 
         self.add_output("data:weight:aircraft:MFW", units="kg")
 
-        self.declare_partials("data:weight:aircraft:MFW", "data:geometry:wing:area", method="fd")
+        self.declare_partials("data:weight:aircraft:MFW", [
+            "data:geometry:wing:area",
+            "data:geometry:wing:root:chord",
+            "data:geometry:wing:tip:chord",
+            "data:geometry:wing:root:thickness_ratio",
+            "data:geometry:wing:tip:thickness_ratio",
+            ], method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         fuel_type = inputs["data:propulsion:engine:fuel_type"]
         wing_area = inputs["data:geometry:wing:area"]
+        root_chord = inputs["data:geometry:wing:root:chord"]
+        tip_chord = inputs["data:geometry:wing:tip:chord"]
+        root_thickness_ratio = inputs["data:geometry:wing:root:thickness_ratio"]
+        tip_thickness_ratio = inputs["data:geometry:wing:tip:thickness_ratio"]
         
         if fuel_type == 1.0:
-            m_vol_fuel = 0.73 # Cold because worst case
+            m_vol_fuel = 730  # gasoline volume-mass [kg/m**3], cold worst case
         elif fuel_type == 2.0:
-            m_vol_fuel = 0.0 # FIXME: to be changed for real value
+            m_vol_fuel = 860  # gasoil volume-mass [kg/m**3], cold worst case
         else:
             raise IOError("Bad motor configuration: only fuel type 1/2 available.")
 
-        # Tanks are between 1st (25% MAC) and 3rd (60% MAC) longeron: 35% of the wing
-        mfv = 0.35*wing_area*0.12*1000 #in L                                                                                                              
-        mfw = mfv*m_vol_fuel
+        # Tanks are between 1st (30% MAC) and 3rd (60% MAC) longeron: 35% of the wing
+        ave_thichness = 0.7 * (
+                root_chord * root_thickness_ratio
+                + tip_chord * tip_thickness_ratio
+        ) / 2.0
+        mfv = 0.3 * wing_area * ave_thichness
+        mfw = mfv * m_vol_fuel
 
         outputs["data:weight:aircraft:MFW"] = mfw

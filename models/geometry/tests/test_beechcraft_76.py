@@ -338,24 +338,6 @@ def test_compute_fuselage_basic():
     assert fuselage_wet_area == pytest.approx(30.321, abs=1e-3)
 
 
-def test_geometry_wing_mfw():
-    """ Tests computation of the wing max fuel weight """
-
-    # Input list from model (not generated because of the assertion error on bad fuel type configuration)
-    input_list = [
-        "data:geometry:wing:area",
-        "data:propulsion:engine:fuel_type",
-    ]
-
-    # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
-
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeMFW(), ivc)
-    mfw = problem.get_val("data:weight:aircraft:MFW", units="kg")
-    assert mfw == pytest.approx(587.16, abs=1e-2)
-
-
 def test_geometry_wing_toc():
     """ Tests computation of the wing ToC (Thickness of Chord) """
 
@@ -541,6 +523,28 @@ def test_geometry_wing_wet_area():
     assert area_pf == pytest.approx(17.295, abs=1e-1)
     wet_area = problem.get_val("data:geometry:wing:wet_area", units="m**2")
     assert wet_area == pytest.approx(37.011, abs=1e-3)
+
+
+def test_geometry_wing_mfw():
+    """ Tests computation of the wing max fuel weight """
+
+    # Input list from model (not generated because of the assertion error on bad fuel type configuration)
+    input_list = [
+        "data:geometry:wing:area",
+        "data:propulsion:engine:fuel_type",
+    ]
+
+    # Research independent input value in .xml file and add values calculated from other modules
+    ivc = get_indep_var_comp(input_list)
+    ivc.add_output("data:geometry:wing:root:chord", 1.549, units="m")
+    ivc.add_output("data:geometry:wing:tip:chord", 1.549, units="m")
+    ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.149, units="m")
+    ivc.add_output("data:geometry:wing:tip:thickness_ratio", 0.103, units="m")
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeMFW(), ivc)
+    mfw = problem.get_val("data:weight:aircraft:MFW", units="kg")
+    assert mfw == pytest.approx(573.00, abs=1e-2)
 
 
 def test_geometry_nacelle():

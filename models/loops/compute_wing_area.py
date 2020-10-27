@@ -35,11 +35,13 @@ class _ComputeWingArea(om.ExplicitComponent):
     """ Computation of wing area from needed approach speed and mission fuel """
 
     def setup(self):
-        
-        self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
+        self.add_input("data:mission:sizing:fuel", val=np.nan, units="kg")
+        self.add_input("data:propulsion:engine:fuel_type", val=np.nan)
+        self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:thickness_ratio", val=np.nan)
         self.add_input("data:geometry:wing:tip:thickness_ratio", val=np.nan)
-        self.add_input("data:mission:sizing:fuel", val=np.nan, units="kg")
+
         self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="kg")
         self.add_input("data:aerodynamics:aircraft:landing:CL_max", val=np.nan)
@@ -49,23 +51,32 @@ class _ComputeWingArea(om.ExplicitComponent):
         self.declare_partials("data:geometry:wing:area", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        lambda_wing = inputs["data:geometry:wing:aspect_ratio"]
+
+        mfw_mission = inputs["data:mission:sizing:fuel"]
+        fuel_type = inputs["data:propulsion:engine:fuel_type"]
+        root_chord = inputs["data:geometry:wing:root:chord"]
+        tip_chord = inputs["data:geometry:wing:tip:chord"]
         root_thickness_ratio = inputs["data:geometry:wing:root:thickness_ratio"]
         tip_thickness_ratio = inputs["data:geometry:wing:tip:thickness_ratio"]
-        mfw_mission = inputs["data:mission:sizing:fuel"]
-        
-        wing_area_mission = (
-            (mfw_mission - 1570.0)
-            / 224
-            / lambda_wing ** -0.4
-            / (0.6 * root_thickness_ratio + 0.4 * tip_thickness_ratio)
-        ) ** (1.0 / 1.5)
+
+        if fuel_type == 1.0:
+            m_vol_fuel = 730  # gasoline volume-mass [kg/m**3], cold worst case
+        elif fuel_type == 2.0:
+            m_vol_fuel = 860  # gasoil volume-mass [kg/m**3], cold worst case
+        else:
+            raise IOError("Bad motor configuration: only fuel type 1/2 available.")
+
+        # Tanks are between 1st (30% MAC) and 3rd (60% MAC) longeron: 35% of the wing
+        ave_thichness = 0.7 * (
+                root_chord * root_thickness_ratio
+                + tip_chord * tip_thickness_ratio
+        ) / 2.0
+        wing_area_mission = (mfw_mission / m_vol_fuel) / (0.3 * ave_thichness)
 
         approach_speed = inputs["data:TLAR:v_approach"]
         mlw = inputs["data:weight:aircraft:MLW"]
-        max_CL = inputs["data:aerodynamics:aircraft:landing:CL_max"]
-        wing_area_approach = 2 * mlw * g / (approach_speed ** 2) / (1.225 * max_CL)
+        max_cl = inputs["data:aerodynamics:aircraft:landing:CL_max"]
+        wing_area_approach = 2 * mlw * g / (approach_speed ** 2) / (1.225 * max_cl)
 
         outputs["data:geometry:wing:area"] = max(wing_area_mission, wing_area_approach)
 
@@ -111,5 +122,5 @@ class _ComputeWingAreaConstraints(om.ExplicitComponent):
 
         outputs["data:weight:aircraft:additional_fuel_capacity"] = mfw - mission_fuel
         outputs["data:aerodynamics:aircraft:landing:additional_CL_capacity"] = cl_max - mlw * g / (
-            0.5 * 1.225 * (v_approach / 1.23) ** 2 * wing_area
+            0.5 * 1.225 * v_approach ** 2 * wing_area
         )

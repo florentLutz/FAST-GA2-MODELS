@@ -34,7 +34,6 @@ class ComputeWingGeometry(Group):
     """ Wing geometry estimation """
 
     def setup(self):
-        self.add_subsystem("mfw", ComputeMFW(), promotes=["*"])
         self.add_subsystem("wing_toc", ComputeWingToc(), promotes=["*"])
         self.add_subsystem("wing_y", ComputeWingY(), promotes=["*"])
         self.add_subsystem("wing_l1l4", ComputeWingL1AndL4(), promotes=["*"])
@@ -44,6 +43,4 @@ class ComputeWingGeometry(Group):
         self.add_subsystem("wing_mac", ComputeWingMAC(), promotes=["*"])
         self.add_subsystem("wing_sweep", ComputeWingSweep(), promotes=["*"])
         self.add_subsystem("wing_wet_area", ComputeWingWetArea(), promotes=["*"])
-
-
-        
+        self.add_subsystem("mfw", ComputeMFW(), promotes=["*"])

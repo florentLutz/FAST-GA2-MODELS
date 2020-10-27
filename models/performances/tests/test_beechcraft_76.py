@@ -14,6 +14,7 @@ Test takeoff module
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# pylint: disable=raising-bad-type
 import os.path as pth
 import openmdao.api as om
 
