@@ -18,7 +18,7 @@ import numpy as np
 import openmdao.api as om
 from fastoad.constants import EngineSetting
 
-from tests.testing_utilities import run_system
+from .....tests.testing_utilities import run_system
 from ..openmdao import OMBasicICEngineComponent
 
 
@@ -30,18 +30,18 @@ def test_OMBasicICEngineComponent():
     machs = [0, 0.3, 0.3, 0.8, 0.8]
     altitudes = [0, 0, 0, 10000, 13000]
     thrust_rates = [0.8, 0.5, 0.5, 0.4, 0.7]
-    thrusts = [1.92000000e+04, 1.17545000e+02, 1.17545000e+02, 2.57198313e+01, 4.05992947e+01]
+    thrusts = [2826.08695652,  509.36166623,  509.36166623,   43.25042365, 34.84163089]
     phases = [
         EngineSetting.TAKEOFF,
         EngineSetting.TAKEOFF,
         EngineSetting.CLIMB,
         EngineSetting.IDLE,
-        EngineSetting.CRUISE.value,
+        EngineSetting.CRUISE,
     ]  # mix EngineSetting with integers
-    expected_sfc = [6.99160433e-08, 6.51113702e-06, 6.51113702e-06, 1.40206418e-05, 1.96148075e-05]
+    expected_sfc = [3.24815793e-17, 7.61134545e-06, 7.61134545e-06, 1.53774038e-05, 2.02232638e-05]
 
     ivc = om.IndepVarComp()
-    ivc.add_output("data:propulsion:IC_engine:max_power", 30000, units="W")
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4)
 

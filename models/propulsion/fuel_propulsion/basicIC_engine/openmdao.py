@@ -22,9 +22,10 @@ from .basicIC_engine import BasicICEngine
 
 
 @RegisterPropulsion(
-    "fastoad.wrapper.propulsion.basicIC_engine",
+    "fastga.wrapper.propulsion.basicIC_engine",
     desc="""
-Parametric engine model as OpenMDAO component.
+Parametric ICE engine-propeller model as OpenMDAO component.
+
 Implementation of basic scaled power propeller-engine model with fixed efficiency.
 For more information, see BasicICEngine class in FAST-OAD developer documentation.
 """,
@@ -87,9 +88,9 @@ class OMBasicICEngineWrapper(IOMPropulsionWrapper):
     {
         "data:propulsion:thrust_rate": (0.0, 1.0),
         "data:propulsion:mach": (0.0, 0.85),
-        "data:propulsion:IC_engine:max_power": (20000, 150000), # power range validity
-        "data:propulsion:IC_engine:fuel_type": [1.0, 2.0], # fuel list
-        "data:propulsion:IC_engine:strokes_nb": [2.0, 4.0], # architecture list
+        "data:propulsion:IC_engine:max_power": (50000, 250000),  # power range validity
+        "data:propulsion:IC_engine:fuel_type": [1.0, 2.0],  # fuel list
+        "data:propulsion:IC_engine:strokes_nb": [2.0, 4.0],  # architecture list
     }
 )
 class OMBasicICEngineComponent(BaseOMPropulsionComponent):

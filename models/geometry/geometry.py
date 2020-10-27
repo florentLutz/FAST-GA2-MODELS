@@ -28,7 +28,7 @@ from .geom_components.nacelle.compute_nacelle import (
 )
 from .geom_components.vt import ComputeVerticalTailGeometry
 from .geom_components.wing.compute_wing import ComputeWingGeometry
-from ...models.options import CABIN_SIZING_OPTION # FIXME: put the right package name for relative import
+from ..options import CABIN_SIZING_OPTION
 
 
 class Geometry(om.Group):

@@ -24,7 +24,29 @@ from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting
 
 
-class ComputeVTArea(om.ExplicitComponent):
+class ComputeVTArea(om.Group):
+    """
+    Computes needed vt area to:
+      - have enough rotational moment/controllability during cruise
+      - compensate 1-failed engine linear trajectory at limited altitude (5000ft)
+    """
+
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
+    def setup(self):
+        self.add_subsystem("vt_area", _ComputeVTArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
+
+        # Solvers setup
+        self.nonlinear_solver = om.NonlinearBlockGS()
+        self.nonlinear_solver.options["iprint"] = 0
+        self.nonlinear_solver.options["maxiter"] = 200
+
+        self.linear_solver = om.LinearBlockGS()
+        self.linear_solver.options["iprint"] = 0
+
+
+class _ComputeVTArea(om.ExplicitComponent):
     """
     Computes area of vertical tail plane
 
@@ -32,12 +54,11 @@ class ComputeVTArea(om.ExplicitComponent):
     for dual-engine aircraft.
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
-        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
 
     def setup(self):
+        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
@@ -51,7 +72,7 @@ class ComputeVTArea(om.ExplicitComponent):
         self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
         self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:nacelle:diameter", val=np.nan, units="m")
+        self.add_input("data:geometry:propulsion:nacelle:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:propulsion:nacelle:y", val=np.nan, units="m")
 
         self.add_output("data:geometry:vertical_tail:area", val=2.0, units="m**2")
@@ -69,7 +90,7 @@ class ComputeVTArea(om.ExplicitComponent):
                 "data:TLAR:v_approach",
                 "data:mission:sizing:main_route:cruise:altitude",
                 "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
-                "data:geometry:propulsion:nacelle:diameter",
+                "data:geometry:propulsion:nacelle:wet_area",
                 "data:geometry:propulsion:nacelle:y",
                 "data:geometry:vertical_tail:area",
             ],
@@ -96,7 +117,7 @@ class ComputeVTArea(om.ExplicitComponent):
         approach_speed = inputs["data:TLAR:v_approach"]
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
         wing_htp_distance = inputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"]
-        nac_diam = inputs["data:geometry:propulsion:nacelle:diameter"]
+        nac_wet_area = inputs["data:geometry:propulsion:nacelle:wet_area"]
         y_nacelle = inputs["data:geometry:propulsion:nacelle:y"]
 
         # CASE1: OBJECTIVE TORQUE @ CRUISE #############################################################################
@@ -129,7 +150,7 @@ class ComputeVTArea(om.ExplicitComponent):
             propulsion_model.compute_flight_points(flight_point)
             thrust = float(flight_point.thrust)
             # Calculation of engine thrust and nacelle drag (failed one)
-            nac_drag = 0.07 * math.pi * (nac_diam / 2) ** 2  # FIXME: a wet area should be given instead!
+            nac_drag = 0.07 * nac_wet_area  # FIXME: the form factor should not be fixed outside propulsion module!
             # Torque compensation
             area_2 = (
                     2 * (y_nacelle / wing_htp_distance) * (thrust + nac_drag)

@@ -30,14 +30,16 @@ _ANG_VEL = 12 * math.pi / 180  # 12 deg/s (typical for light aircraft)
 
 class ComputeHTArea(om.Group):
     """
-    Computes needed ht area for:
-      - having enough rotational power during low-speed phase
+    Computes needed ht area to:
+      - have enough rotational power during take-off phase
+      - have enough rotational power during landing phase
     """
 
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
     def setup(self):
-        self.add_subsystem("aero_coeff_landing", _ComputeAeroCoeff(landing=True), promotes=["*"])
-        self.add_subsystem("aero_coeff_takeoff", _ComputeAeroCoeff(), promotes=["*"])
-        self.add_subsystem("ht_area", _ComputeHTArea(), promotes=["*"])
+        self.add_subsystem("ht_area", _ComputeHTArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
 
         # Solvers setup
         self.nonlinear_solver = om.NonlinearBlockGS()
@@ -48,19 +50,32 @@ class ComputeHTArea(om.Group):
         self.linear_solver.options["iprint"] = 0
 
 
-class _ComputeHTArea(om.ExplicitComponent):
+class _ComputeHTArea(om.Group):
     """
     Computes area of horizontal tail plane
 
     Area is computed to fulfill aircraft balance requirement at rotation speed
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
-        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
 
     def setup(self):
+        self.add_subsystem("aero_coeff_landing", _ComputeAeroCoeff(landing=True), promotes=["*"])
+        self.add_subsystem("aero_coeff_takeoff", _ComputeAeroCoeff(), promotes=["*"])
+        self.add_subsystem("ht_area", _ComputeArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
+
+
+class _ComputeArea(om.ExplicitComponent):
+    """
+    Computes area of horizontal tail plane (internal function)
+    """
+
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
+    def setup(self):
+        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
@@ -70,8 +85,7 @@ class _ComputeHTArea(om.ExplicitComponent):
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:engine:z:from_aeroCenter", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:engine:z:from_wingMAC25", val=np.nan, units="m")
+        self.add_input("data:geometry:propulsion:nacelle:height", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="kg")
         self.add_input("data:weight:aircraft:CG:aft:x", val=np.nan, units="m")
@@ -108,7 +122,7 @@ class _ComputeHTArea(om.ExplicitComponent):
         x_wing_aero_center = inputs["data:geometry:wing:MAC:at25percent:x"]
         lp_ht = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
         wing_mac = inputs["data:geometry:wing:MAC:length"]
-        z_eng = inputs["data:geometry:propulsion:engine:z:from_wingMAC25"]
+        z_eng = inputs["data:geometry:propulsion:nacelle:height"]/2
         mtow = inputs["data:weight:aircraft:MTOW"]
         mlw = inputs["data:weight:aircraft:MLW"]
         x_cg_aft = inputs["data:weight:aircraft:CG:aft:x"]
@@ -211,10 +225,8 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
     Adapts aero-coefficient of horizontal tail @ tail (reference surface being tail area)
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def initialize(self):
         self.options.declare("landing", default=False, types=bool)
-        self.landing = self.options["landing"]
 
     def setup(self):
 
@@ -233,7 +245,7 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         self.add_input("data:aerodynamics:aircraft:low_speed:CL0_clean", val=np.nan)
         self.add_input("data:aerodynamics:flaps:landing:CL", val=np.nan)
         self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", val=np.nan)
-        if self.landing:
+        if self.options["landing"]:
             self.add_input("data:mission:sizing:landing:elevator_angle", val=np.nan, units="deg")
             self.add_output("landing:cl_ht")
             self.add_output("landing:cm_ht")
@@ -266,13 +278,13 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         rho = atm.density
 
         # Calculate elevator max. additional lift
-        if self.landing:
+        if self.options["landing"]:
             elev_angle = inputs["data:mission:sizing:landing:elevator_angle"]
         else:
             elev_angle = inputs["data:mission:sizing:takeoff:elevator_angle"]
         cl_elev = self._extrapolate(elev_angle, angle_elev_interp, cl_elev_interp)
         # Define alpha angle depending on phase
-        if self.landing:
+        if self.options["landing"]:
             alpha = 0.0
         else:
             # Calculation of take-off minimum speed
@@ -293,7 +305,7 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         # Define Cl_alpha with ht reference surface
         cl_alpha_ht = cl_alpha_ht * wing_area / ht_area
 
-        if self.landing:
+        if self.options["landing"]:
             outputs["landing:cl_ht"] = cl_ht
             outputs["landing:cm_ht"] = cm_ht
         else:

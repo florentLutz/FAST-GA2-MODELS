@@ -19,7 +19,7 @@ import os.path as pth
 import openmdao.api as om
 from numpy.testing import assert_allclose
 
-from tests.testing_utilities import run_system
+from ...tests.testing_utilities import run_system
 from ..compute_wing_area import ComputeWingArea
 
 DATA_FOLDER_PATH = pth.join(pth.dirname(__file__), "data")

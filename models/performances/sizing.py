@@ -57,6 +57,7 @@ class Sizing(om.Group):
         self.linear_solver = om.LinearBlockGS()
         self.linear_solver.options["iprint"] = 0
 
+
 class _compute_reserve(om.ExplicitComponent):
 
     def setup(self):
@@ -69,7 +70,7 @@ class _compute_reserve(om.ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
         m_reserve = (
                 inputs["data:mission:sizing:main_route:cruise:fuel"]
@@ -96,7 +97,7 @@ class UpdateMFW(om.ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
         m_taxi_out = inputs["data:mission:sizing:taxi_out:fuel"]
         m_takeoff = inputs["data:mission:sizing:takeoff:fuel"]
@@ -106,7 +107,6 @@ class UpdateMFW(om.ExplicitComponent):
         m_reserve = inputs["data:mission:sizing:main_route:reserve:fuel"]
         m_descent = inputs["data:mission:sizing:main_route:descent:fuel"]
         m_taxi_in = inputs["data:mission:sizing:taxi_in:fuel"]
-
 
         m_total = (
             m_taxi_out
@@ -120,4 +120,3 @@ class UpdateMFW(om.ExplicitComponent):
         )
 
         outputs["data:mission:sizing:fuel"] = m_total
-

@@ -26,7 +26,7 @@ from .components.cd0_other import Cd0Other
 from .components.compute_L_D_max import ComputeLDMax
 from .components.compute_reynolds import ComputeReynolds
 from .components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
-from .components.compute_cnbeta_vt import ComputeCnBetaVT
+from .components.clalpha_vt import ComputeClalphaVT
 
 
 from .external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm
@@ -70,7 +70,7 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("cl_alpha_ht", ComputeHTPCLALPHAopenvsp(), promotes=["*"])
         self.add_subsystem("L_D_max", ComputeLDMax(), promotes=["*"])
         self.add_subsystem("cnBeta_fuse", ComputeCnBetaFuselage(), promotes=["*"])
-        self.add_subsystem("cnBeta_vt", ComputeCnBetaVT(), promotes=["*"])
+        self.add_subsystem("clAlpha_vt", ComputeClalphaVT(), promotes=["*"])
         
         self.connect("data:aerodynamics:cruise:mach", "comp_polar.xfoil:mach")
         self.connect("data:aerodynamics:cruise:unit_reynolds", "comp_polar.xfoil:unit_reynolds")

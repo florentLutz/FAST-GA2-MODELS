@@ -21,7 +21,7 @@ import openmdao.api as om
 import pytest
 from fastoad.io import VariableIO
 
-from tests.testing_utilities import run_system
+from ...tests.testing_utilities import run_system
 
 from ..geom_components.fuselage import (
     ComputeFuselageGeometryBasic,
@@ -56,6 +56,7 @@ from ..geom_components.nacelle.compute_nacelle import ComputeNacelleGeometry
 from ..geom_components import ComputeTotalArea
 
 XML_FILE = "beechcraft_76.xml"
+
 
 def get_indep_var_comp(var_names):
     """ Reads required input data and returns an IndepVarcomp() instance"""
@@ -124,7 +125,6 @@ def test_compute_vt_mac():
     assert vt_z0 == pytest.approx(0.799, abs=1e-3)
     vt_lp = problem.get_val("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", units="m")
     assert vt_lp == pytest.approx(4.334, abs=1e-3)
-
 
 
 def test_compute_vt_sweep():
@@ -314,7 +314,7 @@ def test_compute_fuselage_cabin_sizing():
     fuselage_lcabin = problem.get_val("data:geometry:cabin:length", units="m")
     assert fuselage_lcabin == pytest.approx(3.759, abs=1e-3)
     fuselage_wet_area = problem.get_val("data:geometry:fuselage:wet_area", units="m**2")
-    assert fuselage_wet_area == pytest.approx(30.311, abs=1e-1) # difference comes from LAR=0.0 in old version
+    assert fuselage_wet_area == pytest.approx(30.311, abs=1e-1)  # difference comes from LAR=0.0 in old version
     luggage_length = problem.get_val("data:geometry:fuselage:luggage_length", units="m")
     assert luggage_length == pytest.approx(0.709, abs=1e-3)
 
@@ -396,7 +396,7 @@ def test_geometry_wing_y():
     wing_y2 = problem.get_val("data:geometry:wing:root:y", units="m")
     assert wing_y2 == pytest.approx(0.599, abs=1e-3)
     wing_y3 = problem.get_val("data:geometry:wing:kink:y", units="m")
-    assert wing_y3 == pytest.approx(0.599, abs=1e-3) # point 3 and 2 equal (previous version ignored)
+    assert wing_y3 == pytest.approx(0.599, abs=1e-3)  # point 3 and 2 equal (previous version ignored)
     wing_y4 = problem.get_val("data:geometry:wing:tip:y", units="m")
     assert wing_y4 == pytest.approx(6.181, abs=1e-3)
 
@@ -440,7 +440,7 @@ def test_geometry_wing_l2_l3():
     wing_l2 = problem.get_val("data:geometry:wing:root:chord", units="m")
     assert wing_l2 == pytest.approx(1.549, abs=1e-2)
     wing_l3 = problem.get_val("data:geometry:wing:kink:chord", units="m")
-    assert wing_l3 == pytest.approx(1.549, abs=1e-2) #point 3 and 2 equal (previous version ignored)
+    assert wing_l3 == pytest.approx(1.549, abs=1e-2)  # point 3 and 2 equal (previous version ignored)
 
 
 def test_geometry_wing_x():

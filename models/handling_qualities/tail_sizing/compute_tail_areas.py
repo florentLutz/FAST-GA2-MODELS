@@ -26,10 +26,10 @@ class ComputeTailAreas(om.Group):
 
     - Horizontal tail area is computed so it can balance pitching moment of
       aircraft at rotation speed.
-    - Vertical tail area is computed so aircraft can have the CNbeta in cruise
-      conditions
+    - Vertical tail area is computed so aircraft can have the Cnbeta in cruise
+      conditions and (for bi-motor) maintain trajectory with failed engine @ 5000ft
     """
 
     def setup(self):
-        self.add_subsystem("horizontal_tail", ComputeHTAreaConstraint(), promotes=["*"])
+        self.add_subsystem("horizontal_tail", ComputeHTArea(), promotes=["*"])
         self.add_subsystem("vertical_tail", ComputeVTArea(), promotes=["*"])

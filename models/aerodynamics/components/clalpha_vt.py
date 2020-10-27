@@ -1,5 +1,5 @@
 """
-    Estimation of vertical induced yawing moment
+    Estimation of vertical tail lift coefficient
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -20,39 +20,29 @@ import numpy as np
 import openmdao.api as om
 
 
-class ComputeCnBetaVT(om.ExplicitComponent):
+class ComputeClalphaVT(om.ExplicitComponent):
     # TODO: Document equations. Cite sources
-    """ Vertical tail yawing moment estimation """
+    """ Vertical tail lift coefficient estimation """
 
     def setup(self):
-        
-        self.add_input("data:geometry:has_T_tail", val=np.nan)
         self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-        self.add_input("data:geometry:vertical_tail:sweep_25", val=np.nan, units="deg")
+        self.add_input("data:geometry:has_T_tail", val=np.nan)
         self.add_input("data:geometry:vertical_tail:aspect_ratio", val=np.nan)
+        self.add_input("data:geometry:vertical_tail:sweep_25", val=np.nan, units="deg")
 
-        self.add_output("data:aerodynamics:vertical_tail:cruise:CnBeta")
+        self.add_output("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
 
-        self.declare_partials(
-                "data:aerodynamics:vertical_tail:cruise:CnBeta",
-                [
-                    "data:aerodynamics:cruise:mach",
-                    "data:geometry:vertical_tail:sweep_25",
-                    "data:geometry:vertical_tail:aspect_ratio",
-                ],
-                method="fd",
-        )
+        self.declare_partials("data:aerodynamics:vertical_tail:cruise:CL_alpha", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
         tail_type = np.round(inputs["data:geometry:has_T_tail"])
         cruise_mach = inputs["data:aerodynamics:cruise:mach"]
         sweep_25_vt = inputs["data:geometry:vertical_tail:sweep_25"]
-        k_ar_effective = 2.9 if tail_type == 1.00 else 1.55
+        k_ar_effective = 2.9 if tail_type == 1 else 1.55
         lambda_vt = inputs["data:geometry:vertical_tail:aspect_ratio"] * k_ar_effective
-        
+
         beta = math.sqrt(1 - cruise_mach ** 2)
-        cn_beta = (
+        cl_alpha_vt = (
             0.8
             * 2
             * math.pi
@@ -69,4 +59,4 @@ class ComputeCnBetaVT(om.ExplicitComponent):
             )
         )
 
-        outputs["data:aerodynamics:vertical_tail:cruise:CnBeta"] = cn_beta
+        outputs["data:aerodynamics:vertical_tail:cruise:CL_alpha"] = cl_alpha_vt
