@@ -24,7 +24,7 @@ import pytest
 from openmdao.core.indepvarcomp import IndepVarComp
 
 from .....tests.testing_utilities import run_system
-from tests.xfoil_exe.get_xfoil import get_xfoil_path
+from .....tests.xfoil_exe.get_xfoil import get_xfoil_path
 from ..xfoil_polar import XfoilPolar, DEFAULT_2D_CL_MAX
 
 XFOIL_RESULTS = pth.join(pth.dirname(__file__), "results")

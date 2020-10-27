@@ -26,15 +26,16 @@ DATA_FOLDER_PATH = pth.join(pth.dirname(__file__), "data")
 
 
 def test_compute_wing_area():
+
     # Driven by fuel
     ivc = om.IndepVarComp()
-    ivc.add_output("data:geometry:wing:aspect_ratio", 9.48)
-    ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.15)
-    ivc.add_output("data:geometry:wing:tip:thickness_ratio", 0.11)
-    ivc.add_output("data:mission:sizing:fuel", val=20500, units="kg")
-    ivc.add_output("data:TLAR:v_approach", val=132, units="kn")
-    ivc.add_output("data:weight:aircraft:MLW", val=66300, units="kg")
-    ivc.add_output("data:weight:aircraft:MFW", val=21000, units="kg")
+    ivc.add_output("data:geometry:wing:aspect_ratio", 7.981)
+    ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.149)
+    ivc.add_output("data:geometry:wing:tip:thickness_ratio", 0.103)
+    ivc.add_output("data:mission:sizing:fuel", val=600.0, units="kg")
+    ivc.add_output("data:TLAR:v_approach", val=78.0, units="kn")
+    ivc.add_output("data:weight:aircraft:MLW", val=1692.37, units="kg")
+    ivc.add_output("data:weight:aircraft:MFW", val=587.16, units="kg")
     ivc.add_output("data:aerodynamics:aircraft:landing:CL_max", val=2.80)
 
     problem = run_system(ComputeWingArea(), ivc)
@@ -46,13 +47,13 @@ def test_compute_wing_area():
 
     # Driven by CL max
     ivc = om.IndepVarComp()
-    ivc.add_output("data:geometry:wing:aspect_ratio", 9.48)
-    ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.15)
-    ivc.add_output("data:geometry:wing:tip:thickness_ratio", 0.11)
-    ivc.add_output("data:mission:sizing:fuel", val=15000, units="kg")
-    ivc.add_output("data:TLAR:v_approach", val=132, units="kn")
-    ivc.add_output("data:weight:aircraft:MLW", val=66300, units="kg")
-    ivc.add_output("data:weight:aircraft:MFW", val=21000, units="kg")
+    ivc.add_output("data:geometry:wing:aspect_ratio", 7.981)
+    ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.149)
+    ivc.add_output("data:geometry:wing:tip:thickness_ratio", 0.103)
+    ivc.add_output("data:mission:sizing:fuel", val=214.0, units="kg")
+    ivc.add_output("data:TLAR:v_approach", val=78.0, units="kn")
+    ivc.add_output("data:weight:aircraft:MLW", val=1692.37, units="kg")
+    ivc.add_output("data:weight:aircraft:MFW", val=587.16, units="kg")
     ivc.add_output("data:aerodynamics:aircraft:landing:CL_max", val=2.80)
 
     problem = run_system(ComputeWingArea(), ivc)

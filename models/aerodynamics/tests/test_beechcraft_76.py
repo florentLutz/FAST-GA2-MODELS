@@ -27,7 +27,7 @@ import pytest
 from fastoad.io import VariableIO
 
 from fastoad.models.aerodynamics.constants import POLAR_POINT_COUNT
-from tests.testing_utilities import run_system
+from ....tests.testing_utilities import run_system
 from ..components.cd0 import CD0
 from ..external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm
 from ..external.xfoil import XfoilPolar
@@ -42,7 +42,7 @@ from ..constants import SPAN_MESH_POINT_OPENVSP
 from ..aerodynamics_high_speed import AerodynamicsHighSpeed
 from ..aerodynamics_low_speed import AerodynamicsLowSpeed
 
-from tests.xfoil_exe.get_xfoil import get_xfoil_path
+from ....tests.xfoil_exe.get_xfoil import get_xfoil_path
 
 RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
 ERROR_FILE = pth.join(pth.dirname(__file__), "external_code_comp_error.out")
