@@ -21,12 +21,13 @@ import pytest
 from fastoad.io import VariableIO
 from fastoad.module_management import OpenMDAOSystemRegistry
 
-from tests.testing_utilities import run_system
+from ...tests.testing_utilities import run_system
 from ..takeoff import TakeOffPhase, _v2, _vr_from_v2, _vloff_from_v2, _simulate_takeoff
 from ..mission import _compute_taxi, _compute_climb, _compute_cruise, _compute_descent
 from ..sizing import Sizing
 
 XML_FILE = "beechcraft_76.xml"
+ENGINE_WRAPPER = "fastga.wrapper.propulsion.basicIC_engine"
 
 
 def get_indep_var_comp(var_names):
@@ -49,6 +50,7 @@ def list_inputs(group):
         variable_name = data[idx][0].split('.')
         list_names.append(variable_name[len(variable_name) - 1])
     return list(dict.fromkeys(list_names))
+
 
 def register_wrappers():
     path_split = pth.dirname(__file__).split('\\')
@@ -88,7 +90,7 @@ def test_v2():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_v2(propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), ivc)
+    problem = run_system(_v2(propulsion_id=ENGINE_WRAPPER), ivc)
     v2 = problem.get_val("v2:v2", units="m/s")
     assert v2 == pytest.approx(37.79, abs=1e-2)
     alpha = problem.get_val("v2:alpha", units="deg")
@@ -124,7 +126,7 @@ def test_vloff():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_vloff_from_v2(propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), ivc)
+    problem = run_system(_vloff_from_v2(propulsion_id=ENGINE_WRAPPER), ivc)
     vloff = problem.get_val("vloff:vloff", units="m/s")
     assert vloff == pytest.approx(36.88, abs=1e-2)
     alpha = problem.get_val("vloff:alpha", units="deg")
@@ -161,7 +163,7 @@ def test_vr():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_vr_from_v2(propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), ivc)
+    problem = run_system(_vr_from_v2(propulsion_id=ENGINE_WRAPPER), ivc)
     vr = problem.get_val("vr:vr", units="m/s")
     assert vr == pytest.approx(28.51, abs=1e-2)
 
@@ -197,7 +199,7 @@ def test_simulate_takeoff():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_simulate_takeoff(propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), ivc)
+    problem = run_system(_simulate_takeoff(propulsion_id=ENGINE_WRAPPER), ivc)
     vr = problem.get_val("data:mission:sizing:takeoff:VR", units='m/s')
     assert vr == pytest.approx(34.62, abs=1e-2)
     vloff = problem.get_val("data:mission:sizing:takeoff:VLOF", units='m/s')
@@ -214,7 +216,7 @@ def test_simulate_takeoff():
     assert fuel2 == pytest.approx(0.07, abs=1e-2)
 
 
-def test_TakeOffPhase_connections():
+def test_takeoffphase_connections():
     """ Tests complete take-off phase connection with speeds """
 
     # load all inputs
@@ -225,7 +227,7 @@ def test_TakeOffPhase_connections():
     input_vars.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     input_vars.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     register_wrappers()
-    problem = run_system(TakeOffPhase(propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), input_vars)
+    problem = run_system(TakeOffPhase(propulsion_id=ENGINE_WRAPPER), input_vars)
     vr = problem.get_val("data:mission:sizing:takeoff:VR", units='m/s')
     assert vr == pytest.approx(34.62, abs=1e-2)
     vloff = problem.get_val("data:mission:sizing:takeoff:VLOF", units='m/s')
@@ -264,14 +266,10 @@ def test_compute_taxi():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_compute_taxi(
-        propulsion_id="fastoad.wrapper.propulsion.basicIC_engine",
-        taxi_out=True), ivc)
+    problem = run_system(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=True), ivc)
     fuel_mass = problem.get_val("data:mission:sizing:taxi_out:fuel", units="kg")
     assert fuel_mass == pytest.approx(0.50, abs=1e-2)  # result strongly dependent on the defined Thrust limit
-    problem = run_system(_compute_taxi(
-        propulsion_id="fastoad.wrapper.propulsion.basicIC_engine",
-        taxi_out=False), ivc)
+    problem = run_system(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=False), ivc)
     fuel_mass = problem.get_val("data:mission:sizing:taxi_in:fuel", units="kg")
     assert fuel_mass == pytest.approx(0.50, abs=1e-2)  # result strongly dependent on the defined Thrust limit
 
@@ -301,13 +299,12 @@ def test_compute_climb():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_compute_climb(
-        propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), ivc)
+    problem = run_system(_compute_climb(propulsion_id=ENGINE_WRAPPER), ivc)
     v_cas = problem.get_val("data:mission:sizing:main_route:climb:v_cas", units="kn")
     assert v_cas == pytest.approx(71.5, abs=1)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:climb:fuel", units="kg")
     assert fuel_mass == pytest.approx(5.56, abs=1e-2)
-    distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="m")/1000.0 # conversion to km
+    distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="m") / 1000.0  # conversion to km
     assert distance == pytest.approx(13.2, abs=1e-1)
     duration = problem.get_val("data:mission:sizing:main_route:climb:duration", units="min")
     assert duration == pytest.approx(5.7, abs=1e-1)
@@ -341,8 +338,7 @@ def test_compute_cruise():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_compute_cruise(
-        propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), ivc)
+    problem = run_system(_compute_cruise(propulsion_id=ENGINE_WRAPPER), ivc)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg")
     assert fuel_mass == pytest.approx(187.87, abs=1e-2)
     duration = problem.get_val("data:mission:sizing:main_route:cruise:duration", units="h")
@@ -377,8 +373,7 @@ def test_compute_descent():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_compute_descent(
-        propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), ivc)
+    problem = run_system(_compute_descent(propulsion_id=ENGINE_WRAPPER), ivc)
     fuel_mass = problem["data:mission:sizing:main_route:descent:fuel"]
     assert fuel_mass == pytest.approx(0.09, abs=1e-2)
     distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="m") / 1000  # conversion to km
@@ -400,13 +395,12 @@ def test_loop_cruise_distance():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(Sizing(
-        propulsion_id="fastoad.wrapper.propulsion.basicIC_engine"), input_vars)
+    problem = run_system(Sizing(propulsion_id=ENGINE_WRAPPER), input_vars)
     m_total = problem.get_val("data:mission:sizing:fuel", units="kg")
     assert m_total == pytest.approx(214.0, abs=1e-1)
     climb_distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="NM")
     cruise_distance = problem.get_val("data:mission:sizing:main_route:cruise:distance", units="NM")
     descent_distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="NM")
     total_distance = problem.get_val("data:TLAR:range", units="NM")
-    error_distance = total_distance - (climb_distance+cruise_distance+descent_distance)
+    error_distance = total_distance - (climb_distance + cruise_distance + descent_distance)
     assert error_distance == pytest.approx(0.0, abs=1e-1)

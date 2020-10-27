@@ -53,12 +53,12 @@ class BasicICEngine(AbstractFuelPropulsion):
 
         if (fuel_type != 1.0) and (fuel_type != 2.0):
             raise FastBasicICEngineInconsistentInputParametersError(
-                "Bad engine configuration: fuel type {0:d} model does not exist.".format(fuel_type)
+                "Bad engine configuration: fuel type {0:f} model does not exist.".format(fuel_type)
             )
 
         if (strokes_nb != 2.0) and (strokes_nb != 4.0):
             raise FastBasicICEngineInconsistentInputParametersError(
-                "Bad engine configuration: {0:d}-strokes model does not exist.".format(strokes_nb)
+                "Bad engine configuration: {0:f}-strokes model does not exist.".format(strokes_nb)
             )
 
         self.ref = {
@@ -68,7 +68,7 @@ class BasicICEngine(AbstractFuelPropulsion):
             "height": 0.57,
             "width": 0.85,
             "mass": 136,
-        } # Lycoming IO-360-B1A
+        }  # Lycoming IO-360-B1A
         self.max_power = max_power
         self.fuel_type = fuel_type
         self.strokes_nb = strokes_nb
@@ -136,7 +136,6 @@ class BasicICEngine(AbstractFuelPropulsion):
         # Treat inputs (with check on thrust rate <=1.0)
         mach = np.asarray(mach)
         altitude = np.asarray(altitude)
-        engine_setting = np.asarray(engine_setting)
         if thrust_is_regulated is not None:
             thrust_is_regulated = np.asarray(np.round(thrust_is_regulated, 0), dtype=bool)
         thrust_is_regulated, thrust_rate, thrust = self._check_thrust_inputs(
@@ -168,6 +167,9 @@ class BasicICEngine(AbstractFuelPropulsion):
             maximum_thrust = max_thrust[idx]
         if np.any(idx):
             out_thrust[idx] = out_thrust_rate[idx] * maximum_thrust
+        if np.any(thrust_is_regulated):
+            out_thrust[thrust_is_regulated] = np.minimum(out_thrust[thrust_is_regulated],
+                                                         max_thrust[thrust_is_regulated])
 
         # thrust_rate is obtained from entire thrust vector (could be optimized if needed,
         # as some thrust rates that are computed may have been provided as input)
@@ -176,7 +178,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         # Now SFC can be computed
         sfc_pmax = self.sfc_at_max_power(atmosphere)
         sfc_ratio, mech_power = self.sfc_ratio(altitude, out_thrust_rate, mach)
-        sfc = (sfc_pmax * sfc_ratio * mech_power) / np.maximum(out_thrust, 1e-6) # avoid 0 division
+        sfc = (sfc_pmax * sfc_ratio * mech_power) / np.maximum(out_thrust, 1e-6)  # avoid 0 division
 
         return sfc, out_thrust_rate, out_thrust
 
@@ -253,17 +255,16 @@ class BasicICEngine(AbstractFuelPropulsion):
 
         return thrust_is_regulated, thrust_rate, thrust
 
-    def sfc_at_max_power(self, atmosphere: Atmosphere) -> np.ndarray:
+    def sfc_at_max_power(self, atmosphere: Atmosphere) -> Union[float, Sequence]:
         """
         Computation of Specific Fuel Consumption at maximum power.
         :param atmosphere: Atmosphere instance at intended altitude
-        :param mach: Mach number(s)
         :return: SFC_P (in kg/s/W)
         """
 
         altitude = atmosphere.get_altitude(altitude_in_feet=True)
         sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
-        max_power = (self.max_power/1e3) * (sigma - (1 - sigma) / 7.55) # max power in kW
+        max_power = (self.max_power/1e3) * (sigma - (1 - sigma) / 7.55)  # max power in kW
 
         if self.fuel_type == 1.:
             if self.strokes_nb == 2.:  # Gasoline 2-strokes
@@ -275,6 +276,10 @@ class BasicICEngine(AbstractFuelPropulsion):
                 sfc_p = -0.765 * max_power + 334.94
             else:  # Diesel 4-strokes
                 sfc_p = -0.964 * max_power + 231.91
+        else:
+            raise FastBasicICEngineInconsistentInputParametersError(
+                "Bad engine configuration: fuel type {0:f} model does not exist.".format(self.fuel_type)
+            )
 
         sfc_p = sfc_p / 1e6 / 3600.0  # change units to be in kg/s/W
 
@@ -299,11 +304,14 @@ class BasicICEngine(AbstractFuelPropulsion):
         altitude = np.asarray(altitude)
         thrust_rate = np.asarray(thrust_rate)
         mach = np.asarray(mach)
+        mach = mach + (mach == 0)*1e-12
         max_thrust = self.max_thrust(Atmosphere(altitude, altitude_in_feet=False), mach)
         sigma = Atmosphere(altitude, altitude_in_feet=False).density / Atmosphere(0.0).density
-        max_power = min(self.max_power * (sigma - (1 - sigma) / 7.55), max_thrust * mach * Atmosphere(altitude).speed_of_sound / PROPELLER_EFFICIENCY)
+        max_power = np.minimum(self.max_power * (sigma - (1 - sigma) / 7.55),
+                               max_thrust * mach * Atmosphere(altitude).speed_of_sound / PROPELLER_EFFICIENCY)
         prop_power = (max_thrust * thrust_rate * mach * Atmosphere(altitude).speed_of_sound)
-        mech_power = prop_power / PROPELLER_EFFICIENCY  # FIXME: low speed efficiency drop down leading to high mechanical power!
+        mech_power = prop_power / PROPELLER_EFFICIENCY
+        # FIXME: low speed efficiency should drop down leading to high mechanical power!
 
         power_rate = mech_power / max_power
 

@@ -21,7 +21,7 @@ import openmdao.api as om
 import pytest
 from fastoad.io import VariableIO
 
-from tests.testing_utilities import run_system
+from ....tests.testing_utilities import run_system
 from ..a_airframe import (
     ComputeTailWeight,
     ComputeFlightControlsWeight,
@@ -88,6 +88,7 @@ def test_compute_payload():
     problem = run_system(ComputePayload(), ivc)
     assert problem["data:weight:aircraft:payload"] == pytest.approx(12.0, abs=0.1)
     assert problem["data:weight:aircraft:max_payload"] == pytest.approx(24.0, abs=0.1)
+
 
 def test_compute_wing_weight():
     """ Tests wing weight computation from sample XML data """

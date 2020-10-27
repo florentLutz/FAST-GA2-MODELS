@@ -21,9 +21,9 @@ from scipy.constants import g
 
 class ComputeWingArea(om.Group):
     """
-    Computes needed wing area for:
-      - having enough lift at required approach speed
-      - being able to load enough fuel to achieve the sizing mission
+    Computes needed wing area to:
+      - have enough lift at required approach speed
+      - be able to load enough fuel to achieve the sizing mission
     """
 
     def setup(self):

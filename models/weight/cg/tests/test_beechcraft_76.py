@@ -21,7 +21,7 @@ import openmdao.api as om
 import pytest
 from fastoad.io import VariableIO
 
-from tests.testing_utilities import run_system
+from ....tests.testing_utilities import run_system
 
 from ..cg import CG
 from ..cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, ComputeLandingGearCG
