@@ -89,38 +89,38 @@
 			</engine>
 		</propulsion>
 		<mission>
-		  <sizing>
-			<main_route>
-				<climb>
-				  <thrust_rate>0.93</thrust_rate>
-				</climb>
-				<cruise>
-				  <altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
-				</cruise>
-				<descent>
-					<descent_rate>0.05</descent_rate>
-				</descent>
-				<reserve>
-					<duration units="min">30.0<!--reserve fuel to extend cruise phase duration--></duration>
-				</reserve>
-			</main_route>
-			<takeoff>
-				<elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>
-				<flap_angle units="deg">10.0<!--flap angle during takeoff phase in sizing mission--></flap_angle>
-				<friction_coefficient_no_brake>0.03</friction_coefficient_no_brake>
-				<thrust_rate>1.0</thrust_rate>
-			</takeoff>
-			<taxi_in>
-				<duration units="s">300</duration>
-				<speed units="kn">30.0</speed>
-				<thrust_rate>0.3</thrust_rate>
-			</taxi_in>
-			<taxi_out>
-				<duration units="s">300</duration>
-				<speed units="kn">30.0</speed>
-				<thrust_rate>0.3</thrust_rate>
-			</taxi_out>
-		  </sizing>
+		  	<sizing>
+				<main_route>
+					<climb>
+					  <thrust_rate>0.93</thrust_rate>
+					</climb>
+					<cruise>
+					  <altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
+					</cruise>
+					<descent>
+						<descent_rate>0.05</descent_rate>
+					</descent>
+					<reserve>
+						<duration units="min">30.0<!--reserve fuel to extend cruise phase duration--></duration>
+					</reserve>
+				</main_route>
+				<takeoff>
+					<elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>
+					<flap_angle units="deg">10.0<!--flap angle during takeoff phase in sizing mission--></flap_angle>
+					<friction_coefficient_no_brake>0.03</friction_coefficient_no_brake>
+					<thrust_rate>1.0</thrust_rate>
+				</takeoff>
+				<taxi_in>
+					<duration units="s">300</duration>
+					<speed units="kn">30.0</speed>
+					<thrust_rate>0.3</thrust_rate>
+				</taxi_in>
+				<taxi_out>
+					<duration units="s">300</duration>
+					<speed units="kn">30.0</speed>
+					<thrust_rate>0.3</thrust_rate>
+				</taxi_out>
+		  	</sizing>
 		</mission>
 	</data>
 </FASTOAD_model>

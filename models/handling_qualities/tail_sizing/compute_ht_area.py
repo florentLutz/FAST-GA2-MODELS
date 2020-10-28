@@ -71,6 +71,10 @@ class _ComputeArea(om.ExplicitComponent):
     Computes area of horizontal tail plane (internal function)
     """
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._engine_wrapper = None
+
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
 

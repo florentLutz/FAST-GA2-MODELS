@@ -43,6 +43,10 @@ class _compute_taxi(om.ExplicitComponent):
     Compute the fuel consumption for taxi based on speed and duration.
     """
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._engine_wrapper = None
+
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
         self.options.declare("taxi_out", default=True, types=bool)
@@ -98,6 +102,10 @@ class _compute_climb(om.ExplicitComponent):
     Compute the fuel consumption on climb segment with constant VCAS and fixed thrust ratio.
     The hypothesis of small alpha/gamma angles is done.
     """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._engine_wrapper = None
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
@@ -200,6 +208,10 @@ class _compute_cruise(om.ExplicitComponent):
     Compute the fuel consumption on cruise segment with constant VTAS and altitude.
     The hypothesis of small alpha/gamma angles is done.
     """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._engine_wrapper = None
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
@@ -317,6 +329,10 @@ class _compute_descent(om.ExplicitComponent):
     The hypothesis of small alpha angle is done.
     Warning: Descent rate is reduced if cd/cl < abs(desc_rate)!
     """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._engine_wrapper = None
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)

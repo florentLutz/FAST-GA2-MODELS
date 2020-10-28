@@ -15,7 +15,6 @@ Estimation of vertical tail area
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import math
 import openmdao.api as om
 from fastoad.utils.physics import Atmosphere
 from fastoad import BundleLoader
@@ -53,6 +52,10 @@ class _ComputeVTArea(om.ExplicitComponent):
     Area is computed to fulfill lateral stability requirement and engine failure compensation
     for dual-engine aircraft.
     """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._engine_wrapper = None
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
