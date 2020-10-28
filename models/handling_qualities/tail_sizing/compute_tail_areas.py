@@ -30,6 +30,10 @@ class ComputeTailAreas(om.Group):
       conditions and (for bi-motor) maintain trajectory with failed engine @ 5000ft
     """
 
+    def initialize(self):
+        self.options.declare("propulsion_id", default=None, types=str, allow_none=True)
+
     def setup(self):
-        self.add_subsystem("horizontal_tail", ComputeHTArea(), promotes=["*"])
-        self.add_subsystem("vertical_tail", ComputeVTArea(), promotes=["*"])
+        self.add_subsystem("horizontal_tail", ComputeHTArea(propulsion_id=self.options["propulsion_id"]),
+                           promotes=["*"])
+        self.add_subsystem("vertical_tail", ComputeVTArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])

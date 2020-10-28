@@ -136,7 +136,7 @@ class XfoilPolar(ExternalCodeComp):
         tmp_result_file_path = pth.join(tmp_directory.name, _TMP_RESULT_FILE_NAME)
         parser = InputFileGenerator()
         with path(resources, _INPUT_FILE_NAME) as input_template_path:
-            parser.set_template_file(input_template_path)
+            parser.set_template_file(str(input_template_path))
             parser.set_generated_file(self.stdin)
             parser.mark_anchor("RE")
             parser.transfer_var(float(reynolds), 1, 1)
@@ -161,9 +161,9 @@ class XfoilPolar(ExternalCodeComp):
 
         # Post-processing --------------------------------------------------------------------------
         result_array = self._read_polar(tmp_result_file_path)
-        CL_max_2D = self._get_max_cl(result_array["alpha"], result_array["CL"])
+        cl_max_2d = self._get_max_cl(result_array["alpha"], result_array["CL"])
         real_length = min(POLAR_POINT_COUNT, len(result_array["alpha"]))
-        if real_length<len(result_array["alpha"]):
+        if real_length < len(result_array["alpha"]):
             warnings.warn("Defined maximum polar point count in constants.py exceeded!")
             outputs["xfoil:alpha"] = np.linspace(result_array["alpha"][0], result_array["alpha"][-1], POLAR_POINT_COUNT)
             outputs["xfoil:CL"] = np.interp(outputs["xfoil:alpha"], result_array["alpha"], result_array["CL"])
@@ -181,8 +181,7 @@ class XfoilPolar(ExternalCodeComp):
             outputs["xfoil:CD"][0:real_length] = result_array["CD"]
             outputs["xfoil:CDp"][0:real_length] = result_array["CDp"]
             outputs["xfoil:CM"][0:real_length] = result_array["CM"]
-        outputs["xfoil:CL_max_2D"] = CL_max_2D
-        
+        outputs["xfoil:CL_max_2D"] = cl_max_2d
 
         # Getting output files if needed
         if self.options[OPTION_RESULT_FOLDER_PATH] != "":

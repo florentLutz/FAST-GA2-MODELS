@@ -20,10 +20,12 @@ output_file = "../results/oad_process_outputs.xml"
         id = "fastga.aerodynamics.lowspeed.legacy"
     [model.performance]
         id = "fastga.performances.sizing"
+        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
     [model.propulsion]
         id = "fastga.propulsion.basicIC_engine"
     [model.hq.tail_sizing]
         id = "fastga.handling_qualities.tail_sizing"
+        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
     [model.hq.static_margin]
         id = "fastga.handling_qualities.static_margin"
     [model.loop]

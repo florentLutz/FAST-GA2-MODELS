@@ -31,7 +31,7 @@ class Sizing(om.Group):
     """
 
     def initialize(self):
-        self.options.declare("propulsion_id", default="", types=str)
+        self.options.declare("propulsion_id", default=None, types=str, allow_none=True)
 
     def setup(self):
         self.add_subsystem("taxi_out", _compute_taxi(

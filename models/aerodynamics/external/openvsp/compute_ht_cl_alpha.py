@@ -14,7 +14,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import multiprocessing
 import shutil
 import os
 import os.path as pth
@@ -38,12 +37,13 @@ OPTION_RESULT_FOLDER_PATH = "result_folder_path"
 
 _INPUT_SCRIPT_FILE_NAME = "wing_ht_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_ht_openvsp_DegenGeom"
-_INPUT_AOAList = [0.0, 4.0] # ???: why mid point is 3° ?
+_INPUT_AOAList = [0.0, 4.0]
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
 _AIRFOIL_2_FILE_NAME = "naca23012.af"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
+
 
 class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
 
@@ -89,7 +89,7 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         # Create result folder first (if it must fail, let it fail as soon as possible)
         result_folder_path = self.options[OPTION_RESULT_FOLDER_PATH]
         if result_folder_path != "":
-            os.makedirs(pth.join(result_folder_path,'ClAlphaHT'), exist_ok=True)
+            os.makedirs(pth.join(result_folder_path, 'ClAlphaHT'), exist_ok=True)
 
         # Get inputs (and calculate missing ones)
         x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
@@ -102,7 +102,7 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         l4_wing = inputs["data:geometry:wing:tip:chord"]
         sweep_0_wing = inputs["data:geometry:wing:sweep_0"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
-        Sref_wing = inputs['data:geometry:wing:area']
+        sref_wing = inputs['data:geometry:wing:area']
         span_wing = inputs['data:geometry:wing:span']
         height_max = inputs["data:geometry:fuselage:maximum_height"]
         sweep_25_htp = inputs["data:geometry:horizontal_tail:sweep_25"]
@@ -130,8 +130,8 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         speed_of_sound = atm.speed_of_sound
         viscosity = atm.kinematic_viscosity
         rho = atm.density
-        V_inf = max(speed_of_sound * mach, 0.01) # avoid V=0 m/s crashes
-        reynolds = V_inf * l0_wing / viscosity
+        v_inf = max(speed_of_sound * mach, 0.01)  # avoid V=0 m/s crashes
+        reynolds = v_inf * l0_wing / viscosity
         
         # OPENVSP-SCRIPT: Geometry generation ######################################################
         
@@ -141,10 +141,10 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
             target_directory = pth.abspath(self.options[OPTION_OPENVSP_EXE_PATH])
         else:
             target_directory = tmp_directory.name
-        input_file_list = [pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)]
-        input_file_list.append(pth.join(target_directory, _AIRFOIL_0_FILE_NAME))
-        input_file_list.append(pth.join(target_directory, _AIRFOIL_1_FILE_NAME))
-        input_file_list.append(pth.join(target_directory, _AIRFOIL_2_FILE_NAME))
+        input_file_list = [pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME),
+                           pth.join(target_directory, _AIRFOIL_0_FILE_NAME),
+                           pth.join(target_directory, _AIRFOIL_1_FILE_NAME),
+                           pth.join(target_directory, _AIRFOIL_2_FILE_NAME)]
         tmp_result_file_path = pth.join(target_directory, _INPUT_AERO_FILE_NAME + '0.csv')
         output_file_list = [tmp_result_file_path]
         self.options["external_input_files"] = input_file_list
@@ -254,7 +254,7 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
                 parser.set_generated_file(input_file_list[len(_INPUT_AOAList) + idx])
                 parser.reset_anchor()
                 parser.mark_anchor("Sref")
-                parser.transfer_var(float(Sref_wing), 0, 3)
+                parser.transfer_var(float(sref_wing), 0, 3)
                 parser.mark_anchor("Cref")
                 parser.transfer_var(float(l0_wing), 0, 3)
                 parser.mark_anchor("Bref")
@@ -266,7 +266,7 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
                 parser.mark_anchor("AOA")
                 parser.transfer_var(float(_INPUT_AOAList[idx]), 0, 3)
                 parser.mark_anchor("Vinf")
-                parser.transfer_var(float(V_inf), 0, 3)
+                parser.transfer_var(float(v_inf), 0, 3)
                 parser.mark_anchor("Rho")
                 parser.transfer_var(float(rho), 0, 3)
                 parser.mark_anchor("ReCref")

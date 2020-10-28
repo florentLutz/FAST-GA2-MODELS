@@ -107,7 +107,7 @@ class _ComputeArea(om.ExplicitComponent):
         self.add_input("takeoff:cm_ht", val=np.nan)
         self.add_input("low_speed:cl_alpha_ht", val=np.nan)
 
-        self.add_output("data:geometry:horizontal_tail:area", units="m**2")
+        self.add_output("data:geometry:horizontal_tail:area", val=3.0, units="m**2")
 
         self.declare_partials("*", "*", method="fd")  # FIXME: write partial avoiding discrete parameters
 

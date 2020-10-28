@@ -16,8 +16,8 @@ Weight computation (mass and CG)
 
 import openmdao.api as om
 
-from fastoad.models.weight.cg.cg import CG
-from fastoad.models.weight.mass_breakdown import MassBreakdown
+from .cg.cg import CG
+from .mass_breakdown import MassBreakdown
 
 
 class Weight(om.Group):

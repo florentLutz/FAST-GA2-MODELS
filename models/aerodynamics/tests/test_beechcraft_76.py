@@ -651,9 +651,9 @@ def test_high_speed_connection():
     cd0 = problem["data:aerodynamics:aircraft:cruise:CD0"]
     assert cd0 == pytest.approx(0.0200, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0522, abs=1e-4)
+    assert coef_k == pytest.approx(0.0480, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.820, abs=1e-3)
+    assert cl_alpha_wing == pytest.approx(4.650, abs=1e-3)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
     assert cl_alpha_htp == pytest.approx(0.7030, abs=1e-4)
     cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
@@ -669,17 +669,17 @@ def test_low_speed_connection():
     input_vars = reader.read().to_ivc()
     problem = run_system(AerodynamicsLowSpeed(), input_vars)
     cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-    assert cl_max_clean == pytest.approx(1.4484, abs=1e-4)
+    assert cl_max_clean == pytest.approx(1.5172, abs=1e-4)
     cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-    assert cl_max_takeoff == pytest.approx(1.5702, abs=1e-4)
+    assert cl_max_takeoff == pytest.approx(1.6391, abs=1e-4)
     cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-    assert cl_max_landing == pytest.approx(2.0272, abs=1e-4)
+    assert cl_max_landing == pytest.approx(2.0961, abs=1e-4)
     cd0 = problem["data:aerodynamics:aircraft:low_speed:CD0"]
     assert cd0 == pytest.approx(0.0454, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0528, abs=1e-4)
+    assert coef_k == pytest.approx(0.0480, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.705, abs=1e-3)
+    assert cl_alpha_wing == pytest.approx(4.570, abs=1e-3)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
     assert cl_alpha_htp == pytest.approx(0.6967, abs=1e-4)
 

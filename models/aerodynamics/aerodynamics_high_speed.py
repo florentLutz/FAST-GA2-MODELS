@@ -32,13 +32,14 @@ from .components.clalpha_vt import ComputeClalphaVT
 from .external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm
 from .external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp
 from .external.xfoil import XfoilPolar
+from .constants import POLAR_POINT_COUNT
 
 from openmdao.core.group import Group
 from openmdao.core.explicitcomponent import ExplicitComponent
 import numpy as np
 
-_OSWALD_BY_VLM = True
-_CLALPHA_BY_VLM = True
+_OSWALD_BY_VLM = False
+_CLALPHA_BY_VLM = False
 
 
 class AerodynamicsHighSpeed(Group):
@@ -48,10 +49,13 @@ class AerodynamicsHighSpeed(Group):
 
     def setup(self):
         self.add_subsystem("comp_re", ComputeReynolds(), promotes=["*"])
-        self.add_subsystem("connect_xfoil", Connection(), promotes=["*"])
-        self.add_subsystem("comp_polar", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio", "xfoil:length"])
+        self.add_subsystem("xfoil_in", Connection(), promotes=["*"])
+        self.add_subsystem("comp_polar", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio", "xfoil:mach",
+                                                                 "xfoil:unit_reynolds"])
         if _OSWALD_BY_VLM:
             self.add_subsystem("oswald", ComputeOSWALDvlm(), promotes=["*"])
+            self.connect("comp_polar.xfoil:CL", "data:aerodynamics:wing:cruise:CL")
+            self.connect("comp_polar.xfoil:CDp", "data:aerodynamics:wing:cruise:CDp")
         else:
             self.add_subsystem("oswald", ComputeOSWALDopenvsp(), promotes=["*"])
         if _CLALPHA_BY_VLM:
@@ -71,11 +75,10 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("L_D_max", ComputeLDMax(), promotes=["*"])
         self.add_subsystem("cnBeta_fuse", ComputeCnBetaFuselage(), promotes=["*"])
         self.add_subsystem("clAlpha_vt", ComputeClalphaVT(), promotes=["*"])
-        
-        self.connect("data:aerodynamics:cruise:mach", "comp_polar.xfoil:mach")
-        self.connect("data:aerodynamics:cruise:unit_reynolds", "comp_polar.xfoil:unit_reynolds")
-        self.connect("comp_polar.xfoil:CL", "data:aerodynamics:wing:cruise:CL")
-        self.connect("comp_polar.xfoil:CDp", "data:aerodynamics:wing:cruise:CDp")
+
+        self.connect("data:aerodynamics:cruise:mach", "xfoil:mach")
+        self.connect("data:aerodynamics:cruise:unit_reynolds", "xfoil:unit_reynolds")
+        self.connect("xfoil:length", "comp_polar.xfoil:length")
 
 
 class Connection(ExplicitComponent):
@@ -84,5 +87,5 @@ class Connection(ExplicitComponent):
         self.add_output("xfoil:length", units="m")
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         outputs["xfoil:length"] = inputs["data:geometry:wing:MAC:length"]
