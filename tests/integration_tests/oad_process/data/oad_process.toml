@@ -14,11 +14,10 @@ output_file = "../results/oad_process_outputs.xml"
         id = "fastga.geometry.legacy"
     [model.weight]
         id = "fastga.weight.legacy"
-    [model.aerodynamics]
+    [model.aerodynamics_highspeed]
         id = "fastga.aerodynamics.highspeed.legacy"
-    [model.aerodynamics_landing]
+    [model.aerodynamics_lowspeed]
         id = "fastga.aerodynamics.lowspeed.legacy"
-        use_xfoil = false
     [model.performance]
         id = "fastga.performances.sizing"
     [model.propulsion]

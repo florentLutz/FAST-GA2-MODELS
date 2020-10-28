@@ -28,75 +28,74 @@ from fastoad.module_management import OpenMDAOSystemRegistry
 from fastoad.module_management.constants import ModelDomain
 
 
-def register_openmdao_systems():
-    """
-    The place where to register FAST-OAD internal models.
+"""
+The place where to register FAST-OAD internal models.
 
-    Warning: this function is effective only if called from a Python module that
-    is a started bundle for iPOPO
-    """
-    # Aerodynamics ################################################################
-    OpenMDAOSystemRegistry.register_system(
-        AerodynamicsLowSpeed,
-        "fastga.aerodynamics.lowspeed.legacy",
-        domain=ModelDomain.AERODYNAMICS
-    )
-    OpenMDAOSystemRegistry.register_system(
-        AerodynamicsHighSpeed,
-        "fastga.aerodynamics.highspeed.legacy",
-        domain=ModelDomain.AERODYNAMICS,
-    )
+Warning: this function is effective only if called from a Python module that
+is a started bundle for iPOPO
+"""
+# Aerodynamics ################################################################
+OpenMDAOSystemRegistry.register_system(
+    AerodynamicsLowSpeed,
+    "fastga.aerodynamics.lowspeed.legacy",
+    domain=ModelDomain.AERODYNAMICS
+)
+OpenMDAOSystemRegistry.register_system(
+    AerodynamicsHighSpeed,
+    "fastga.aerodynamics.highspeed.legacy",
+    domain=ModelDomain.AERODYNAMICS,
+)
 
-    # Geometry ####################################################################
-    OpenMDAOSystemRegistry.register_system(
-        Geometry,
-        "fastga.geometry.legacy",
-        domain=ModelDomain.GEOMETRY
-    )
+# Geometry ####################################################################
+OpenMDAOSystemRegistry.register_system(
+    Geometry,
+    "fastga.geometry.legacy",
+    domain=ModelDomain.GEOMETRY
+)
 
-    # handling qualities ##########################################################
-    OpenMDAOSystemRegistry.register_system(
-        ComputeTailAreas,
-        "fastga.handling_qualities.tail_sizing",
-        domain=ModelDomain.HANDLING_QUALITIES,
-    )
-    OpenMDAOSystemRegistry.register_system(
-        ComputeStaticMargin,
-        "fastga.handling_qualities.static_margin",
-        domain=ModelDomain.HANDLING_QUALITIES,
-    )
+# handling qualities ##########################################################
+OpenMDAOSystemRegistry.register_system(
+    ComputeTailAreas,
+    "fastga.handling_qualities.tail_sizing",
+    domain=ModelDomain.HANDLING_QUALITIES,
+)
+OpenMDAOSystemRegistry.register_system(
+    ComputeStaticMargin,
+    "fastga.handling_qualities.static_margin",
+    domain=ModelDomain.HANDLING_QUALITIES,
+)
 
-    # Loops #######################################################################
-    OpenMDAOSystemRegistry.register_system(
-        ComputeWingArea,
-        "fastga.loop.wing_area",
-        domain=ModelDomain.OTHER
-    )
+# Loops #######################################################################
+OpenMDAOSystemRegistry.register_system(
+    ComputeWingArea,
+    "fastga.loop.wing_area",
+    domain=ModelDomain.OTHER
+)
 
-    # Weight ######################################################################
-    OpenMDAOSystemRegistry.register_system(
-        Weight,
-        "fastga.weight.legacy",
-        domain=ModelDomain.WEIGHT
-    )
-    # Performance #################################################################
-    OpenMDAOSystemRegistry.register_system(
-        Sizing,
-        "fastga.performances.sizing",
-        domain=ModelDomain.PERFORMANCE
-    )
+# Weight ######################################################################
+OpenMDAOSystemRegistry.register_system(
+    Weight,
+    "fastga.weight.legacy",
+    domain=ModelDomain.WEIGHT
+)
+# Performance #################################################################
+OpenMDAOSystemRegistry.register_system(
+    Sizing,
+    "fastga.performances.sizing",
+    domain=ModelDomain.PERFORMANCE
+)
 
-    # Propulsion ##################################################################
-    basic_IC_engine_description = """
-    Parametric engine model as OpenMDAO component.
-    
-    Implementation of basic scaled power propeller-engine model with fixed efficiency.
-    For more information, see BasicICEngine class in FAST-OAD developer documentation.
-    """
+# Propulsion ##################################################################
+basic_IC_engine_description = """
+Parametric engine model as OpenMDAO component.
 
-    OpenMDAOSystemRegistry.register_system(
-        OMBasicICEngineComponent,
-        "fastga.propulsion.basicIC_engine",
-        domain=ModelDomain.PROPULSION,
-        desc=basic_IC_engine_description,
-    )
+Implementation of basic scaled power propeller-engine model with fixed efficiency.
+For more information, see BasicICEngine class in FAST-OAD developer documentation.
+"""
+
+OpenMDAOSystemRegistry.register_system(
+    OMBasicICEngineComponent,
+    "fastga.propulsion.basicIC_engine",
+    domain=ModelDomain.PROPULSION,
+    desc=basic_IC_engine_description,
+)
