@@ -18,7 +18,7 @@
 		<TLAR>
 			<NPAX>4.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
 			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
-			<v_limit units="kn">0.0<!--top-level requirement: limit speed--></v_limit>
+			<v_limit units="kn">179.0<!--top-level requirement: limit speed--></v_limit>
 		</TLAR>
 		<geometry>
 			<fuselage>
@@ -58,11 +58,11 @@
 			</sizing>
 		</mission>
 		<propulsion>
-			<engine>
-				<power_SL units="W">130000.0<!--maximum power of one engine at sea level--></power_SL>
+			<IC_engine>
 				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
-				<n_strokes>4.0<!--2=2-strokes engine / 4=4-strokes engine--></n_strokes>
-			</engine>
+				<max_power units="W">130000.0<!--max power @ see level--></max_power>
+				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
+			</IC_engine>
 		</propulsion>
 		<weight>
 			<aircraft>

@@ -531,15 +531,15 @@ def test_geometry_wing_mfw():
     # Input list from model (not generated because of the assertion error on bad fuel type configuration)
     input_list = [
         "data:geometry:wing:area",
-        "data:propulsion:engine:fuel_type",
+        "data:propulsion:IC_engine:fuel_type",
     ]
 
     # Research independent input value in .xml file and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:geometry:wing:root:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:tip:chord", 1.549, units="m")
-    ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.149, units="m")
-    ivc.add_output("data:geometry:wing:tip:thickness_ratio", 0.103, units="m")
+    ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.149)
+    ivc.add_output("data:geometry:wing:tip:thickness_ratio", 0.103)
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeMFW(), ivc)

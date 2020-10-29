@@ -83,7 +83,7 @@ class _compute_taxi(om.ExplicitComponent):
             duration = inputs["data:mission:sizing:taxi_in:duration"]
             mach = inputs["data:mission:sizing:taxi_in:speed"] / Atmosphere(0.0).speed_of_sound
 
-        # FIXME: no specific settings for taxi (to be changed in fastoad\constants.py
+        # FIXME: no specific settings for taxi (to be changed in fastoad\constants.py)
         flight_point = FlightPoint(
             mach=mach, altitude=0.0, engine_setting=EngineSetting.TAKEOFF,
             thrust_rate=thrust_rate
@@ -117,7 +117,7 @@ class _compute_climb(om.ExplicitComponent):
         self.add_input("data:geometry:propulsion:engine:count", np.nan)
         self.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
-        self.add_input("data:aerodynamics:aircraft:cruise:coef_k", np.nan)
+        self.add_input("data:aerodynamics:aircraft:cruise:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:taxi_out:fuel", np.nan, units="kg")
@@ -140,7 +140,7 @@ class _compute_climb(om.ExplicitComponent):
         )
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
         cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
-        coef_k = inputs["data:aerodynamics:aircraft:cruise:coef_k"]
+        coef_k = inputs["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]
@@ -150,7 +150,7 @@ class _compute_climb(om.ExplicitComponent):
         thrust_rate = inputs["data:mission:sizing:main_route:climb:thrust_rate"]
 
         # Define initial conditions
-        altitude_t = 50 / 0.3048  # conversion to m
+        altitude_t = SAFETY_HEIGHT  # conversion to m
         distance_t = 0.0
         time_t = 0.0
         mass_t = mtow - (m_to + m_ho + m_tk + m_ic)
@@ -225,7 +225,7 @@ class _compute_cruise(om.ExplicitComponent):
         self.add_input("data:TLAR:range", np.nan, units="m")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
-        self.add_input("data:aerodynamics:aircraft:cruise:coef_k", np.nan)
+        self.add_input("data:aerodynamics:aircraft:cruise:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:taxi_out:fuel", np.nan, units="kg")
@@ -257,7 +257,7 @@ class _compute_cruise(om.ExplicitComponent):
         )
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
         cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
-        coef_k = inputs["data:aerodynamics:aircraft:cruise:coef_k"]
+        coef_k = inputs["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]
@@ -346,7 +346,7 @@ class _compute_descent(om.ExplicitComponent):
         self.add_input("data:mission:sizing:main_route:descent:descent_rate", np.nan)
         self.add_input("data:aerodynamics:aircraft:cruise:optimal_CL", np.nan)
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
-        self.add_input("data:aerodynamics:aircraft:cruise:coef_k", np.nan)
+        self.add_input("data:aerodynamics:aircraft:cruise:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:taxi_out:fuel", np.nan, units="kg")
@@ -370,7 +370,7 @@ class _compute_descent(om.ExplicitComponent):
         descent_rate = -abs(inputs["data:mission:sizing:main_route:descent:descent_rate"])
         cl = inputs["data:aerodynamics:aircraft:cruise:optimal_CL"]
         cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
-        coef_k = inputs["data:aerodynamics:aircraft:cruise:coef_k"]
+        coef_k = inputs["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]

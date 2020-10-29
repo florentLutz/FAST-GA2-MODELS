@@ -42,8 +42,8 @@ class ComputeLandingGearWeight(om.ExplicitComponent):
         mtow = inputs["data:weight:aircraft:MTOW"]
         height = inputs["data:geometry:landing_gear:height"]
         
-        l_sm = height/3 # Shock strut length for MLG
-        a5 = 0.054*l_sm**0.501*(mtow*sizing_factor_ultimate)**0.684 # mass formula in lb
+        l_sm = height/3  # Shock strut length for MLG
+        a5 = 0.054*l_sm**0.501*(mtow*sizing_factor_ultimate)**0.684  # mass formula in lb
         a51 = a5*2/3
         a52 = a5*1/3
 

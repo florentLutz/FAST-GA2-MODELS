@@ -14,7 +14,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import multiprocessing
 import shutil
 import os
 import os.path as pth
@@ -38,12 +37,13 @@ OPTION_RESULT_FOLDER_PATH = "result_folder_path"
 
 _INPUT_SCRIPT_FILE_NAME = "wing_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_openvsp_DegenGeom"
-_INPUT_AOAList = [7.0] # ???: why such value chosen?
+_INPUT_AOAList = [7.0]
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
 _AIRFOIL_2_FILE_NAME = "naca23012.af"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
+
 
 class ComputeOSWALDopenvsp(ExternalCodeComp):
     """ Computes Oswald efficiency number """
@@ -52,9 +52,9 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         self.options.declare("low_speed_aero", default=False, types=bool)
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_OPENVSP_EXE_PATH, default="", types=str, allow_none=True)
-        
+
     def setup(self):
-        
+
         self.add_input("data:geometry:wing:MAC:leading_edge:x:local", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
@@ -67,7 +67,7 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
-        
+
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_output("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient")
@@ -75,28 +75,28 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
             self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units='ft')
             self.add_output("data:aerodynamics:aircraft:cruise:induced_drag_coefficient")
-        
-        self.declare_partials("*", "*", method="fd")        
-    
+
+        self.declare_partials("*", "*", method="fd")
+
     def compute(self, inputs, outputs):
 
         # Create result folder first (if it must fail, let it fail as soon as possible)
         result_folder_path = self.options[OPTION_RESULT_FOLDER_PATH]
         if result_folder_path != "":
-            os.makedirs(pth.join(result_folder_path,'OSWALD'), exist_ok=True)
+            os.makedirs(pth.join(result_folder_path, 'OSWALD'), exist_ok=True)
 
         # Get inputs (and calculate missing ones)
         x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         width_max = inputs["data:geometry:fuselage:maximum_width"]
-        y1_wing = width_max/2.0
+        y1_wing = width_max / 2.0
         y2_wing = inputs["data:geometry:wing:root:y"]
         l2_wing = inputs["data:geometry:wing:root:chord"]
         y4_wing = inputs["data:geometry:wing:tip:y"]
         l4_wing = inputs["data:geometry:wing:tip:chord"]
         sweep_0_wing = inputs["data:geometry:wing:sweep_0"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
-        Sref_wing = inputs['data:geometry:wing:area']
+        sref_wing = inputs['data:geometry:wing:area']
         span_wing = inputs['data:geometry:wing:span']
         height_max = inputs["data:geometry:fuselage:maximum_height"]
         if self.options["low_speed_aero"]:
@@ -106,34 +106,34 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         else:
             altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
             atm = Atmosphere(altitude)
-            mach = inputs["data:aerodynamics:cruise:mach"]    
-        
-        # Initial parameters calculation
-        x_wing = fa_length-x0_wing-0.25*l0_wing
-        z_wing = -(height_max - 0.12*l2_wing)*0.5
+            mach = inputs["data:aerodynamics:cruise:mach"]
+
+            # Initial parameters calculation
+        x_wing = fa_length - x0_wing - 0.25 * l0_wing
+        z_wing = -(height_max - 0.12 * l2_wing) * 0.5
         span2_wing = y4_wing - y2_wing
         viscosity = atm.kinematic_viscosity
         rho = atm.density
-        V_inf = max(atm.speed_of_sound * mach, 0.1) # avoid V=0 m/s crashes
-        reynolds = V_inf * l0_wing / viscosity
-        
+        v_inf = max(atm.speed_of_sound * mach, 0.1)  # avoid V=0 m/s crashes
+        reynolds = v_inf * l0_wing / viscosity
+
         # OPENVSP-SCRIPT: Geometry generation ######################################################
-        
+
         # I/O files --------------------------------------------------------------------------------
         tmp_directory = self._create_tmp_directory()
         if self.options[OPTION_OPENVSP_EXE_PATH]:
             target_directory = pth.abspath(self.options[OPTION_OPENVSP_EXE_PATH])
         else:
             target_directory = tmp_directory.name
-        input_file_list = [pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME)]
-        input_file_list.append(pth.join(target_directory, _AIRFOIL_0_FILE_NAME))
-        input_file_list.append(pth.join(target_directory, _AIRFOIL_1_FILE_NAME))
-        input_file_list.append(pth.join(target_directory, _AIRFOIL_2_FILE_NAME))
+        input_file_list = [pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME),
+                           pth.join(target_directory, _AIRFOIL_0_FILE_NAME),
+                           pth.join(target_directory, _AIRFOIL_1_FILE_NAME),
+                           pth.join(target_directory, _AIRFOIL_2_FILE_NAME)]
         tmp_result_file_path = pth.join(target_directory, _INPUT_AERO_FILE_NAME + '0.csv')
         output_file_list = [tmp_result_file_path]
         self.options["external_input_files"] = input_file_list
         self.options["external_output_files"] = output_file_list
-        
+
         # Pre-processing (populating temp directory and generate batch file) -----------------------
         # Copy resource in temp directory if needed
         if not (self.options[OPTION_OPENVSP_EXE_PATH]):
@@ -143,7 +143,9 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME) + ' >nul 2>nul\n'
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) \
+                  + ' -script ' \
+                  + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME) + ' >nul 2>nul\n'
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
         batch_file.write(command)
@@ -179,7 +181,7 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             parser.mark_anchor("csv_file")
             parser.transfer_var(self._rewrite_path(tmp_result_file_path), 0, 3)
             parser.generate()
-            
+
         # Run SCRIPT --------------------------------------------------------------------------------
         super().compute(inputs, outputs)
 
@@ -193,9 +195,9 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
                 new_path = pth.join(result_folder_path, 'OSWALD', pth.split(file_path)[1])
                 if pth.exists(file_path):
                     shutil.copyfile(file_path, new_path)
- 
+
         # OPENVSP-AERO: aero calculation ############################################################
-       
+
         # I/O files --------------------------------------------------------------------------------
         # Duplicate .csv file for multiple run
         input_file_list = [tmp_result_file_path]
@@ -208,16 +210,18 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             output_file_list.append(pth.join(target_directory, _INPUT_AERO_FILE_NAME) + str(idx) + '.polar')
         self.options["external_input_files"] = input_file_list
         self.options["external_output_files"] = output_file_list
-        
+
         # Pre-processing (create batch file) -------------------------------------------------------
         self.options["command"] = [pth.join(target_directory, 'vspaero.bat')]
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
         for idx in range(len(_INPUT_AOAList)):
-            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + ' >nul 2>nul\n')
+            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory,
+                                                                                    _INPUT_AERO_FILE_NAME + str(
+                                                                                        idx) + ' >nul 2>nul\n')
             batch_file.write(command)
         batch_file.close()
-        
+
         # standard AERO input file -----------------------------------------------------------------
         parser = InputFileGenerator()
         for idx in range(len(_INPUT_AOAList)):
@@ -226,7 +230,7 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
                 parser.set_generated_file(input_file_list[len(_INPUT_AOAList) + idx])
                 parser.reset_anchor()
                 parser.mark_anchor("Sref")
-                parser.transfer_var(float(Sref_wing), 0, 3)
+                parser.transfer_var(float(sref_wing), 0, 3)
                 parser.mark_anchor("Cref")
                 parser.transfer_var(float(l0_wing), 0, 3)
                 parser.mark_anchor("Bref")
@@ -238,27 +242,27 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
                 parser.mark_anchor("AOA")
                 parser.transfer_var(float(_INPUT_AOAList[idx]), 0, 3)
                 parser.mark_anchor("Vinf")
-                parser.transfer_var(float(V_inf), 0, 3)
+                parser.transfer_var(float(v_inf), 0, 3)
                 parser.mark_anchor("Rho")
                 parser.transfer_var(float(rho), 0, 3)
                 parser.mark_anchor("ReCref")
                 parser.transfer_var(float(reynolds), 0, 3)
                 parser.generate()
-        
+
         # Run AERO --------------------------------------------------------------------------------
         super().compute(inputs, outputs)
-        
+
         # Post-processing --------------------------------------------------------------------------
         result_oswald = []
         for idx in range(len(_INPUT_AOAList)):
             _, _, oswald, _ = self._read_polar_file(output_file_list[idx])
             result_oswald.append(oswald)
         # Fuselage correction
-        k_fus = 1 - 2*(width_max/span_wing)**2
+        k_fus = 1 - 2 * (width_max / span_wing) ** 2
         # Full aircraft correction: Wing lift is 105% of total lift.
         # This means CDind = (CL*1.05)^2/(piAe) -> e' = e/1.05^2
-        coef_e = float(result_oswald[0] * k_fus / 1.05**2)
-        coef_k = 1. / (math.pi * span_wing**2 / Sref_wing * coef_e)
+        coef_e = float(result_oswald[0] * k_fus / 1.05 ** 2)
+        coef_k = 1. / (math.pi * span_wing ** 2 / sref_wing * coef_e)
 
         if self.options["low_speed_aero"]:
             outputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"] = coef_k
@@ -297,18 +301,18 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
             cm = float(line[1][150:160].replace(' ', ''))
 
         return cl, cdi, oswald, cm
-    
+
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:
-        
+
         """Provide temporary directory for calculation."""
-        
+
         for tmp_base_path in [None, pth.join(str(Path.home()), ".fast")]:
             if tmp_base_path is not None:
                 os.makedirs(tmp_base_path, exist_ok=True)
             tmp_directory = tempfile.TemporaryDirectory(prefix="x", dir=tmp_base_path)
             break
-            
+
         return tmp_directory
 
     @staticmethod

@@ -41,8 +41,12 @@ from ..components.compute_reynolds import ComputeReynolds
 from ..constants import SPAN_MESH_POINT_OPENVSP
 from ..aerodynamics_high_speed import AerodynamicsHighSpeed
 from ..aerodynamics_low_speed import AerodynamicsLowSpeed
-
 from ...tests.xfoil_exe.get_xfoil import get_xfoil_path
+
+from ..aerodynamics_high_speed import _OSWALD_BY_VLM as HS_OSWALD_BY_VLM
+from ..aerodynamics_high_speed import _CLALPHA_BY_VLM as HS_CLALPHA_BY_VLM
+from ..aerodynamics_low_speed import _OSWALD_BY_VLM as LS_OSWALD_BY_VLM
+from ..aerodynamics_low_speed import _CLALPHA_BY_VLM as LS_CLALPHA_BY_VLM
 
 RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
 ERROR_FILE = pth.join(pth.dirname(__file__), "external_code_comp_error.out")
@@ -215,7 +219,7 @@ def test_polar():
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("xfoil:mach", 0.245)
     ivc.add_output("xfoil:unit_reynolds", 4571770)
-    ivc.add_output("xfoil:length", 1.549)  # group connection between data:geometry:wing:MAC:length and xfoil:length
+    ivc.add_output("xfoil:length", 1.549, units="m")  # group connection data:geometry:wing:MAC:length -> xfoil:length
 
     # Run problem and check obtained value(s) is/(are) correct
     xfoil_comp = XfoilPolar(
@@ -232,7 +236,7 @@ def test_polar():
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("xfoil:mach", 0.1179)
     ivc.add_output("xfoil:unit_reynolds", 2746999)
-    ivc.add_output("xfoil:length", 1.549)  # group connection between data:geometry:wing:MAC:length and xfoil:length
+    ivc.add_output("xfoil:length", 1.549, units="m")  # group connection data:geometry:wing:MAC:length -> xfoil:length
 
     # Run problem and check obtained value(s) is/(are) correct
     xfoil_comp = XfoilPolar(
@@ -501,7 +505,7 @@ def test_high_lift():
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
-    ivc.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha", 4.569)
+    ivc.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha", 4.569, units="rad**-1")
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeDeltaHighLift(), ivc)
@@ -554,7 +558,7 @@ def test_max_cl():
                         0.06279, 0.05602, 0.04639, 0.03265]
     ivc.add_output("data:aerodynamics:flaps:landing:CL_max", 0.5788)
     ivc.add_output("data:aerodynamics:flaps:takeoff:CL_max", 0.1218)
-    ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_openvsp)
+    ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_openvsp, units="m")
     ivc.add_output("data:aerodynamics:wing:low_speed:CL_vector", cl_openvsp)
     ivc.add_output("data:aerodynamics:wing:low_speed:root:CL_max_2D", 1.6999)
     ivc.add_output("data:aerodynamics:wing:low_speed:tip:CL_max_2D", 1.6999)
@@ -583,7 +587,7 @@ def test_max_cl():
                     0.05705357, 0.03870218]
     ivc.add_output("data:aerodynamics:flaps:landing:CL_max", 0.5788)
     ivc.add_output("data:aerodynamics:flaps:takeoff:CL_max", 0.1218)
-    ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_vlm)
+    ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_vlm, units="m")
     ivc.add_output("data:aerodynamics:wing:low_speed:CL_vector", cl_vlm)
     ivc.add_output("data:aerodynamics:wing:low_speed:root:CL_max_2D", 1.6999)
     ivc.add_output("data:aerodynamics:wing:low_speed:tip:CL_max_2D", 1.6999)
@@ -605,7 +609,7 @@ def test_l_d_max():
     # Define independent input value (openVSP)
     ivc = om.IndepVarComp()
     ivc.add_output("data:aerodynamics:aircraft:cruise:CL0_clean", 0.0906)
-    ivc.add_output("data:aerodynamics:aircraft:cruise:CL_alpha", 4.650)
+    ivc.add_output("data:aerodynamics:aircraft:cruise:CL_alpha", 4.650, units="rad**-1")
     ivc.add_output("data:aerodynamics:aircraft:cruise:CD0", 0.01603)
     ivc.add_output("data:aerodynamics:aircraft:cruise:induced_drag_coefficient", 0.0480)
 
@@ -651,9 +655,15 @@ def test_high_speed_connection():
     cd0 = problem["data:aerodynamics:aircraft:cruise:CD0"]
     assert cd0 == pytest.approx(0.0200, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0480, abs=1e-4)
+    if HS_OSWALD_BY_VLM:
+        assert coef_k == pytest.approx(0.0522, abs=1e-4)
+    else:
+        assert coef_k == pytest.approx(0.0480, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.650, abs=1e-3)
+    if HS_CLALPHA_BY_VLM:
+        assert cl_alpha_wing == pytest.approx(4.820, abs=1e-3)
+    else:
+        assert cl_alpha_wing == pytest.approx(4.650, abs=1e-3)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
     assert cl_alpha_htp == pytest.approx(0.7030, abs=1e-4)
     cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
@@ -668,18 +678,27 @@ def test_low_speed_connection():
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
     problem = run_system(AerodynamicsLowSpeed(), input_vars)
-    cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-    assert cl_max_clean == pytest.approx(1.5172, abs=1e-4)
-    cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-    assert cl_max_takeoff == pytest.approx(1.6391, abs=1e-4)
-    cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-    assert cl_max_landing == pytest.approx(2.0961, abs=1e-4)
     cd0 = problem["data:aerodynamics:aircraft:low_speed:CD0"]
     assert cd0 == pytest.approx(0.0454, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0480, abs=1e-4)
+    if LS_OSWALD_BY_VLM:
+        assert coef_k == pytest.approx(0.0528, abs=1e-4)
+    else:
+        assert coef_k == pytest.approx(0.0480, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.570, abs=1e-3)
+    cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
+    cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
+    cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
+    if LS_CLALPHA_BY_VLM:
+        assert cl_alpha_wing == pytest.approx(4.705, abs=1e-3)
+        assert cl_max_clean == pytest.approx(1.4484, abs=1e-4)
+        assert cl_max_takeoff == pytest.approx(1.5702, abs=1e-4)
+        assert cl_max_landing == pytest.approx(2.0272, abs=1e-4)
+    else:
+        assert cl_alpha_wing == pytest.approx(4.570, abs=1e-3)
+        assert cl_max_clean == pytest.approx(1.5172, abs=1e-4)
+        assert cl_max_takeoff == pytest.approx(1.6391, abs=1e-4)
+        assert cl_max_landing == pytest.approx(2.0961, abs=1e-4)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
     assert cl_alpha_htp == pytest.approx(0.6967, abs=1e-4)
 

@@ -37,6 +37,6 @@ class ComputeFlightControlsWeight(om.ExplicitComponent):
         
         mtow = inputs["data:weight:aircraft:MTOW"]
         
-        a4 = 1.066*mtow**0.626 # mass formula in lb
+        a4 = 1.066*mtow**0.626  # mass formula in lb
 
         outputs["data:weight:airframe:flight_controls:mass"] = a4

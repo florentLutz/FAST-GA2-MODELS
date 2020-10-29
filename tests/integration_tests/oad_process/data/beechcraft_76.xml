@@ -20,8 +20,14 @@
 			<range units="NM">780.0</range>
 			<v_approach units="kn">78.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
+			<v_limit units="kn">179.0<!--top-level requirement: limit speed--></v_limit>
 		</TLAR>
 		<geometry>
+			<flap>
+				<chord_ratio>0.197<!--mean value of (flap chord)/(section chord)--></chord_ratio>
+				<span_ratio>0.8<!--ratio (width of flaps)/(total span)--></span_ratio>
+			</flap>
+			<flap_type>1.0<!--0=plain flap / 1=flap simple slotted--></flap_type>
 			<cabin>
 				<aisle_width units="m">0.0<!--cabin aisle width--></aisle_width>
 				<seats>
@@ -67,6 +73,7 @@
 				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>
 				<sweep_25 units="deg">10.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
 				<taper_ratio>0.62<!--taper ratio of vertical tail--></taper_ratio>
+				<thickness_ratio>0.1<!--thickness ratio of vertical tail--></thickness_ratio>
 			</vertical_tail>
 			<wing>
 				<MAC>
@@ -75,17 +82,23 @@
 					</at25percent>
 				</MAC>
 				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
+				<sweep_25 units="deg">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
 				<taper_ratio>1.0<!--taper ratio of wing--></taper_ratio>
 				<thickness_ratio>0.12<!--mean thickness ratio of wing--></thickness_ratio>
 			</wing>
 		</geometry>
 		<propulsion>
-			<engine>
+			<IC_engine>
 				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
-			</engine>
+				<max_power units="W">130000.0<!--max power @ see level--></max_power>
+				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
+			</IC_engine>
 		</propulsion>
 		<mission>
 		  	<sizing>
+				<cs23>
+					<sizing_factor_ultimate>5.7<!--over-sizing coefficient--></sizing_factor_ultimate>
+				</cs23>
 				<main_route>
 					<climb>
 					  <thrust_rate>0.93</thrust_rate>

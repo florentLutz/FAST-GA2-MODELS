@@ -68,7 +68,7 @@ class _ComputeVTArea(om.ExplicitComponent):
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan, units="m")
+        self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan)
         self.add_input("data:aerodynamics:fuselage:cruise:CnBeta", val=np.nan)
         self.add_input("data:aerodynamics:vertical_tail:cruise:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")

@@ -50,8 +50,7 @@ class ComputeLifeSupportSystemsWeight(ExplicitComponent):
         limit_speed = inputs["data:TLAR:v_limit"]
 
         atm = Atmosphere(0.0)
-        limit_speed = limit_speed/atm.speed_of_sound # converted to mach
-        c22 = 0.261*mtow**.52*npax**0.68*m_iae**0.17*limit_speed**0.08 # mass formula in lb
+        limit_speed = limit_speed/atm.speed_of_sound  # converted to mach
+        c22 = 0.261*mtow**.52*npax**0.68*m_iae**0.17*limit_speed**0.08  # mass formula in lb
        
         outputs["data:weight:systems:life_support:air_conditioning:mass"] = c22
-        

@@ -24,7 +24,8 @@ from fastoad.io import VariableIO
 from ....tests.testing_utilities import run_system
 
 from ..cg import CG
-from ..cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, ComputeLandingGearCG
+from ..cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, \
+    ComputeLandingGearCG
 from ..cg_components.b_propulsion import ComputeEngineCG, ComputeFuelLinesCG, ComputeTankCG
 from ..cg_components.c_systems import ComputePowerSystemsCG, ComputeLifeSupportCG, ComputeNavigationSystemsCG
 from ..cg_components.d_furniture import ComputePassengerSeatsCG
@@ -35,6 +36,7 @@ from ..cg_components.max_cg_ratio import ComputeMaxCGratio
 from ..cg_components.update_mlg import UpdateMLG
 
 XML_FILE = "beechcraft_76.xml"
+
 
 def get_indep_var_comp(var_names):
     """ Reads required input data and returns an IndepVarcomp() instance"""
@@ -282,7 +284,7 @@ def test_compute_cg_passenger_seats():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputePassengerSeatsCG(), ivc)
     x_cg_d2 = problem.get_val("data:weight:furniture:passenger_seats:CG:x", units="m")
-    assert x_cg_d2 == pytest.approx(3.92, abs=1e-2) # modified with new cabin definition
+    assert x_cg_d2 == pytest.approx(3.92, abs=1e-2)  # modified with new cabin definition
 
 
 def test_compute_cg_payload():
@@ -295,7 +297,7 @@ def test_compute_cg_payload():
 
     # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:weight:furniture:passenger_seats:CG:x", 4.13, units="m")  # use old fast-version for calculation
+    ivc.add_output("data:weight:furniture:passenger_seats:CG:x", 4.13, units="m")   # use old fast-version
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputePayloadCG(), ivc)
@@ -317,26 +319,26 @@ def test_compute_cg_ratio_aft():
 
     # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:weight:airframe:wing:CG:x", 0.39)
-    ivc.add_output("data:weight:airframe:fuselage:CG:x", 3.99)
-    ivc.add_output("data:weight:airframe:horizontal_tail:CG:x", 7.91)
-    ivc.add_output("data:weight:airframe:vertical_tail:CG:x", 8.05)
-    ivc.add_output("data:weight:airframe:flight_controls:CG:x", 4.61)
-    ivc.add_output("data:weight:airframe:landing_gear:main:CG:x", 3.62)
-    ivc.add_output("data:weight:airframe:landing_gear:front:CG:x", 1.71)
-    ivc.add_output("data:weight:propulsion:engine:CG:x", 2.7)
-    ivc.add_output("data:weight:propulsion:fuel_lines:CG:x", 2.7)
-    ivc.add_output("data:weight:systems:power:electric_systems:CG:x", 0.0)
-    ivc.add_output("data:weight:systems:power:hydraulic_systems:CG:x", 0.0)
-    ivc.add_output("data:weight:systems:life_support:air_conditioning:CG:x", 0.0)
-    ivc.add_output("data:weight:systems:navigation:CG:x", 2.97)
-    ivc.add_output("data:weight:furniture:passenger_seats:CG:x", 4.13)
+    ivc.add_output("data:weight:airframe:wing:CG:x", 0.39, units="m")
+    ivc.add_output("data:weight:airframe:fuselage:CG:x", 3.99, units="m")
+    ivc.add_output("data:weight:airframe:horizontal_tail:CG:x", 7.91, units="m")
+    ivc.add_output("data:weight:airframe:vertical_tail:CG:x", 8.05, units="m")
+    ivc.add_output("data:weight:airframe:flight_controls:CG:x", 4.61, units="m")
+    ivc.add_output("data:weight:airframe:landing_gear:main:CG:x", 3.62, units="m")
+    ivc.add_output("data:weight:airframe:landing_gear:front:CG:x", 1.71, units="m")
+    ivc.add_output("data:weight:propulsion:engine:CG:x", 2.7, units="m")
+    ivc.add_output("data:weight:propulsion:fuel_lines:CG:x", 2.7, units="m")
+    ivc.add_output("data:weight:systems:power:electric_systems:CG:x", 0.0, units="m")
+    ivc.add_output("data:weight:systems:power:hydraulic_systems:CG:x", 0.0, units="m")
+    ivc.add_output("data:weight:systems:life_support:air_conditioning:CG:x", 0.0, units="m")
+    ivc.add_output("data:weight:systems:navigation:CG:x", 2.97, units="m")
+    ivc.add_output("data:weight:furniture:passenger_seats:CG:x", 4.13, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeCGRatioAft(), ivc)
-    empty_mass = problem["data:weight:aircraft_empty:mass"]
+    empty_mass = problem.get_val("data:weight:aircraft_empty:mass", units="kg")
     assert empty_mass == pytest.approx(950.47, abs=1e-2)
-    cg_x = problem["data:weight:aircraft_empty:CG:x"]
+    cg_x = problem.get_val("data:weight:aircraft_empty:CG:x", units="m")
     assert cg_x == pytest.approx(2.66, abs=1e-2)
     cg_mac_pos = problem["data:weight:aircraft:empty:CG:MAC_position"]
     assert cg_mac_pos == pytest.approx(-0.26, abs=1e-2)
@@ -352,15 +354,15 @@ def test_compute_cg_loadcase():
 
     # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:weight:payload:PAX:CG:x", 4.13)  # use old fast-version for calculation
-    ivc.add_output("data:weight:payload:rear_fret:CG:x", 5.68)
-    ivc.add_output("data:weight:payload:front_fret:CG:x", 0.0)
-    ivc.add_output("data:weight:aircraft_empty:CG:x", 2.66)
-    ivc.add_output("data:weight:aircraft_empty:mass", 950.47)
-    ivc.add_output("data:weight:propulsion:tank:CG:x", 3.83)
+    ivc.add_output("data:weight:payload:PAX:CG:x", 4.13, units="m")  # use old fast-version for calculation
+    ivc.add_output("data:weight:payload:rear_fret:CG:x", 5.68, units="m")
+    ivc.add_output("data:weight:payload:front_fret:CG:x", 0.0, units="m")
+    ivc.add_output("data:weight:aircraft_empty:CG:x", 2.66, units="m")
+    ivc.add_output("data:weight:aircraft_empty:mass", 950.47, units="kg")
+    ivc.add_output("data:weight:propulsion:tank:CG:x", 3.83, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
-    for case in range(1,7):
+    for case in range(1, 7):
         problem = run_system(ComputeCGLoadCase(load_case=case), ivc)
         cg_ratio_lc = problem.get_val("data:weight:aircraft:load_case_"+str(case)+":CG:MAC_position")
         if case == 1:
@@ -409,7 +411,7 @@ def test_update_mlg():
     # Research independent input value in .xml file  and add values calculated from other modules
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.25)
-    ivc.add_output("data:weight:airframe:landing_gear:front:CG:x", 1.71)
+    ivc.add_output("data:weight:airframe:landing_gear:front:CG:x", 1.71, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(UpdateMLG(), ivc)

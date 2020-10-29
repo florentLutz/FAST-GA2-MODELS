@@ -51,16 +51,6 @@ class BasicICEngine(AbstractFuelPropulsion):
         :param strokes_nb: can be either 2-strockes (=2.0) or 4-strockes (=4.0)
         """
 
-        if (fuel_type != 1.0) and (fuel_type != 2.0):
-            raise FastBasicICEngineInconsistentInputParametersError(
-                "Bad engine configuration: fuel type {0:f} model does not exist.".format(fuel_type)
-            )
-
-        if (strokes_nb != 2.0) and (strokes_nb != 4.0):
-            raise FastBasicICEngineInconsistentInputParametersError(
-                "Bad engine configuration: {0:f}-strokes model does not exist.".format(strokes_nb)
-            )
-
         self.ref = {
             "max_power": 132480,
             "max_thrust": 3600,
@@ -278,7 +268,7 @@ class BasicICEngine(AbstractFuelPropulsion):
                 sfc_p = -0.964 * max_power + 231.91
         else:
             raise FastBasicICEngineInconsistentInputParametersError(
-                "Bad engine configuration: fuel type {0:f} model does not exist.".format(self.fuel_type)
+                "Bad engine configuration: fuel type {0:f} model does not exist.".format(float(self.fuel_type))
             )
 
         sfc_p = sfc_p / 1e6 / 3600.0  # change units to be in kg/s/W

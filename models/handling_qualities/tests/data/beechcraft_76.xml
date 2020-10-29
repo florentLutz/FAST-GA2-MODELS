@@ -152,7 +152,7 @@
 		<weight>
 			<aircraft>
 				<CG>
-					<range units="m">0.15<!--distance between front position and aft position of CG, as ratio of mean aerodynamic chord (allows to have front position of CG, as currently, FAST-OAD estimates only the aft position of CG)--></range>
+					<range>0.15<!--distance between front position and aft position of CG, as ratio of mean aerodynamic chord (allows to have front position of CG, as currently, FAST-OAD estimates only the aft position of CG)--></range>
 				</CG>
 			</aircraft>
 		</weight>

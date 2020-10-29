@@ -37,6 +37,6 @@ class ComputeNavigationSystemsWeight(ExplicitComponent):
         
         mtow = inputs["data:weight:aircraft:MTOW"]
         
-        c3 = 40 +0.008*mtow # mass formula in lb
+        c3 = 40 + 0.008 * mtow  # mass formula in lb
 
         outputs["data:weight:systems:navigation:mass"] = c3

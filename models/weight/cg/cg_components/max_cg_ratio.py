@@ -42,7 +42,7 @@ class ComputeMaxCGratio(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
     
         outputs["data:weight:aircraft:CG:aft:MAC_position"] = inputs[
             "settings:weight:aircraft:CG:aft:MAC_position:margin"

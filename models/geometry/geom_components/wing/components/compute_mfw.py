@@ -24,10 +24,10 @@ class ComputeMFW(ExplicitComponent):
 
     def setup(self):
 
-        self.add_input("data:propulsion:engine:fuel_type", val=np.nan)
+        self.add_input("data:propulsion:IC_engine:fuel_type", val=np.nan)
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:wing:root:chord", val=np.nan)
-        self.add_input("data:geometry:wing:tip:chord", val=np.nan)
+        self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:thickness_ratio", val=np.nan)
         self.add_input("data:geometry:wing:tip:thickness_ratio", val=np.nan)
 
@@ -43,7 +43,7 @@ class ComputeMFW(ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        fuel_type = inputs["data:propulsion:engine:fuel_type"]
+        fuel_type = inputs["data:propulsion:IC_engine:fuel_type"]
         wing_area = inputs["data:geometry:wing:area"]
         root_chord = inputs["data:geometry:wing:root:chord"]
         tip_chord = inputs["data:geometry:wing:tip:chord"]

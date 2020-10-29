@@ -52,11 +52,11 @@ class ComputeWingWeight(om.ExplicitComponent):
         sweep_25 = inputs["data:geometry:wing:sweep_25"]
         limit_speed = inputs["data:TLAR:v_limit"]
 
-        a1 = (
-            96.948*((mtow*sizing_factor_ultimate/10.0**5.0)**0.65
-            *(aspect_ratio/math.cos(sweep_25))**0.57
-            *(wing_area/100.0)**0.61*((1.0+taper_ratio)/(2.0*thickness_ratio))**0.36
-            *(1+limit_speed/500.0)**0.5)**0.993
-        ) # mass formula in lb
+        a1 = 96.948*(
+                (mtow*sizing_factor_ultimate/10.0**5.0)**0.65
+                * (aspect_ratio/math.cos(sweep_25))**0.57
+                * (wing_area/100.0)**0.61 * ((1.0+taper_ratio) / (2.0*thickness_ratio))**0.36
+                * (1+limit_speed/500.0)**0.5
+        )**0.993  # mass formula in lb
             
         outputs["data:weight:airframe:wing:mass"] = a1

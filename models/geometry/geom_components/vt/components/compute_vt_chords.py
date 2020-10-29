@@ -41,11 +41,11 @@ class ComputeVTChords(ExplicitComponent):
         self.declare_partials("data:geometry:vertical_tail:tip:chord", "*", method="fd")
 
     def compute(self, inputs, outputs):
-        lambda_vt = inputs["data:geometry:vertical_tail:aspect_ratio"]
-        s_v = inputs["data:geometry:vertical_tail:area"]
+        lambda_vt = float(inputs["data:geometry:vertical_tail:aspect_ratio"])
+        s_v = float(inputs["data:geometry:vertical_tail:area"])
         taper_v = inputs["data:geometry:vertical_tail:taper_ratio"]
 
-        b_v = np.sqrt(max(lambda_vt * s_v, 0.1)) # !!!: to avoid 0 division if s_h initialised to 0
+        b_v = np.sqrt(max(lambda_vt * s_v, 0.1))  # !!!: to avoid 0 division if s_h initialised to 0
         root_chord = s_v * 2 / (1 + taper_v) / b_v
         tip_chord = root_chord * taper_v
 

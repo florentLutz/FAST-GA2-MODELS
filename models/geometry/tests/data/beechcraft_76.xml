@@ -84,9 +84,9 @@
 			</wing>
 		</geometry>
 		<propulsion>
-			<engine>
+			<IC_engine>
 				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
-			</engine>
+			</IC_engine>
 		</propulsion>
 	</data>
 </FASTOAD_model>

@@ -24,35 +24,34 @@ class Cd0Other(ExplicitComponent):
         self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
-        self.low_speed_aero = self.options["low_speed_aero"]
 
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             self.add_output("data:aerodynamics:other:low_speed:CD0")
         else:
             self.add_output("data:aerodynamics:other:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        engine_number = inputs["data:geometry:propulsion:engine:count"]
+        engine_number = float(inputs["data:geometry:propulsion:engine:count"])
         mtow = inputs["data:weight:aircraft:MTOW"]
         wing_area = inputs["data:geometry:wing:area"]
         
-        #COWLING (only if engine in fuselage): cx_cowl*wing_area assumed typical (Gudmunsson p739)
-        engine_in_fus = engine_number % 2
+        # COWLING (only if engine in fuselage): cx_cowl*wing_area assumed typical (Gudmunsson p739)
+        engine_in_fus = engine_number % 2.0
         cd0_cowling = 0.0267/wing_area * engine_in_fus
-        #Cooling (piston engine only)
-        #Gudmunsson p715. Assuming cx_cooling*wing area/MTOW value of the book is typical
-        cd0_cooling = 7.054E-6 / wing_area * mtow # FIXME: no type piston engine defined...
-        #Gudmunnson p739. Sum of other components (not calculated here), cx_other*wing_area assumed typical
-        cd0_components = 0.0253/(wing_area)        
+        # Cooling (piston engine only)
+        # Gudmunsson p715. Assuming cx_cooling*wing area/MTOW value of the book is typical
+        cd0_cooling = 7.054E-6 / wing_area * mtow  # FIXME: no type piston engine defined...
+        # Gudmunnson p739. Sum of other components (not calculated here), cx_other*wing_area assumed typical
+        cd0_components = 0.0253 / wing_area
         
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             outputs["data:aerodynamics:other:low_speed:CD0"] = cd0_cowling + cd0_cooling + cd0_components
         else:
             outputs["data:aerodynamics:other:cruise:CD0"] = cd0_cowling + cd0_cooling + cd0_components

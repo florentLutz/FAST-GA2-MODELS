@@ -31,14 +31,13 @@ from .external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm
 from .external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLCMopenvsp, \
     ComputeHTPCLALPHAopenvsp
 from .external.xfoil import XfoilPolar
-from .constants import POLAR_POINT_COUNT
 
 from openmdao.core.group import Group
 from openmdao.core.explicitcomponent import ExplicitComponent
 import numpy as np
 
-_OSWALD_BY_VLM = False
-_CLALPHA_BY_VLM = False
+_OSWALD_BY_VLM = True
+_CLALPHA_BY_VLM = True
 
 
 class AerodynamicsLowSpeed(Group):

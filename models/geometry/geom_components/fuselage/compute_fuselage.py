@@ -80,7 +80,7 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:MAC:length", val=np.nan, units="m")
 
-        self.add_output("data:geometry:cabin:NPAX", units="m")
+        self.add_output("data:geometry:cabin:NPAX")
         self.add_output("data:geometry:fuselage:length", units="m")
         self.add_output("data:geometry:fuselage:maximum_width", units="m")
         self.add_output("data:geometry:fuselage:maximum_height", units="m")

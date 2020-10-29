@@ -25,6 +25,7 @@ from ..tail_sizing.compute_ht_area import _ComputeHTArea
 from ..tail_sizing.compute_vt_area import _ComputeVTArea
 
 XML_FILE = "beechcraft_76.xml"
+ENGINE_WRAPPER = "fastga.wrapper.propulsion.basicIC_engine"
 
 
 def get_indep_var_comp(var_names):
@@ -69,13 +70,13 @@ def test_compute_vt_area():
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.364924)
     ivc.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.117901)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_ComputeVTArea(propulsion_id="fastga.wrapper.propulsion.basicIC_engine"), ivc)
+    problem = run_system(_ComputeVTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     vt_area = problem.get_val("data:geometry:vertical_tail:area", units="m**2")
     assert vt_area == pytest.approx(5.24, abs=1e-2)
 
@@ -111,23 +112,25 @@ def test_compute_ht_area():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha", np.linspace(0.0, 15.0, HT_POINT_COUNT))
+    ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha",
+                   np.linspace(0.0, 15.0, HT_POINT_COUNT), units="deg")
     ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:CL",
                    np.linspace(0.0, 15.0, HT_POINT_COUNT) * 0.05 + 0.005)
     ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:CM",
                    np.linspace(0.0, 15.0, HT_POINT_COUNT) * 0.001 + 0.05)
-    ivc.add_output("data:aerodynamics:elevator:low_speed:angle", np.linspace(-25.0, 25.0, ELEV_POINT_COUNT))
+    ivc.add_output("data:aerodynamics:elevator:low_speed:angle",
+                   np.linspace(-25.0, 25.0, ELEV_POINT_COUNT), units="deg")
     ivc.add_output("data:aerodynamics:elevator:low_speed:CL",
                    np.linspace(-25.0, 25.0, ELEV_POINT_COUNT) * -0.02 - 0.001)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_ComputeHTArea(propulsion_id="fastga.wrapper.propulsion.basicIC_engine"), ivc)
+    problem = run_system(_ComputeHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     ht_area = problem.get_val("data:geometry:horizontal_tail:area", units="m**2")
-    assert ht_area == pytest.approx(0.48, abs=1e-2)
+    assert ht_area == pytest.approx(-0.31, abs=1e-2)
 
 
 def test_compute_static_margin():

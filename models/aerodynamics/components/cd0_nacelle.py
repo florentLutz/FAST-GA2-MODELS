@@ -19,7 +19,6 @@ import math
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-from fastoad.utils.physics import Atmosphere
 
 
 class Cd0Nacelle(ExplicitComponent):
@@ -27,7 +26,6 @@ class Cd0Nacelle(ExplicitComponent):
         self.options.declare("low_speed_aero", default=False, types=bool)
         
     def setup(self):
-        self.low_speed_aero = self.options["low_speed_aero"]
         
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
@@ -36,7 +34,7 @@ class Cd0Nacelle(ExplicitComponent):
         self.add_input("data:geometry:propulsion:nacelle:length", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:nacelles:low_speed:CD0")
@@ -58,35 +56,38 @@ class Cd0Nacelle(ExplicitComponent):
                 method="fd",
         )
 
-    def compute(self, inputs, outputs):
-        
-        engine_number = inputs["data:geometry:propulsion:engine:count"]
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+
+        try:
+            engine_number = int(float(inputs["data:geometry:propulsion:engine:count"]))
+        except ValueError:
+            engine_number = 0
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         nac_height = inputs["data:geometry:propulsion:nacelle:height"]
         nac_width = inputs["data:geometry:propulsion:nacelle:width"]
         nac_length = inputs["data:geometry:propulsion:nacelle:length"]
         wet_area_nac = inputs["data:geometry:propulsion:nacelle:wet_area"]
         wing_area = inputs["data:geometry:wing:area"]
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             mach = inputs["data:aerodynamics:low_speed:mach"]
             unit_reynolds = inputs["data:aerodynamics:low_speed:unit_reynolds"]
         else:
             mach = inputs["data:aerodynamics:cruise:mach"]
             unit_reynolds = inputs["data:aerodynamics:cruise:unit_reynolds"]
         
-        #Local Reynolds:
+        # Local Reynolds:
         reynolds = unit_reynolds*nac_length
-        #Roskam method for wing-nacelle interaction factor (vol 6 page 3.62)
-        cf_nac = 0.455 / ((1 + 0.144 * mach ** 2)**0.65 * (math.log10(reynolds)) ** (2.58)) #100% turbulent
+        # Roskam method for wing-nacelle interaction factor (vol 6 page 3.62)
+        cf_nac = 0.455 / ((1 + 0.144 * mach ** 2)**0.65 * (math.log10(reynolds)) ** 2.58)  # 100% turbulent
         f = nac_length/math.sqrt(4*nac_height*nac_width/math.pi) 
-        ff_nac = 1 + 0.35/f #Raymer (seen in Gudmunsson)
-        if_nac = 0.036*nac_width*l0_wing/wing_area* 0.04
-        engine_in_fus = engine_number % 2.0
+        ff_nac = 1 + 0.35/f  # Raymer (seen in Gudmunsson)
+        if_nac = 0.036 * nac_width * l0_wing/wing_area * 0.04
+        engine_in_fus = engine_number % 2
         
-        cd0 = (cf_nac * ff_nac * wet_area_nac / (wing_area) + if_nac) \
+        cd0 = (cf_nac * ff_nac * wet_area_nac / wing_area + if_nac) \
             * (engine_number - engine_in_fus)
 
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             outputs["data:aerodynamics:nacelles:low_speed:CD0"] = cd0
         else:
             outputs["data:aerodynamics:nacelles:cruise:CD0"] = cd0

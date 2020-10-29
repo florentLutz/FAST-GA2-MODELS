@@ -89,7 +89,7 @@ class _v2(om.ExplicitComponent):
         self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:coef_k", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", np.nan, units="m")
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
@@ -109,7 +109,7 @@ class _v2(om.ExplicitComponent):
         cl0 = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
         cl_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
         cd0 = inputs["data:aerodynamics:aircraft:low_speed:CD0"] + inputs["data:aerodynamics:flaps:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:low_speed:coef_k"]
+        coef_k = inputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         wing_span = inputs["data:geometry:wing:span"]
         lg_height = inputs["data:geometry:landing_gear:height"]
@@ -172,7 +172,7 @@ class _vloff_from_v2(om.ExplicitComponent):
         self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:coef_k", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", np.nan, units="m")
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
@@ -194,7 +194,7 @@ class _vloff_from_v2(om.ExplicitComponent):
         cl0 = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
         cl_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
         cd0 = inputs["data:aerodynamics:aircraft:low_speed:CD0"] + inputs["data:aerodynamics:flaps:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:low_speed:coef_k"]
+        coef_k = inputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         wing_span = inputs["data:geometry:wing:span"]
         lg_height = inputs["data:geometry:landing_gear:height"]
@@ -315,7 +315,7 @@ class _vr_from_v2(om.ExplicitComponent):
         self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:coef_k", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", np.nan, units="m")
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
@@ -336,14 +336,14 @@ class _vr_from_v2(om.ExplicitComponent):
         cl0 = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
         cl_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
         cd0 = inputs["data:aerodynamics:aircraft:low_speed:CD0"] + inputs["data:aerodynamics:flaps:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:low_speed:coef_k"]
+        coef_k = inputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         wing_span = inputs["data:geometry:wing:span"]
         lg_height = inputs["data:geometry:landing_gear:height"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         thrust_rate = inputs["data:mission:sizing:takeoff:thrust_rate"]
         friction_coeff = inputs["data:mission:sizing:takeoff:friction_coefficient_no_brake"]
-        v_t = inputs["vr:vloff"]
+        v_t = float(inputs["vr:vloff"])
         alpha_t = float(inputs["vr:alpha_vloff"])
 
         # Define ground factor effect on Drag
@@ -399,7 +399,7 @@ class _simulate_takeoff(om.ExplicitComponent):
         self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:coef_k", np.nan)
+        self.add_input("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", np.nan, units="m")
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
@@ -428,14 +428,14 @@ class _simulate_takeoff(om.ExplicitComponent):
         cl0 = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
         cl_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
         cd0 = inputs["data:aerodynamics:aircraft:low_speed:CD0"] + inputs["data:aerodynamics:flaps:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:low_speed:coef_k"]
+        coef_k = inputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         wing_span = inputs["data:geometry:wing:span"]
         lg_height = inputs["data:geometry:landing_gear:height"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         thrust_rate = inputs["data:mission:sizing:takeoff:thrust_rate"]
         friction_coeff = inputs["data:mission:sizing:takeoff:friction_coefficient_no_brake"]
-        alpha_v2 = inputs["takeoff:alpha_v2"]
+        alpha_v2 = float(inputs["takeoff:alpha_v2"])
 
         # Define ground factor effect on Drag
         k_ground = lambda altitude: (
@@ -448,7 +448,7 @@ class _simulate_takeoff(om.ExplicitComponent):
             k = 1.0
         else:
             k = 1.1
-        vr = max(k * vs1, inputs["takeoff:min_vr"])
+        vr = max(k * vs1, float(inputs["takeoff:min_vr"]))
         # Start calculation of flight from null speed to 35ft high
         alpha_t = 0.0
         gamma_t = 0.0

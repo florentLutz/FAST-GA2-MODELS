@@ -28,19 +28,19 @@ class ComputeEngineWeight(ExplicitComponent):
 
     def setup(self):
         
-        self.add_input("data:propulsion:engine:power_SL", val=np.nan, units="hp")
+        self.add_input("data:propulsion:IC_engine:max_power", val=np.nan, units="hp")
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
         
         self.add_output("data:weight:propulsion:engine:mass", units="lb")
 
         self.declare_partials("data:weight:propulsion:engine:mass",
-            ["data:propulsion:engine:power_SL"],
+            ["data:propulsion:IC_engine:max_power"],
             method="fd",
         )
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        power_sl = inputs["data:propulsion:engine:power_SL"] * (746/735.5) # conversion to european hp
+        power_sl = inputs["data:propulsion:IC_engine:max_power"] * (746/735.5)  # conversion to european hp
         n_engines = inputs["data:geometry:propulsion:engine:count"]
         
         b1 = ((power_sl - 21.55)/0.5515)*n_engines

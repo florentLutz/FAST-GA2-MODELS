@@ -75,7 +75,7 @@ def test_v2():
         "data:aerodynamics:aircraft:low_speed:CL_alpha",
         "data:aerodynamics:aircraft:low_speed:CD0",
         "data:aerodynamics:flaps:takeoff:CD",
-        "data:aerodynamics:aircraft:low_speed:coef_k",
+        "data:aerodynamics:aircraft:low_speed:induced_drag_coefficient",
         "data:geometry:wing:area",
         "data:geometry:wing:span",
         "data:geometry:landing_gear:height",
@@ -85,7 +85,7 @@ def test_v2():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
@@ -109,7 +109,7 @@ def test_vloff():
         "data:aerodynamics:aircraft:low_speed:CL_alpha",
         "data:aerodynamics:aircraft:low_speed:CD0",
         "data:aerodynamics:flaps:takeoff:CD",
-        "data:aerodynamics:aircraft:low_speed:coef_k",
+        "data:aerodynamics:aircraft:low_speed:induced_drag_coefficient",
         "data:geometry:wing:area",
         "data:geometry:wing:span",
         "data:geometry:landing_gear:height",
@@ -119,7 +119,7 @@ def test_vloff():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("vloff:v2", 37.79, units='m/s')
@@ -145,7 +145,7 @@ def test_vr():
         "data:aerodynamics:aircraft:low_speed:CL_alpha",
         "data:aerodynamics:aircraft:low_speed:CD0",
         "data:aerodynamics:flaps:takeoff:CD",
-        "data:aerodynamics:aircraft:low_speed:coef_k",
+        "data:aerodynamics:aircraft:low_speed:induced_drag_coefficient",
         "data:geometry:wing:area",
         "data:geometry:wing:span",
         "data:geometry:landing_gear:height",
@@ -156,7 +156,7 @@ def test_vr():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("vr:vloff", 36.88, units='m/s')
@@ -181,7 +181,7 @@ def test_simulate_takeoff():
         "data:aerodynamics:aircraft:low_speed:CL_alpha",
         "data:aerodynamics:aircraft:low_speed:CD0",
         "data:aerodynamics:flaps:takeoff:CD",
-        "data:aerodynamics:aircraft:low_speed:coef_k",
+        "data:aerodynamics:aircraft:low_speed:induced_drag_coefficient",
         "data:geometry:wing:area",
         "data:geometry:wing:span",
         "data:geometry:landing_gear:height",
@@ -192,7 +192,7 @@ def test_simulate_takeoff():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("takeoff:min_vr", 28.51, units='m/s')
@@ -223,12 +223,12 @@ def test_takeoffphase_connections():
     # load all inputs
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
-    input_vars = reader.read().to_ivc()
-    input_vars.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
-    input_vars.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    input_vars.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
+    ivc = reader.read().to_ivc()
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
+    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     register_wrappers()
-    problem = run_system(TakeOffPhase(propulsion_id=ENGINE_WRAPPER), input_vars)
+    problem = run_system(TakeOffPhase(propulsion_id=ENGINE_WRAPPER), ivc)
     vr = problem.get_val("data:mission:sizing:takeoff:VR", units='m/s')
     assert vr == pytest.approx(34.62, abs=1e-2)
     vloff = problem.get_val("data:mission:sizing:takeoff:VLOF", units='m/s')
@@ -261,7 +261,7 @@ def test_compute_taxi():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
@@ -283,7 +283,7 @@ def test_compute_climb():
         "data:geometry:propulsion:engine:count",
         "data:mission:sizing:main_route:cruise:altitude",
         "data:aerodynamics:aircraft:cruise:CD0",
-        "data:aerodynamics:aircraft:cruise:coef_k",
+        "data:aerodynamics:aircraft:cruise:induced_drag_coefficient",
         "data:geometry:wing:area",
         "data:weight:aircraft:MTOW",
         "data:mission:sizing:main_route:climb:thrust_rate"
@@ -291,7 +291,7 @@ def test_compute_climb():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("data:mission:sizing:taxi_out:fuel", 0.50, units="kg")
@@ -304,11 +304,11 @@ def test_compute_climb():
     v_cas = problem.get_val("data:mission:sizing:main_route:climb:v_cas", units="kn")
     assert v_cas == pytest.approx(71.5, abs=1)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:climb:fuel", units="kg")
-    assert fuel_mass == pytest.approx(5.56, abs=1e-2)
+    assert fuel_mass == pytest.approx(5.90, abs=1e-2)
     distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="m") / 1000.0  # conversion to km
-    assert distance == pytest.approx(13.2, abs=1e-1)
+    assert distance == pytest.approx(13.8, abs=1e-1)
     duration = problem.get_val("data:mission:sizing:main_route:climb:duration", units="min")
-    assert duration == pytest.approx(5.7, abs=1e-1)
+    assert duration == pytest.approx(5.9, abs=1e-1)
 
 
 def test_compute_cruise():
@@ -321,14 +321,14 @@ def test_compute_cruise():
         "data:TLAR:range",
         "data:mission:sizing:main_route:cruise:altitude",
         "data:aerodynamics:aircraft:cruise:CD0",
-        "data:aerodynamics:aircraft:cruise:coef_k",
+        "data:aerodynamics:aircraft:cruise:induced_drag_coefficient",
         "data:geometry:wing:area",
         "data:weight:aircraft:MTOW",
     ]
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("data:mission:sizing:taxi_out:fuel", 0.50, units="kg")
@@ -356,14 +356,14 @@ def test_compute_descent():
         "data:mission:sizing:main_route:descent:descent_rate",
         "data:aerodynamics:aircraft:cruise:optimal_CL",
         "data:aerodynamics:aircraft:cruise:CD0",
-        "data:aerodynamics:aircraft:cruise:coef_k",
+        "data:aerodynamics:aircraft:cruise:induced_drag_coefficient",
         "data:geometry:wing:area",
         "data:weight:aircraft:MTOW",
     ]
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("data:mission:sizing:taxi_out:fuel", 0.98, units="kg")
@@ -389,16 +389,16 @@ def test_loop_cruise_distance():
     # Get the parameters from .xml
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
-    input_vars = reader.read().to_ivc()
-    input_vars.add_output("data:propulsion:IC_engine:max_power", 130000)  # correct value to fit old version def.
-    input_vars.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    input_vars.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
+    ivc = reader.read().to_ivc()
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
+    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(Sizing(propulsion_id=ENGINE_WRAPPER), input_vars)
+    problem = run_system(Sizing(propulsion_id=ENGINE_WRAPPER), ivc)
     m_total = problem.get_val("data:mission:sizing:fuel", units="kg")
-    assert m_total == pytest.approx(214.0, abs=1e-1)
+    assert m_total == pytest.approx(214.2, abs=1e-1)
     climb_distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="NM")
     cruise_distance = problem.get_val("data:mission:sizing:main_route:cruise:distance", units="NM")
     descent_distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="NM")

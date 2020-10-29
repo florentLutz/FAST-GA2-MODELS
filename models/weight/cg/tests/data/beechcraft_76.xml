@@ -77,7 +77,7 @@
 							<local units="m">0.219<!--X-position of the 25% of mean aerodynamic chord of vertical tail w.r.t. leading edge of root chord--></local>
 						</x>
 					</at25percent>
-					<length>1.472<!--mean aerodynamic chord length of vertical tail--></length>
+					<length units="m">1.472<!--mean aerodynamic chord length of vertical tail--></length>
 				</MAC>
 				<root>
 					<chord units="m">1.785<!--chord length at root of vertical tail--></chord>

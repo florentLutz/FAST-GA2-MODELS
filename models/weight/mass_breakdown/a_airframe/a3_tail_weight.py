@@ -49,11 +49,11 @@ class ComputeTailWeight(om.ExplicitComponent):
         chord = inputs["data:geometry:horizontal_tail:root:chord"]
         thickness = chord*thickness_ratio
         
-        a31 = (
-            98.5*((mtow*sizing_factor_ultimate/10**5)**0.87
-            *(wet_area/100)**1.2
-            *0.289*(span/thickness)**0.5)**0.458
-        )# mass formula in lb
+        a31 = 98.5*(
+                (mtow*sizing_factor_ultimate/10**5)**0.87
+                * (wet_area/100)**1.2
+                * 0.289 * (span/thickness)**0.5
+        )**0.458  # mass formula in lb
 
         outputs["data:weight:airframe:horizontal_tail:mass"] = a31
         outputs["data:weight:airframe:vertical_tail:mass"] = 0.0  # TODO: explain why not evaluated

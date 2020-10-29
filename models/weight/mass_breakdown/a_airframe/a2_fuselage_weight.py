@@ -47,11 +47,11 @@ class ComputeFuselageWeight(om.ExplicitComponent):
         fus_length = inputs["data:geometry:fuselage:length"]
         cruise_speed = inputs["data:TLAR:v_cruise"]
         
-        a2 = (
-            200.0*((mtow*sizing_factor_ultimate/(10.0**5.0))**0.286
-            *(fus_length*3.28084/10.0)**0.857
-            *(maximum_width+maximum_height)*3.28084/10.0
-            *(cruise_speed/100.0)**0.338)**1.1
-        ) # mass formula in lb
+        a2 = 200.0*(
+                (mtow*sizing_factor_ultimate / (10.0**5.0))**0.286
+                * (fus_length * 3.28084/10.0)**0.857
+                * (maximum_width + maximum_height) * 3.28084/10.0
+                * (cruise_speed/100.0)**0.338
+        )**1.1  # mass formula in lb
             
         outputs["data:weight:airframe:fuselage:mass"] = a2

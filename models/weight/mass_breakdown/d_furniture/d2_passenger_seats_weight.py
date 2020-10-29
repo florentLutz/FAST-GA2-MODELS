@@ -18,7 +18,6 @@ import numpy as np
 import openmdao.api as om
 
 
-
 class ComputePassengerSeatsWeight(om.ExplicitComponent):
     """
     Weight estimation for passenger seats
@@ -37,9 +36,9 @@ class ComputePassengerSeatsWeight(om.ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        npax = inputs["data:TLAR:NPAX"] + 2.0 # includes 2 pilots seats
+        npax = inputs["data:TLAR:NPAX"] + 2.0  # includes 2 pilots seats
         mtow = inputs["data:weight:aircraft:MTOW"]
         
-        d2 = 0.412*npax**1.145*mtow**0.489 # mass formula in lb
+        d2 = 0.412*npax**1.145*mtow**0.489  # mass formula in lb
         
         outputs["data:weight:furniture:passenger_seats:mass"] = d2
