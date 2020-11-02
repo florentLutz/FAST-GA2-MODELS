@@ -99,6 +99,9 @@
 				<cs23>
 					<sizing_factor_ultimate>5.7<!--over-sizing coefficient--></sizing_factor_ultimate>
 				</cs23>
+				<landing>
+					<elevator_angle units="deg">-25.0<!--elevator maximum angle during landing phase in sizing mission--></elevator_angle>
+				</landing>
 				<main_route>
 					<climb>
 					  <thrust_rate>0.93</thrust_rate>
@@ -132,4 +135,13 @@
 		  	</sizing>
 		</mission>
 	</data>
+	<settings>
+		<weight>
+			<aircraft>
+				<CG>
+					<range>0.15<!--distance between front position and aft position of CG, as ratio of mean aerodynamic chord (allows to have front position of CG, as currently, FAST-OAD estimates only the aft position of CG)--></range>
+				</CG>
+			</aircraft>
+		</weight>
+	</settings>
 </FASTOAD_model>

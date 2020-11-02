@@ -60,8 +60,7 @@ def test_oad_process(cleanup):
         problem["data:weight:airframe:mass"]
         + problem["data:weight:propulsion:mass"]
         + problem["data:weight:systems:mass"]
-        + problem["data:weight:furniture:mass"]
-        + problem["data:weight:crew:mass"],
+        + problem["data:weight:furniture:mass"],
         atol=1,
     )
     assert_allclose(
@@ -72,7 +71,7 @@ def test_oad_process(cleanup):
     assert_allclose(
         problem["data:weight:aircraft:MTOW"],
         problem["data:weight:aircraft:OWE"]
-        + problem["data:weight:aircraft:payload"]
+        + problem["data:weight:aircraft:max_payload"]
         + problem["data:mission:sizing:fuel"],
         atol=1,
     )

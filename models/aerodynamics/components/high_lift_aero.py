@@ -50,7 +50,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:flap:chord_ratio", val=np.nan)
+        self.add_input("data:geometry:flap:chord_ratio", val=0.2)
         self.add_input("data:geometry:flap:span_ratio", val=np.nan)
         self.add_input("data:geometry:flap_type", val=np.nan)
         self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", val=np.nan, units="rad**-1")
@@ -218,7 +218,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         """
 
         flap_type = inputs['data:geometry:flap_type']
-        flap_chord_ratio = inputs['data:geometry:flap:chord_ratio']
+        flap_chord_ratio = float(inputs['data:geometry:flap:chord_ratio'])
 
         # 2D flap lift coefficient
         if flap_type == 1:  # Slotted flap
@@ -334,11 +334,11 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         ynew4 = interpolate.splev(min(max(flap_angle, min(x4)), max(x4)), tck4, der=0)
         ynew5 = interpolate.splev(min(max(flap_angle, min(x5)), max(x5)), tck5, der=0)
         zs = [0.15, 0.20, 0.25, 0.30, 0.40]
-        y_final = [ynew1, ynew2, ynew3, ynew4, ynew5]
+        y_final = [float(ynew1), float(ynew2), float(ynew3), float(ynew4), float(ynew5)]
         tck6 = interpolate.splrep(zs, y_final, s=0)
         effectiveness = interpolate.splev(min(max(chord_ratio, min(zs)), max(zs)), tck6, der=0)
 
-        return effectiveness[0]
+        return effectiveness
 
     @staticmethod
     def _delta_lift_plainflap(
@@ -359,36 +359,69 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         file = resources.__path__[0] + '\\' + DELTA_CL_PLAIN_FLAP
         db = read_csv(file)
 
-        x_0 = db['X_0'].tolist()
-        y_0 = db['Y_0'].tolist()
-        x_04 = db['X_04'].tolist()
-        y_04 = db['Y_04'].tolist()
-        x_10 = db['X_10'].tolist()
-        y_10 = db['Y_10'].tolist()
-        x_15 = db['X_15'].tolist()
-        y_15 = db['Y_15'].tolist()
+        x_0 = db['X_0']
+        y_0 = db['Y_0']
+        errors = np.logical_or(np.isnan(x_0), np.isnan(y_0))
+        x_0 = x_0[np.logical_not(errors)].tolist()
+        y_0 = y_0[np.logical_not(errors)].tolist()
+        x_04 = db['X_04']
+        y_04 = db['Y_04']
+        errors = np.logical_or(np.isnan(x_04), np.isnan(y_04))
+        x_04 = x_04[np.logical_not(errors)].tolist()
+        y_04 = y_04[np.logical_not(errors)].tolist()
+        x_10 = db['X_10']
+        y_10 = db['Y_10']
+        errors = np.logical_or(np.isnan(x_10), np.isnan(y_10))
+        x_10 = x_10[np.logical_not(errors)].tolist()
+        y_10 = y_10[np.logical_not(errors)].tolist()
+        x_15 = db['X_15']
+        y_15 = db['Y_15']
+        errors = np.logical_or(np.isnan(x_15), np.isnan(y_15))
+        x_15 = x_15[np.logical_not(errors)].tolist()
+        y_15 = y_15[np.logical_not(errors)].tolist()
         cld_thk0 = interpolate.interp1d(x_0, y_0)
         cld_thk04 = interpolate.interp1d(x_04, y_04)
         cld_thk10 = interpolate.interp1d(x_10, y_10)
         cld_thk15 = interpolate.interp1d(x_15, y_15)
-        cld_t = [cld_thk0(chord_ratio), cld_thk04(chord_ratio), cld_thk10(chord_ratio), cld_thk15(chord_ratio)]
+        cld_t = [float(cld_thk0(min(max(chord_ratio, min(x_0)), max(x_0)))),
+                 float(cld_thk04(min(max(chord_ratio, min(x_04)), max(x_04)))),
+                 float(cld_thk10(min(max(chord_ratio, min(x_10)), max(x_10)))),
+                 float(cld_thk15(min(max(chord_ratio, min(x_15)), max(x_15))))]
         cl_delta = interpolate.interp1d([0.0, 0.04, 0.1, 0.15], cld_t)(min(thickness, 0.15))
 
         file = resources.__path__[0] + '\\' + K_PLAIN_FLAP
         db = read_csv(file)
 
-        x_10 = db['X_10'].tolist()
-        y_10 = db['Y_10'].tolist()
-        x_15 = db['X_15'].tolist()
-        y_15 = db['Y_15'].tolist()
-        x_25 = db['X_25'].tolist()
-        y_25 = db['Y_25'].tolist()
-        x_30 = db['X_30'].tolist()
-        y_30 = db['Y_30'].tolist()
-        x_40 = db['X_40'].tolist()
-        y_40 = db['Y_40'].tolist()
-        x_50 = db['X_50'].tolist()
-        y_50 = db['Y_50'].tolist()
+        x_10 = db['X_10']
+        y_10 = db['Y_10']
+        errors = np.logical_or(np.isnan(x_10), np.isnan(y_10))
+        x_10 = x_10[np.logical_not(errors)].tolist()
+        y_10 = y_10[np.logical_not(errors)].tolist()
+        x_15 = db['X_15']
+        y_15 = db['Y_15']
+        errors = np.logical_or(np.isnan(x_15), np.isnan(y_15))
+        x_15 = x_15[np.logical_not(errors)].tolist()
+        y_15 = y_15[np.logical_not(errors)].tolist()
+        x_25 = db['X_25']
+        y_25 = db['Y_25']
+        errors = np.logical_or(np.isnan(x_25), np.isnan(y_25))
+        x_25 = x_25[np.logical_not(errors)].tolist()
+        y_25 = y_25[np.logical_not(errors)].tolist()
+        x_30 = db['X_30']
+        y_30 = db['Y_30']
+        errors = np.logical_or(np.isnan(x_30), np.isnan(y_30))
+        x_30 = x_30[np.logical_not(errors)].tolist()
+        y_30 = y_30[np.logical_not(errors)].tolist()
+        x_40 = db['X_40']
+        y_40 = db['Y_40']
+        errors = np.logical_or(np.isnan(x_40), np.isnan(y_40))
+        x_40 = x_40[np.logical_not(errors)].tolist()
+        y_40 = y_40[np.logical_not(errors)].tolist()
+        x_50 = db['X_50']
+        y_50 = db['Y_50']
+        errors = np.logical_or(np.isnan(x_50), np.isnan(y_50))
+        x_50 = x_50[np.logical_not(errors)].tolist()
+        y_50 = y_50[np.logical_not(errors)].tolist()
         k_chord10 = interpolate.interp1d(x_10, y_10)
         k_chord15 = interpolate.interp1d(x_15, y_15)
         k_chord25 = interpolate.interp1d(x_25, y_25)
@@ -397,12 +430,12 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         k_chord50 = interpolate.interp1d(x_50, y_50)
         k = []
         for angle in list(flap_angle):
-            k_chord = [k_chord10(max(min(angle, max(x_10)), min(x_10))),
-                       k_chord15(max(min(angle, max(x_15)), min(x_15))),
-                       k_chord25(max(min(angle, max(x_25)), min(x_25))),
-                       k_chord30(max(min(angle, max(x_30)), min(x_30))),
-                       k_chord40(max(min(angle, max(x_40)), min(x_40))),
-                       k_chord50(max(min(angle, max(x_50)), min(x_50)))]
+            k_chord = [float(k_chord10(max(min(angle, max(x_10)), min(x_10)))),
+                       float(k_chord15(max(min(angle, max(x_15)), min(x_15)))),
+                       float(k_chord25(max(min(angle, max(x_25)), min(x_25)))),
+                       float(k_chord30(max(min(angle, max(x_30)), min(x_30)))),
+                       float(k_chord40(max(min(angle, max(x_40)), min(x_40)))),
+                       float(k_chord50(max(min(angle, max(x_50)), min(x_50))))]
             k.append(float(interpolate.interp1d([0.1, 0.15, 0.25, 0.3, 0.4, 0.5], k_chord)
                            (min(max(chord_ratio, 0.1), 0.5))))
         k = np.array(k)
@@ -423,26 +456,35 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
 
         eta_in = float(eta_in)
         eta_out = float(eta_out)
-        wing_taper_ratio = inputs['data:geometry:wing:taper_ratio']
+        wing_taper_ratio = max(min(float(inputs['data:geometry:wing:taper_ratio']), 1.0), 0.0)
         file = resources.__path__[0] + '\\' + KB_FLAPS
         db = read_csv(file)
 
-        x_0 = db['X_0'].tolist()
-        y_0 = db['Y_0'].tolist()
-        x_05 = db['X_0.5'].tolist()
-        y_05 = db['Y_0.5'].tolist()
-        x_1 = db['X_1'].tolist()
-        y_1 = db['Y_1'].tolist()
+        x_0 = db['X_0']
+        y_0 = db['Y_0']
+        errors = np.logical_or(np.isnan(x_0), np.isnan(y_0))
+        x_0 = x_0[np.logical_not(errors)].tolist()
+        y_0 = y_0[np.logical_not(errors)].tolist()
+        x_05 = db['X_0.5']
+        y_05 = db['Y_0.5']
+        errors = np.logical_or(np.isnan(x_05), np.isnan(y_05))
+        x_05 = x_05[np.logical_not(errors)].tolist()
+        y_05 = y_05[np.logical_not(errors)].tolist()
+        x_1 = db['X_1']
+        y_1 = db['Y_1']
+        errors = np.logical_or(np.isnan(x_1), np.isnan(y_1))
+        x_1 = x_1[np.logical_not(errors)].tolist()
+        y_1 = y_1[np.logical_not(errors)].tolist()
         k_taper0 = interpolate.interp1d(x_0, y_0)
         k_taper05 = interpolate.interp1d(x_05, y_05)
         k_taper1 = interpolate.interp1d(x_1, y_1)
-        k_eta = [k_taper0(min(max(eta_in, min(x_0)), max(x_0))),
-                 k_taper05(min(max(eta_in, min(x_05)), max(x_05))),
-                 k_taper1(min(max(eta_in, min(x_1)), max(x_1)))]
+        k_eta = [float(k_taper0(min(max(eta_in, min(x_0)), max(x_0)))),
+                 float(k_taper05(min(max(eta_in, min(x_05)), max(x_05)))),
+                 float(k_taper1(min(max(eta_in, min(x_1)), max(x_1))))]
         kb_in = interpolate.interp1d([0.0, 0.5, 1.0], k_eta)(wing_taper_ratio)
-        k_eta = [k_taper0(min(max(eta_out, min(x_0)), max(x_0))),
-                 k_taper05(min(max(eta_out, min(x_05)), max(x_05))),
-                 k_taper1(min(max(eta_out, min(x_1)), max(x_1)))]
+        k_eta = [float(k_taper0(min(max(eta_out, min(x_0)), max(x_0)))),
+                 float(k_taper05(min(max(eta_out, min(x_05)), max(x_05)))),
+                 float(k_taper1(min(max(eta_out, min(x_1)), max(x_1))))]
         kb_out = interpolate.interp1d([0.0, 0.5, 1.0], k_eta)(wing_taper_ratio)
 
         return float(kb_out - kb_in)

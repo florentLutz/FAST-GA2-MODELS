@@ -112,11 +112,12 @@ def reshape_polar(cl, cdp):
 def test_compute_reynolds():
     """ Tests high and low speed reynolds calculation """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model_hs", ComputeReynolds(), promotes=["*"])
-    group.add_subsystem("my_model_ls", ComputeReynolds(low_speed_aero=True), promotes=["*"])
-    input_list = list_inputs(group)
+    # Define parameters (with .xml file: cause NaN values not supported in Atmosphere)
+    input_list = [
+        "data:TLAR:v_approach",
+        "data:TLAR:v_cruise",
+        "data:mission:sizing:main_route:cruise:altitude",
+    ]
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)

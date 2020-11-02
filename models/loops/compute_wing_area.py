@@ -36,7 +36,7 @@ class _ComputeWingArea(om.ExplicitComponent):
 
     def setup(self):
         self.add_input("data:mission:sizing:fuel", val=np.nan, units="kg")
-        self.add_input("data:propulsion:engine:fuel_type", val=np.nan)
+        self.add_input("data:propulsion:IC_engine:fuel_type", val=np.nan)
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:thickness_ratio", val=np.nan)
@@ -48,12 +48,22 @@ class _ComputeWingArea(om.ExplicitComponent):
 
         self.add_output("data:geometry:wing:area", val=10.0, units="m**2")
         
-        self.declare_partials("data:geometry:wing:area", "*", method="fd")
+        self.declare_partials(
+            "data:geometry:wing:area",
+            [
+                "data:mission:sizing:fuel",
+                "data:geometry:wing:root:chord",
+                "data:geometry:wing:tip:chord",
+                "data:geometry:wing:root:thickness_ratio",
+                "data:geometry:wing:tip:thickness_ratio",
+            ],
+            method="fd",
+        )
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
         mfw_mission = inputs["data:mission:sizing:fuel"]
-        fuel_type = inputs["data:propulsion:engine:fuel_type"]
+        fuel_type = inputs["data:propulsion:IC_engine:fuel_type"]
         root_chord = inputs["data:geometry:wing:root:chord"]
         tip_chord = inputs["data:geometry:wing:tip:chord"]
         root_thickness_ratio = inputs["data:geometry:wing:root:thickness_ratio"]
@@ -61,10 +71,8 @@ class _ComputeWingArea(om.ExplicitComponent):
 
         if fuel_type == 1.0:
             m_vol_fuel = 730  # gasoline volume-mass [kg/m**3], cold worst case
-        elif fuel_type == 2.0:
-            m_vol_fuel = 860  # gasoil volume-mass [kg/m**3], cold worst case
         else:
-            raise IOError("Bad motor configuration: only fuel type 1/2 available.")
+            m_vol_fuel = 860  # gasoil volume-mass [kg/m**3], cold worst case
 
         # Tanks are between 1st (30% MAC) and 3rd (60% MAC) longeron: 35% of the wing
         ave_thichness = 0.7 * (

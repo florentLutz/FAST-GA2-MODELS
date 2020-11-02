@@ -45,7 +45,7 @@ class ComputeReynolds(ExplicitComponent):
             altitude = 0.0
             mach = inputs["data:TLAR:v_approach"]/Atmosphere(altitude).speed_of_sound
         else:
-            altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
+            altitude = float(inputs["data:mission:sizing:main_route:cruise:altitude"])
             mach = inputs["data:TLAR:v_cruise"]/Atmosphere(altitude).speed_of_sound
             
         unit_reynolds = Atmosphere(altitude).get_unitary_reynolds(mach)
