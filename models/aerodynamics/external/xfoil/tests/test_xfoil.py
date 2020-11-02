@@ -95,7 +95,7 @@ def test_compute_with_provided_path():
     xfoil_comp = XfoilPolar(alpha_start=18.0, alpha_end=21.0, iter_limit=20)
     xfoil_comp.options["xfoil_exe_path"] = "Dummy"  # bad name
     with pytest.raises(ValueError):
-        problem = run_system(xfoil_comp, ivc)
+        _ = run_system(xfoil_comp, ivc)
 
     xfoil_comp.options["xfoil_exe_path"] = (
         xfoil_path

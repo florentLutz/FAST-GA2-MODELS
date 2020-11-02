@@ -128,6 +128,7 @@ def test_compute_ht_area():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
+    # noinspection PyTypeChecker
     problem = run_system(_ComputeHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     ht_area = problem.get_val("data:geometry:horizontal_tail:area", units="m**2")
     assert ht_area == pytest.approx(-0.31, abs=1e-2)

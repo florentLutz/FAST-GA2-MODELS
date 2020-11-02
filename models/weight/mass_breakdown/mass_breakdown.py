@@ -169,7 +169,7 @@ class ComputeOperatingWeightEmpty(om.Group):
                     "data:weight:furniture:mass",
                 ],
                 units="kg",
-                desc="Mass of aicraft",  # !!!: initially "Mass of crew" changed description
+                desc="Mass of aircraft",  # !!!: initially "Mass of crew" changed description
             ),
             promotes=["*"],
         )

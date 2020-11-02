@@ -15,7 +15,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
@@ -32,7 +31,7 @@ class ComputeFuelLinesCG(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         cg_b1 = inputs["data:weight:propulsion:engine:CG:x"]
 

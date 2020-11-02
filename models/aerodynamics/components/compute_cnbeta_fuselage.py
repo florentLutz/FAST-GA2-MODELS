@@ -1,5 +1,5 @@
 """
-    Estimation of yawing moment due to sideslip
+    Estimation of yawing moment due to side-slip
 """
 
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
@@ -14,6 +14,7 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import math
 
 import numpy as np
@@ -22,7 +23,7 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 
 class ComputeCnBetaFuselage(ExplicitComponent):
     # TODO: Document equations. Cite sources
-    """ Yawing moment due to sideslip estimation """
+    """ Yawing moment due to side-slip estimation """
 
     def setup(self):
         
@@ -38,7 +39,7 @@ class ComputeCnBetaFuselage(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         fus_length = inputs["data:geometry:fuselage:length"]
         lav = inputs["data:geometry:fuselage:front_length"]

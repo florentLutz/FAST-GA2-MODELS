@@ -24,49 +24,51 @@ class Cd0LandingGear(ExplicitComponent):
         self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
-        self.low_speed_aero = self.options["low_speed_aero"]
-        
+
         self.add_input("data:geometry:landing_gear_type", val=np.nan)
         self.add_input("data:geometry:landing_gear:height", val=np.nan, units="m")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             self.add_output("data:aerodynamics:landing_gear:low_speed:CD0")
         else:
             self.add_output("data:aerodynamics:landing_gear:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         lg_type = inputs["data:geometry:landing_gear_type"]
         lg_height = inputs["data:geometry:landing_gear:height"]
         wing_area = inputs["data:geometry:wing:area"]
         
-        if lg_type == 0.0: # non-retractable LG AC (ref: Cirrus SR22)
-            #Gudmunsson example 15.12 (page 721)
-            area_mlg = 15*6*0.0254**2 #Frontal area of wheel (data in inches)
+        if lg_type == 0.0:  # non-retractable LG AC (ref: Cirrus SR22)
+            # Gudmunsson example 15.12 (page 721)
+            area_mlg = 15*6*0.0254**2  # Frontal area of wheel (data in inches)
             area_nlg = 14*5*0.0254**2
-            #MLG
+            # MLG
             cd_wheel = 0.484
-            cd0_mlg = cd_wheel*area_mlg/(wing_area)
-            #NLG
+            cd0_mlg = cd_wheel * area_mlg / wing_area
+            # NLG
             cd_wheel = 0.484/2
-            cd0_nlg = cd_wheel*area_nlg/(wing_area)
+            cd0_nlg = cd_wheel * area_nlg / wing_area
             cd0 = cd0_mlg + cd0_nlg
-            if self.low_speed_aero:
+
+            if self.options["low_speed_aero"]:
                 outputs["data:aerodynamics:landing_gear:low_speed:CD0"] = cd0
             else:
                 outputs["data:aerodynamics:landing_gear:cruise:CD0"] = cd0
-        else: # retractable LG AC
+
+        else:  # retractable LG AC
             tyre_width = 5*0.0254
-            #MLG
+            # MLG
             cd_mlg = 1.2
             area_mlg = tyre_width*1.8 * lg_height
-            #NLG 
+            # NLG
             cd_nlg = 0.65
             area_nlg = 14*5*0.0254**2
             cd0 = (cd_mlg*area_mlg + cd_nlg*area_nlg) / wing_area
-            if self.low_speed_aero:
+
+            if self.options["low_speed_aero"]:
                 outputs["data:aerodynamics:landing_gear:low_speed:CD0"] = cd0
             else:
                 outputs["data:aerodynamics:landing_gear:cruise:CD0"] = 0.0

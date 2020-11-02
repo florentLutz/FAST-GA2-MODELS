@@ -22,6 +22,7 @@ from .components import ComputeHTMAC
 from .components import ComputeHTSweep
 from .components import ComputeHTWetArea
 
+
 class ComputeHorizontalTailGeometry(om.Group):
     """ Horizontal tail geometry estimation """
 

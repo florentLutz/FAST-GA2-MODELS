@@ -24,9 +24,8 @@ from fastoad.utils.physics import Atmosphere
 from .vlm import VLM
 from ...constants import SPAN_MESH_POINT_OPENVSP
 
-_INPUT_AOAList = [0.0, 7.0] # ???: why such angles choosen ?
+_INPUT_AOAList = [0.0, 7.0]
 DEFAULT_ALPHA = 0.0
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -53,7 +52,7 @@ class ComputeWingCLALPHAvlm(VLM):
         
         self.declare_partials("*", "*", method="fd")        
     
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
         # Get inputs
         b_f = inputs['data:geometry:fuselage:maximum_width']
@@ -67,8 +66,8 @@ class ComputeWingCLALPHAvlm(VLM):
         
         super()._run(inputs)
         Cl, Cdi, Oswald, Cm = super().compute_wing(inputs, _INPUT_AOAList, V_inf, flaps_angle=0.0, use_airfoil=True)
-        k_fus = 1 + 0.025*b_f/span - 0.025*(b_f/span)**2 # Fuselage correction
-        beta = math.sqrt(1 - mach**2) # Prandtl-Glauert
+        k_fus = 1 + 0.025*b_f/span - 0.025*(b_f/span)**2  # Fuselage correction
+        beta = math.sqrt(1 - mach**2)  # Prandtl-Glauert
         cl_alpha = (Cl[1] - Cl[0]) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180) * k_fus / beta
         cl_0 = Cl[0] / beta
         y_vector, cl_vector = super().get_cl_curve(_INPUT_AOAList[0], V_inf)
@@ -86,8 +85,10 @@ class ComputeWingCLALPHAvlm(VLM):
                 outputs['data:aerodynamics:wing:low_speed:Y_vector'][0:real_length] = y_vector
                 outputs['data:aerodynamics:wing:low_speed:CL_vector'][0:real_length] = cl_vector
             else:
-                outputs['data:aerodynamics:aircraft:wing:Y_vector'] = np.linspace(y_vector[0], y_vector[1], SPAN_MESH_POINT_OPENVSP)
-                outputs['data:aerodynamics:aircraft:wing:CL_vector'] = np.interp(outputs['data:aerodynamics:aircraft:low_speed:Y_vector'], y_vector, cl_vector)
+                outputs['data:aerodynamics:aircraft:wing:Y_vector'] = np.linspace(y_vector[0], y_vector[1],
+                                                                                  SPAN_MESH_POINT_OPENVSP)
+                outputs['data:aerodynamics:aircraft:wing:CL_vector'] = \
+                    np.interp(outputs['data:aerodynamics:aircraft:low_speed:Y_vector'], y_vector, cl_vector)
         else:
             outputs['data:aerodynamics:aircraft:cruise:CL0_clean'] = cl_0
             outputs['data:aerodynamics:aircraft:cruise:CL_alpha'] = cl_alpha

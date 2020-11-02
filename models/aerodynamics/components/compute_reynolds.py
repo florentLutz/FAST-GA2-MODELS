@@ -26,9 +26,8 @@ class ComputeReynolds(ExplicitComponent):
         self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
-        self.low_speed_aero = self.options["low_speed_aero"]
 
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
             self.add_output("data:aerodynamics:low_speed:mach")
             self.add_output("data:aerodynamics:low_speed:unit_reynolds")
@@ -40,8 +39,9 @@ class ComputeReynolds(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
-        if self.low_speed_aero:
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+
+        if self.options["low_speed_aero"]:
             altitude = 0.0
             mach = inputs["data:TLAR:v_approach"]/Atmosphere(altitude).speed_of_sound
         else:
@@ -50,7 +50,7 @@ class ComputeReynolds(ExplicitComponent):
             
         unit_reynolds = Atmosphere(altitude).get_unitary_reynolds(mach)
 
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             outputs["data:aerodynamics:low_speed:mach"] = mach
             outputs["data:aerodynamics:low_speed:unit_reynolds"] = unit_reynolds
         else:

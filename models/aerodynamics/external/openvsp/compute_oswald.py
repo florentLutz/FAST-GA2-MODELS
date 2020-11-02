@@ -137,14 +137,17 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         # Pre-processing (populating temp directory and generate batch file) -----------------------
         # Copy resource in temp directory if needed
         if not (self.options[OPTION_OPENVSP_EXE_PATH]):
+            # noinspection PyTypeChecker
             copy_resource_folder(openvsp3201, target_directory)
+            # noinspection PyTypeChecker
             copy_resource(resources, _AIRFOIL_0_FILE_NAME, target_directory)
+            # noinspection PyTypeChecker
             copy_resource(resources, _AIRFOIL_1_FILE_NAME, target_directory)
+            # noinspection PyTypeChecker
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) \
-                  + ' -script ' \
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' \
                   + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME) + ' >nul 2>nul\n'
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
@@ -154,7 +157,7 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         # standard SCRIPT input file ---------------------------------------------------------------
         parser = InputFileGenerator()
         with path(resources, _INPUT_SCRIPT_FILE_NAME) as input_template_path:
-            parser.set_template_file(input_template_path)
+            parser.set_template_file(str(input_template_path))
             parser.set_generated_file(input_file_list[0])
             parser.mark_anchor("x_wing")
             parser.transfer_var(float(x_wing), 0, 5)
@@ -216,9 +219,8 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
         for idx in range(len(_INPUT_AOAList)):
-            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory,
-                                                                                    _INPUT_AERO_FILE_NAME + str(
-                                                                                        idx) + ' >nul 2>nul\n')
+            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' \
+                      + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + ' >nul 2>nul\n')
             batch_file.write(command)
         batch_file.close()
 
@@ -226,7 +228,7 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
         parser = InputFileGenerator()
         for idx in range(len(_INPUT_AOAList)):
             with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
-                parser.set_template_file(input_template_path)
+                parser.set_template_file(str(input_template_path))
                 parser.set_generated_file(input_file_list[len(_INPUT_AOAList) + idx])
                 parser.reset_anchor()
                 parser.mark_anchor("Sref")

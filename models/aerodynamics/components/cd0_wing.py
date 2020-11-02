@@ -18,7 +18,7 @@
 import math
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-from fastoad.utils.physics import Atmosphere
+
 
 class Cd0Wing(ExplicitComponent):
     
@@ -26,7 +26,6 @@ class Cd0Wing(ExplicitComponent):
         self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
-        self.low_speed_aero = self.options["low_speed_aero"]
 
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
@@ -38,7 +37,7 @@ class Cd0Wing(ExplicitComponent):
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:thickness_ratio", val=np.nan)
         self.add_input("data:geometry:wing:max_thickness:x_c", val=0.3)
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan)
             self.add_output("data:aerodynamics:wing:low_speed:CD0")
@@ -49,7 +48,7 @@ class Cd0Wing(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
         l2_wing = inputs["data:geometry:wing:root:chord"]
         l4_wing = inputs["data:geometry:wing:tip:chord"]
@@ -61,7 +60,7 @@ class Cd0Wing(ExplicitComponent):
         wing_area = inputs["data:geometry:wing:area"]
         thickness = inputs["data:geometry:wing:thickness_ratio"]
         x_tmax = inputs["data:geometry:wing:max_thickness:x_c"]
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             mach = inputs["data:aerodynamics:low_speed:mach"]
             unit_reynolds = inputs["data:aerodynamics:low_speed:unit_reynolds"]
         else:
@@ -79,11 +78,11 @@ class Cd0Wing(ExplicitComponent):
         # Global
         cf_wing = (cf_root * (y2_wing-y1_wing) + 0.5*(span/2.0-y2_wing) * (cf_root+cf_tip)) / (span/2.0-y1_wing)
         ff = 1 + 0.6/x_tmax * thickness + 100 * thickness**4
-        if mach>0.2:
+        if mach > 0.2:
             ff = ff * 1.34 * mach**0.18 * (math.cos(sweep_25*math.pi/180))**0.28
         cd0_wing = ff*cf_wing * wet_area_wing / wing_area        
 
-        if self.low_speed_aero:
+        if self.options["low_speed_aero"]:
             outputs["data:aerodynamics:wing:low_speed:CD0"] = cd0_wing
         else:
             outputs["data:aerodynamics:wing:cruise:CD0"] = cd0_wing

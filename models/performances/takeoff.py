@@ -272,7 +272,7 @@ class _vloff_from_v2(om.ExplicitComponent):
                 v_t = v_t_new
             # Save obtained v2
             v2[i] = v_t
-        # If v2 target speed not reachable maximum lift-off speed choosen (alpha=0°)
+        # If v2 target speed not reachable maximum lift-off speed chosen (alpha=0°)
         if sum(v2 > v2_target) == 0:
             alpha = 0.0
             vloff = vloff[0]  # FIXME: not reachable v2

@@ -14,6 +14,7 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import math
 
 import numpy as np
@@ -36,7 +37,7 @@ class ComputeWingB50(ExplicitComponent):
 
         self.declare_partials("data:geometry:wing:b_50", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         x4_wing = inputs["data:geometry:wing:tip:leading_edge:x:local"]
         y2_wing = inputs["data:geometry:wing:root:y"]
         y4_wing = inputs["data:geometry:wing:tip:y"]

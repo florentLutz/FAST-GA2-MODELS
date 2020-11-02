@@ -322,7 +322,7 @@ def test_compute_fuselage_cabin_sizing():
 def test_compute_fuselage_basic():
     """ Tests computation of the fuselage with no cabin sizing """
 
-    # Define the independent input values that should be filled if basic function is choosen
+    # Define the independent input values that should be filled if basic function is chosen
     ivc = om.IndepVarComp()
     ivc.add_output("data:geometry:fuselage:length", 8.888, units="m")
     ivc.add_output("data:geometry:fuselage:maximum_width", 1.198, units="m")

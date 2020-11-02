@@ -14,6 +14,7 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
@@ -33,7 +34,7 @@ class ComputeWingWetArea(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
     
         wing_area = inputs["data:geometry:wing:area"]
         l1_wing = inputs["data:geometry:wing:root:virtual_chord"]
@@ -41,7 +42,7 @@ class ComputeWingWetArea(ExplicitComponent):
         width_max = inputs["data:geometry:fuselage:maximum_width"]
 
         s_pf = wing_area - 2 * l1_wing * y1_wing
-        wet_area_wing = 2 * (wing_area - width_max * l1_wing)* 1.07 #Gudmunnson k_b (pag 707)
+        wet_area_wing = 2 * (wing_area - width_max * l1_wing) * 1.07  # Gudmunnson k_b (pag 707)
 
         outputs["data:geometry:wing:outer_area"] = s_pf
         outputs["data:geometry:wing:wet_area"] = wet_area_wing

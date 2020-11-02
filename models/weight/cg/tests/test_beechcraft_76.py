@@ -268,7 +268,7 @@ def test_compute_cg_navigation_systems():
 def test_compute_cg_passenger_seats():
     """ Tests computation of passenger seats center of gravity """
 
-    # Input list from model (not generated because of NaN convertion problem to integer)
+    # Input list from model (not generated because of NaN conversion problem to integer)
     input_list = [
         "data:TLAR:NPAX",
         "data:geometry:cabin:NPAX",
@@ -384,7 +384,7 @@ def test_compute_cg_loadcase():
 def test_compute_max_cg_ratio():
     """ Tests computation of maximum center of gravity ratio """
 
-    # Define the independent input values that should be filled if basic function is choosen
+    # Define the independent input values that should be filled if basic function is chosen
     ivc = om.IndepVarComp()
     ivc.add_output("data:weight:aircraft:empty:CG:MAC_position", -0.26)
     ivc.add_output("data:weight:aircraft:load_case_1:CG:MAC_position", 0.14)

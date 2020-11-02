@@ -22,6 +22,7 @@ from .components import ComputeVTMAC
 from .components import ComputeVTSweep
 from .components import ComputeVTWetArea
 
+
 class ComputeVerticalTailGeometry(om.Group):
     """ Vertical tail geometry estimation """
 

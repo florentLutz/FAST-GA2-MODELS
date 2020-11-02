@@ -72,7 +72,7 @@ class ComputeHTChord(ExplicitComponent):
             method="fd",
         )
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         s_h = inputs["data:geometry:horizontal_tail:area"]
         taper_ht = inputs["data:geometry:horizontal_tail:taper_ratio"]
         sweep_25 = inputs["data:geometry:horizontal_tail:sweep_25"]
@@ -82,7 +82,7 @@ class ComputeHTChord(ExplicitComponent):
             aspect_ratio = 5.9 * math.cos(sweep_25 / 180.0 * math.pi)**2
         else:
             aspect_ratio = 5.5 * math.cos(sweep_25 / 180.0 * math.pi)**2
-        b_h = np.sqrt(max(aspect_ratio * s_h, 0.1)) # !!!: to avoid 0 division if s_h initialised to 0
+        b_h = np.sqrt(max(aspect_ratio * s_h, 0.1))  # !!!: to avoid 0 division if s_h initialised to 0
         root_chord = s_h * 2 / (1 + taper_ht) / b_h
         tip_chord = root_chord * taper_ht
 

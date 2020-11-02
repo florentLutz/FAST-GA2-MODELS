@@ -14,6 +14,7 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
@@ -35,7 +36,7 @@ class ComputePayloadCG(ExplicitComponent):
         
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
         lav = inputs["data:geometry:fuselage:front_length"]
         x_cg_d2 = inputs["data:weight:furniture:passenger_seats:CG:x"]
@@ -47,7 +48,7 @@ class ComputePayloadCG(ExplicitComponent):
         # Instruments length
         l_instr = 0.7
         # Fret center of gravity
-        x_cg_f_fret = lav * 0.0 # ???: should be defined somewhere in the CAB
+        x_cg_f_fret = lav * 0.0  # ???: should be defined somewhere in the CAB
         x_cg_r_fret = lav + l_instr + lpax + l_lug / 2
 
         outputs["data:weight:payload:PAX:CG:x"] = x_cg_pax

@@ -35,7 +35,7 @@ class ComputeWingL2AndL3(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         wing_area = inputs["data:geometry:wing:area"]
         y2_wing = inputs["data:geometry:wing:root:y"]

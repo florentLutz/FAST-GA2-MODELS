@@ -316,6 +316,7 @@ def test_loop_compute_owe():
         ]
     ).to_ivc()
 
+    # noinspection PyTypeChecker
     mass_computation_1 = run_system(MassBreakdown(payload_from_npax=True), input_vars)
     oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
     assert oew == pytest.approx(1026.50, abs=1e-2)
@@ -328,6 +329,7 @@ def test_loop_compute_owe():
             "data:weight:aircraft:MTOW",
         ]
     ).to_ivc()
+    # noinspection PyTypeChecker
     mass_computation_2 = run_system(MassBreakdown(payload_from_npax=False), input_vars)
     oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")
     assert oew == pytest.approx(1009.19, abs=1e-2)

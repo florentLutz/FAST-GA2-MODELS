@@ -40,7 +40,7 @@ class ComputeVTChords(ExplicitComponent):
         self.declare_partials("data:geometry:vertical_tail:root:chord", "*", method="fd")
         self.declare_partials("data:geometry:vertical_tail:tip:chord", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         lambda_vt = float(inputs["data:geometry:vertical_tail:aspect_ratio"])
         s_v = float(inputs["data:geometry:vertical_tail:area"])
         taper_v = inputs["data:geometry:vertical_tail:taper_ratio"]

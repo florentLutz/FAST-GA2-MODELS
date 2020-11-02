@@ -60,7 +60,7 @@ class ComputeHTMAC(ExplicitComponent):
             method="fd",
         )
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         root_chord = inputs["data:geometry:horizontal_tail:root:chord"]
         tip_chord = inputs["data:geometry:horizontal_tail:tip:chord"]
         sweep_25_ht = inputs["data:geometry:horizontal_tail:sweep_25"]

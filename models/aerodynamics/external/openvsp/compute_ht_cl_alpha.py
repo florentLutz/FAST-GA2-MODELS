@@ -153,13 +153,18 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         # Pre-processing (populating temp directory) -----------------------------------------------
         # Copy resource in temp directory if needed
         if not (self.options[OPTION_OPENVSP_EXE_PATH]):
+            # noinspection PyTypeChecker
             copy_resource_folder(openvsp3201, target_directory)
+            # noinspection PyTypeChecker
             copy_resource(resources, _AIRFOIL_0_FILE_NAME, target_directory)
+            # noinspection PyTypeChecker
             copy_resource(resources, _AIRFOIL_1_FILE_NAME, target_directory)
+            # noinspection PyTypeChecker
             copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME) + ' >nul 2>nul\n'
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' \
+                  + pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME) + ' >nul 2>nul\n'
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
         batch_file.write(command)
@@ -168,7 +173,7 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         # standard SCRIPT input file ----------------------------------------------------------------
         parser = InputFileGenerator()
         with path(resources, _INPUT_SCRIPT_FILE_NAME) as input_template_path:
-            parser.set_template_file(input_template_path)
+            parser.set_template_file(str(input_template_path))
             parser.set_generated_file(input_file_list[0])
             parser.mark_anchor("x_wing")
             parser.transfer_var(float(x_wing), 0, 5)
@@ -214,7 +219,7 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         # Getting input/output files if needed
         if self.options[OPTION_RESULT_FOLDER_PATH] != "":
             for file_path in input_file_list:
-                new_path = pth.join(result_folder_path,'ClAlphaHT', pth.split(file_path)[1])
+                new_path = pth.join(result_folder_path, 'ClAlphaHT', pth.split(file_path)[1])
                 if pth.exists(file_path):
                     shutil.copyfile(file_path, new_path)
             for file_path in output_file_list:
@@ -242,7 +247,8 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         batch_file = open(self.options["command"][0], "w+")
         batch_file.write("@echo off\n")
         for idx in range(len(_INPUT_AOAList)):
-            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + ' >nul 2>nul\n')
+            command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' \
+                      + pth.join(target_directory, _INPUT_AERO_FILE_NAME + str(idx) + ' >nul 2>nul\n')
             batch_file.write(command)
         batch_file.close()
         
@@ -250,7 +256,7 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         parser = InputFileGenerator()
         for idx in range(len(_INPUT_AOAList)):
             with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
-                parser.set_template_file(input_template_path)
+                parser.set_template_file(str(input_template_path))
                 parser.set_generated_file(input_file_list[len(_INPUT_AOAList) + idx])
                 parser.reset_anchor()
                 parser.mark_anchor("Sref")

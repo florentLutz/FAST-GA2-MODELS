@@ -1,5 +1,5 @@
 """
-    Estimation of geometry of fuselase part A - Cabin (Commercial)
+    Estimation of geometry of fuselage part A - Cabin (Commercial)
 """
 
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
@@ -37,7 +37,7 @@ class ComputeFuselageGeometryBasic(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd") 
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         b_f = inputs["data:geometry:fuselage:maximum_width"]
         h_f = inputs["data:geometry:fuselage:maximum_height"]
@@ -45,10 +45,10 @@ class ComputeFuselageGeometryBasic(ExplicitComponent):
         lav = inputs["data:geometry:fuselage:front_length"]
         lar = inputs["data:geometry:fuselage:rear_length"]
         
-        # Cabine total length
+        # Cabin total length
         cabin_length = fus_length - (lav + lar)
         # Calculate wet area
-        fus_dia = math.sqrt(b_f * h_f) # equivalent diameter of the fuselage
+        fus_dia = math.sqrt(b_f * h_f)  # equivalent diameter of the fuselage
         cyl_length = fus_length - lav - lar
         wet_area_nose = 2.45 * fus_dia * lav
         wet_area_cyl = 3.1416 * fus_dia * cyl_length
@@ -91,9 +91,9 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         self.add_output("data:geometry:fuselage:wet_area", units="m**2")
         self.add_output("data:geometry:fuselage:luggage_length", units="m")
         
-        self.declare_partials("*", "*", method="fd") # FIXME: declara proper partials without int values
+        self.declare_partials("*", "*", method="fd")  # FIXME: declare proper partials without int values
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         npax = inputs["data:TLAR:NPAX"]
         l_pilot_seats = inputs["data:geometry:cabin:seats:pilot:length"]
@@ -116,7 +116,7 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         npax_1 = math.ceil(npax/seats_p_row)*seats_p_row
         n_rows = npax_1 / seats_p_row
         lpax = l_pilot_seats + n_rows*l_pass_seats
-        # Cabin width considered is for side by side seaters
+        # Cabin width considered is for side by side seats
         wcabin = max(2*w_pilot_seats, seats_p_row*w_pass_seats + w_aisle)
         r_i = wcabin / 2
         radius = 1.06 * r_i 
@@ -124,20 +124,20 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         b_f = 2 * radius
         # 0.14m is the distance between both lobe centers of the fuselage
         h_f = b_f + 0.14
-        # Lugage length
-        l_lug = npax_1 * 0.20 / ( math.pi * radius**2)
-        # Cabine total length
+        # Luggage length
+        l_lug = npax_1 * 0.20 / (math.pi * radius**2)
+        # Cabin total length
         cabin_length = l_instr + lpax + l_lug
         # Calculate nose length
-        if engine_loc == 3.0: # engine in nose
+        if engine_loc == 3.0:  # engine located in nose
             lav = propulsion_length
         else:
             lav = 1.7 * h_f 
         # Calculate fuselage length
-        fus_length = fa_length + max(ht_lp+0.75*ht_length, vt_lp+0.75*vt_length)
+        fus_length = fa_length + max(ht_lp + 0.75 * ht_length, vt_lp + 0.75 * vt_length)
         lar = fus_length - (lav + cabin_length)
         # Calculate wet area
-        fus_dia = math.sqrt(b_f * h_f) # equivalent diameter of the fuselage
+        fus_dia = math.sqrt(b_f * h_f)  # equivalent diameter of the fuselage
         cyl_length = fus_length - lav - lar
         wet_area_nose = 2.45 * fus_dia * lav
         wet_area_cyl = 3.1416 * fus_dia * cyl_length

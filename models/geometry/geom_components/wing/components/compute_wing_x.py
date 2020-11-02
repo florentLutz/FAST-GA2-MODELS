@@ -39,11 +39,11 @@ class ComputeWingX(ExplicitComponent):
             method="fd",
         )
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
         l2_wing = inputs["data:geometry:wing:root:chord"]
         l4_wing = inputs["data:geometry:wing:tip:chord"]
-        sweep_pos = 0.25 # ???: is the design always fixed?
+        sweep_pos = 0.25  # ???: is the design always fixed?
 
         x4_wing = sweep_pos * (l2_wing - l4_wing)
 

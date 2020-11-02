@@ -14,6 +14,7 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
@@ -34,7 +35,7 @@ class ComputeTotalArea(ExplicitComponent):
 
         self.declare_partials("data:geometry:aircraft:wet_area", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         wet_area_wing = inputs["data:geometry:wing:wet_area"]
         wet_area_fus = inputs["data:geometry:fuselage:wet_area"]
         wet_area_ht = inputs["data:geometry:horizontal_tail:wet_area"]

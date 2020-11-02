@@ -17,7 +17,8 @@
 import numpy as np
 import openmdao.api as om
 
-from .cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, ComputeLandingGearCG
+from .cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, \
+    ComputeLandingGearCG
 from .cg_components.b_propulsion import ComputeEngineCG, ComputeFuelLinesCG, ComputeTankCG
 from .cg_components.c_systems import ComputePowerSystemsCG, ComputeLifeSupportCG, ComputeNavigationSystemsCG
 from .cg_components.d_furniture import ComputePassengerSeatsCG
@@ -70,7 +71,7 @@ class ComputeAircraftCG(om.ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
     
         cg_ratio = inputs["data:weight:aircraft:CG:aft:MAC_position"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]

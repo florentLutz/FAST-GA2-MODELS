@@ -42,7 +42,7 @@ class ComputeNacelleGeometry(om.ExplicitComponent):
         self.add_output("data:geometry:propulsion:nacelle:y", units="m")
         
         self.declare_partials("data:geometry:propulsion:nacelle:length",
-                "data:geometry:propulsion:engine:length", method="fd")
+                              "data:geometry:propulsion:engine:length", method="fd")
         
         self.declare_partials(
                 "data:geometry:propulsion:nacelle:diameter",
@@ -54,10 +54,10 @@ class ComputeNacelleGeometry(om.ExplicitComponent):
         )
         
         self.declare_partials("data:geometry:propulsion:nacelle:height",
-                "data:geometry:propulsion:engine:height", method="fd")
+                              "data:geometry:propulsion:engine:height", method="fd")
         
         self.declare_partials("data:geometry:propulsion:nacelle:width",
-                "data:geometry:propulsion:engine:width", method="fd")
+                              "data:geometry:propulsion:engine:width", method="fd")
                 
         self.declare_partials(
                 "data:geometry:propulsion:nacelle:wet_area",
@@ -91,7 +91,7 @@ class ComputeNacelleGeometry(om.ExplicitComponent):
         )
         
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         engine_loc = inputs["data:geometry:propulsion:layout"]
         engine_height = inputs["data:geometry:propulsion:engine:height"]
@@ -107,15 +107,15 @@ class ComputeNacelleGeometry(om.ExplicitComponent):
         nac_length = 1.5*engine_length
         nac_wet_area = 2 * (nac_height + nac_width) * nac_length
         if engine_loc == 1.0:
-            y_nacell = y_ratio_engine * span / 2
+            y_nacelle = y_ratio_engine * span / 2
         elif engine_loc == 2.0:
-            y_nacell = b_f / 2 + 0.8 * nac_dia
+            y_nacelle = b_f / 2 + 0.8 * nac_dia
         elif engine_loc == 3.0:
-            y_nacell = 0
+            y_nacelle = 0
         else:
             raise ValueError('compute_fuselage model only computes propulsion layout equal to 1, 2 or 3!')
         
-        lg_height = 1.4 * nac_dia # ???: always?
+        lg_height = 1.4 * nac_dia  # ???: always?
         
         outputs["data:geometry:propulsion:nacelle:length"] = nac_length
         outputs["data:geometry:propulsion:nacelle:diameter"] = nac_dia
@@ -123,5 +123,4 @@ class ComputeNacelleGeometry(om.ExplicitComponent):
         outputs["data:geometry:propulsion:nacelle:width"] = nac_width
         outputs["data:geometry:propulsion:nacelle:wet_area"] = nac_wet_area
         outputs["data:geometry:landing_gear:height"] = lg_height
-        outputs["data:geometry:propulsion:nacelle:y"] = y_nacell
-        
+        outputs["data:geometry:propulsion:nacelle:y"] = y_nacelle

@@ -14,6 +14,7 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 
@@ -31,7 +32,7 @@ class ComputeHTWetArea(ExplicitComponent):
 
         self.declare_partials("*", "data:geometry:horizontal_tail:area", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
         area = inputs["data:geometry:horizontal_tail:area"]
         tail_type = inputs["data:geometry:has_T_tail"]

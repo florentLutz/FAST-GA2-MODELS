@@ -1,5 +1,5 @@
 """
-    FAST - Copyrigvt (c) 2016 ONERA ISAE
+    FAST - Copyright (c) 2016 ONERA ISAE
 """
 
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
@@ -19,7 +19,6 @@ import math
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-from fastoad.utils.physics import Atmosphere
 
 
 class Cd0VerticalTail(ExplicitComponent):

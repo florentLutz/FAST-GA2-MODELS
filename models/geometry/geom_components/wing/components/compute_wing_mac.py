@@ -14,9 +14,9 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-
 
 
 class ComputeWingMAC(ExplicitComponent):
@@ -71,7 +71,7 @@ class ComputeWingMAC(ExplicitComponent):
             method="fd",
         )
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
     
         wing_area = inputs["data:geometry:wing:area"]
         x4_wing = inputs["data:geometry:wing:tip:leading_edge:x:local"]

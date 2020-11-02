@@ -16,7 +16,6 @@ Estimation of engine weight
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-from ....propulsion.fuel_propulsion.basicIC_engine.exceptions import FastBasicICEngineInconsistentInputParametersError
 
 
 # FIXME:  the weight estimation of the engine should be defined within the engine model (handle hybrid architecture)
@@ -34,9 +33,9 @@ class ComputeEngineWeight(ExplicitComponent):
         self.add_output("data:weight:propulsion:engine:mass", units="lb")
 
         self.declare_partials("data:weight:propulsion:engine:mass",
-            ["data:propulsion:IC_engine:max_power"],
-            method="fd",
-        )
+                              ["data:propulsion:IC_engine:max_power"],
+                              method="fd",
+                              )
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         

@@ -180,6 +180,7 @@ def test_cd0_low_speed():
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1179)
     ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2746999)
     group.add_subsystem("constants", ivc, promotes=["*"])
+    # noinspection PyTypeChecker
     group.add_subsystem("my_model", CD0(low_speed_aero=True), promotes=["*"])
     input_list = list_inputs(group)
 
@@ -189,6 +190,7 @@ def test_cd0_low_speed():
     ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822)  # correction to ...
 
     # Run problem and check obtained value(s) is/(are) correct
+    # noinspection PyTypeChecker
     problem = run_system(CD0(low_speed_aero=True), ivc)
     cd0_wing = problem["data:aerodynamics:wing:low_speed:CD0"]
     assert cd0_wing == pytest.approx(0.00555, abs=1e-5)

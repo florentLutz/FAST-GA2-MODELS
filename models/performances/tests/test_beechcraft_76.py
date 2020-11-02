@@ -228,6 +228,7 @@ def test_takeoffphase_connections():
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     register_wrappers()
+    # noinspection PyTypeChecker
     problem = run_system(TakeOffPhase(propulsion_id=ENGINE_WRAPPER), ivc)
     vr = problem.get_val("data:mission:sizing:takeoff:VR", units='m/s')
     assert vr == pytest.approx(34.62, abs=1e-2)
@@ -396,6 +397,7 @@ def test_loop_cruise_distance():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
+    # noinspection PyTypeChecker
     problem = run_system(Sizing(propulsion_id=ENGINE_WRAPPER), ivc)
     m_total = problem.get_val("data:mission:sizing:fuel", units="kg")
     assert m_total == pytest.approx(214.2, abs=1e-1)

@@ -14,16 +14,19 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import math
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
 import openmdao.api as om
 
+
 class ComputeTailCG(om.Group):
     def setup(self):
         self.add_subsystem("compute_ht", ComputeHTcg(), promotes=["*"])
         self.add_subsystem("compute_vt", ComputeVTcg(), promotes=["*"])
+
 
 class ComputeHTcg(ExplicitComponent):
     # TODO: Document equations. Cite sources
@@ -48,7 +51,7 @@ class ComputeHTcg(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
     
         root_chord = inputs["data:geometry:horizontal_tail:root:chord"]
         tip_chord = inputs["data:geometry:horizontal_tail:tip:chord"]
@@ -90,7 +93,7 @@ class ComputeVTcg(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         root_chord = inputs["data:geometry:vertical_tail:root:chord"]
         tip_chord = inputs["data:geometry:vertical_tail:tip:chord"]
         lp_vt = inputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"]

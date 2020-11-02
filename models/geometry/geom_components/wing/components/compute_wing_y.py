@@ -14,6 +14,7 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import math
 
 import numpy as np
@@ -44,7 +45,7 @@ class ComputeWingY(ExplicitComponent):
             "data:geometry:wing:root:y", "data:geometry:fuselage:maximum_width", method="fd"
         )
         self.declare_partials(
-            "data:geometry:wing:kink:y","data:geometry:fuselage:maximum_width", method="fd"
+            "data:geometry:wing:kink:y", "data:geometry:fuselage:maximum_width", method="fd"
         )
         self.declare_partials(
             "data:geometry:wing:tip:y",
@@ -55,7 +56,7 @@ class ComputeWingY(ExplicitComponent):
             method="fd",
         )
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         lambda_wing = inputs["data:geometry:wing:aspect_ratio"]
         wing_area = inputs["data:geometry:wing:area"]

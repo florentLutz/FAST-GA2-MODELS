@@ -110,6 +110,7 @@ class XfoilPolar(ExternalCodeComp):
             self.options["command"] = [self.options[OPTION_XFOIL_EXE_PATH]]
         else:
             # otherwise, copy the embedded resource in tmp dir
+            # noinspection PyTypeChecker
             copy_resource(xfoil699, XFOIL_EXE_NAME, tmp_directory.name)
             self.options["command"] = [pth.join(tmp_directory.name, XFOIL_EXE_NAME)]
 
@@ -123,6 +124,7 @@ class XfoilPolar(ExternalCodeComp):
         profile = get_profile(
             file_name=self.options[OPTION_PROFILE_NAME], thickness_ratio=thickness_ratio
         )
+        # noinspection PyTypeChecker
         np.savetxt(
             tmp_profile_file_path,
             profile.to_numpy(),

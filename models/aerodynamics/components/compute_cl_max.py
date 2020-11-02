@@ -26,7 +26,7 @@ class ComputeMaxCL(om.Group):
     Computes maximum CL of the aircraft in landing/take-off conditions.
 
     3D CL is deduced from 2D CL using sweep angle.
-    Contribution of high-lift devices is done appart and added.
+    Contribution of high-lift devices is done apart and added.
 
     """
     def setup(self):
@@ -54,7 +54,7 @@ class Compute3DMaxCL(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
         y_root = float(inputs["data:geometry:wing:root:y"])
         y_tip = float(inputs["data:geometry:wing:tip:y"])
@@ -70,9 +70,9 @@ class Compute3DMaxCL(ExplicitComponent):
         cl_curve = np.interp(y_vect, y_interp, cl_interp)
         ratio = cl_xfoil/cl_curve
 
-        CL_max_clean = cl0 * np.min(ratio)
+        cl_max_clean = cl0 * np.min(ratio)
         
-        outputs["data:aerodynamics:wing:low_speed:CL_max_clean"] = CL_max_clean
+        outputs["data:aerodynamics:wing:low_speed:CL_max_clean"] = cl_max_clean
 
     @staticmethod
     def _reshape_curve(y: np.ndarray, cl: np.ndarray):
@@ -103,7 +103,7 @@ class ComputeAircraftMaxCl(ExplicitComponent):
 
         self.declare_partials("*", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
         cl_max_takeoff = cl_max_clean + inputs["data:aerodynamics:flaps:takeoff:CL_max"]

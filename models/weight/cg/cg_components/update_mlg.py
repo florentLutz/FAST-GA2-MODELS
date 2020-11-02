@@ -34,7 +34,7 @@ class UpdateMLG(ExplicitComponent):
 
         self.declare_partials("data:weight:airframe:landing_gear:main:CG:x", "*", method="fd")
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         cg_ratio = inputs["data:weight:aircraft:CG:aft:MAC_position"]
