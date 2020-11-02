@@ -45,11 +45,11 @@ class VLM(om.ExplicitComponent):
 
     def _run(self, inputs):
 
-        wing_break = inputs["data:geometry:wing:kink:span_ratio"]
+        wing_break = float(inputs["data:geometry:wing:kink:span_ratio"])
 
         # Define mesh size        
         self.nx = int(DEFAULT_NX)
-        if wing_break > 0:
+        if wing_break > 0.0:
             self.ny1 = int(DEFAULT_NY1 + 5)  # n° of panels in the straight section of the wing
             self.ny2 = int((DEFAULT_NY2 - 5)/2)  # n° of panels in in the flapped portion of the wing
         else:

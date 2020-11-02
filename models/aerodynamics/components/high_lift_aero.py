@@ -55,8 +55,8 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_input("data:geometry:flap_type", val=np.nan)
         self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-        self.add_input("data:mission:sizing:landing:flap_angle", val=np.nan, units="deg")
-        self.add_input("data:mission:sizing:takeoff:flap_angle", val=np.nan, units="deg")
+        self.add_input("data:mission:sizing:landing:flap_angle", val=30.0, units="deg")
+        self.add_input("data:mission:sizing:takeoff:flap_angle", val=10.0, units="deg")
         
         self.add_output("data:aerodynamics:flaps:landing:CL")
         self.add_output("data:aerodynamics:flaps:landing:CL_max")
@@ -78,7 +78,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         # Computes flaps contribution during low speed operations (take-off/landing)
         for self.phase in ['landing', 'takeoff']:
             if self.phase == 'landing':
-                flap_angle = inputs["data:mission:sizing:landing:flap_angle"]
+                flap_angle = float(inputs["data:mission:sizing:landing:flap_angle"])
                 outputs["data:aerodynamics:flaps:landing:CL"],\
                     outputs["data:aerodynamics:flaps:landing:CL_max"] = self._get_flaps_delta_cl(
                     inputs,
@@ -95,7 +95,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                     flap_angle,
                 )
             else:
-                flap_angle = inputs["data:mission:sizing:takeoff:flap_angle"]
+                flap_angle = float(inputs["data:mission:sizing:takeoff:flap_angle"])
                 outputs["data:aerodynamics:flaps:takeoff:CL"],\
                     outputs["data:aerodynamics:flaps:takeoff:CL_max"] = self._get_flaps_delta_cl(
                     inputs,
