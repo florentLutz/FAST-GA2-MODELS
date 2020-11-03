@@ -184,7 +184,7 @@ class _ComputeArea(om.ExplicitComponent):
                 cl_max_takeoff / (n_h * n_q * cl_ht_takeoff)
                 * (cm_ht_takeoff / cl_max_takeoff - fact_wheel)
                 + cl0_takeoff / cl_ht_takeoff * (x_lg - x_wing_aero_center) / wing_mac
-        )
+        ) * 1.1
         # Calculation of equivalent area
         area_1 = coef_vol * wing_area * wing_mac / lp_ht
 
@@ -217,7 +217,7 @@ class _ComputeArea(om.ExplicitComponent):
                 cl_max_landing / (n_h * n_q * cl_ht_landing)
                 * (cm_ht_landing / cl_max_landing - fact_wheel)
                 + cl0_landing / cl_ht_landing * (x_lg - x_wing_aero_center) / wing_mac
-        )
+        ) * 1.1
         # Calculation of equivalent area
         area_2 = coef_vol * wing_area * wing_mac / lp_ht
 
