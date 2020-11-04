@@ -47,7 +47,7 @@ class Sizing(om.Group):
             propulsion_id=self.options["propulsion_id"],
             taxi_out=False,
         ), promotes=["*"])
-        self.add_subsystem("update_mfw", UpdateMFW(), promotes=["*"])
+        self.add_subsystem("update_fw", UpdateFW(), promotes=["*"])
 
         # Solvers setup
         self.nonlinear_solver = om.NonlinearBlockGS()
@@ -80,7 +80,7 @@ class _compute_reserve(om.ExplicitComponent):
         outputs["data:mission:sizing:main_route:reserve:fuel"] = m_reserve
 
 
-class UpdateMFW(om.ExplicitComponent):
+class UpdateFW(om.ExplicitComponent):
 
     def setup(self):
 

@@ -83,7 +83,7 @@ class _ComputeArea(om.ExplicitComponent):
         self._engine_wrapper.setup(self)
 
         self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
-        self.add_input("settings:weight:aircraft:CG:range", val=np.nan)
+        self.add_input("settings:weight:aircraft:CG:range", val=0.3)
         self.add_input("data:mission:sizing:takeoff:thrust_rate", val=np.nan)
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
