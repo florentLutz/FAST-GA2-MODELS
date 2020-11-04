@@ -78,7 +78,7 @@ class _ComputeVTArea(om.ExplicitComponent):
         self.add_input("data:geometry:propulsion:nacelle:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:propulsion:nacelle:y", val=np.nan, units="m")
 
-        self.add_output("data:geometry:vertical_tail:area", val=2.0, units="m**2")
+        self.add_output("data:geometry:vertical_tail:area", val=2.5, units="m**2")
 
         self.declare_partials(
             "*",

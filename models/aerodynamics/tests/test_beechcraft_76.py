@@ -473,11 +473,14 @@ def test_openvsp_comp_low_speed():
     problem = run_system(ComputeHTPCLCMopenvsp(result_folder_path=results_folder.name), ivc)
     alpha_interp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:alpha", units="deg")
     cl_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CL"]
-    cm_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CM"]
-    cl = np.interp(10.0, alpha_interp, cl_interp)
-    cm = np.interp(10.0, alpha_interp, cm_interp)
-    assert cl == pytest.approx(0.1127, abs=1e-4)
-    assert cm == pytest.approx(-0.3292, abs=1e-4)
+    cm1_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CM"]
+    cm2_interp = problem["data:aerodynamics:wing:low_speed:CM"]
+    cl = np.interp(5.0, alpha_interp, cl_interp)
+    cm1 = np.interp(5.0, alpha_interp, cm1_interp)
+    cm2 = np.interp(5.0, alpha_interp, cm2_interp)
+    assert cl == pytest.approx(0.0549, abs=1e-4)
+    assert cm1 == pytest.approx(-0.1582, abs=1e-4)
+    assert cm2 == pytest.approx(0.0112, abs=1e-4)
     assert pth.exists(pth.join(results_folder.name, 'ClCmHT'))
 
     # Remove existing result files
@@ -528,10 +531,8 @@ def test_high_lift():
     assert delta_cm_takeoff == pytest.approx(-0.0378, abs=1e-4)
     delta_cd_takeoff = problem["data:aerodynamics:flaps:takeoff:CD"]
     assert delta_cd_takeoff == pytest.approx(0.0034, abs=1e-4)
-    angle_interp = problem.get_val("data:aerodynamics:elevator:low_speed:angle", units="deg")
-    cl_interp = problem["data:aerodynamics:elevator:low_speed:CL"]
-    delta_cl_elevator = np.interp(10.0, angle_interp, cl_interp)
-    assert delta_cl_elevator == pytest.approx(9.277, abs=1e-3)
+    cl_alpha_elev = problem.get_val("data:aerodynamics:elevator:low_speed:CL_alpha", units="rad**-1")
+    assert cl_alpha_elev == pytest.approx(0.6167, abs=1e-4)
 
 
 def test_max_cl():
@@ -670,7 +671,7 @@ def test_high_speed_connection():
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
     assert cl_alpha_htp == pytest.approx(0.7030, abs=1e-4)
     cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_vtp == pytest.approx(1.9564, abs=1e-4)
+    assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
 
 
 def test_low_speed_connection():

@@ -38,9 +38,11 @@
 			<flaps>
 				<landing>
 					<CL>0.7321<!--increment of CL due to flaps for landing phase--></CL>
+					<CM>-0.0988<!--increment of CM due to flaps for landing phase--></CM>
 				</landing>
 				<takeoff>
 					<CL>0.2805<!--increment of CL due to flaps for takeoff phase--></CL>
+					<CM>-0.0378<!--increment of CM due to flaps for landing phase--></CM>
 				</takeoff>
 			</flaps>
 			<horizontal_tail>
@@ -53,10 +55,15 @@
 			</horizontal_tail>
 			<vertical_tail>
 				<cruise>
-					<CL_alpha units="rad**-1">1.9564<!--derivative of lift coefficient with respect to angle of attack in cruise conditions--></CL_alpha>
+					<CL_alpha units="rad**-1">2.8553<!--derivative of lift coefficient with respect to angle of attack in cruise conditions--></CL_alpha>
 					<CnBeta>1.9563<!--derivative of yawing moment against side-slip angle for vertical tail in cruise conditions--></CnBeta>
 				</cruise>
 			</vertical_tail>
+			<wing>
+				<low_speed>
+					<CL_max_clean>1.5070<!--maximum lift coefficient with clean wing--></CL_max_clean>
+				</low_speed>
+			</wing>
 		</aerodynamics>
 		<geometry>
 			<fuselage>

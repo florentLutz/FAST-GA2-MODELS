@@ -17,7 +17,6 @@ import numpy as np
 import pytest
 from fastoad.io import VariableIO
 from fastoad.module_management import OpenMDAOSystemRegistry
-from ...aerodynamics.constants import HT_POINT_COUNT, ELEV_POINT_COUNT
 
 from ...tests.testing_utilities import run_system
 from ..compute_static_margin import ComputeStaticMargin
@@ -69,7 +68,7 @@ def test_compute_vt_area():
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.364924)
-    ivc.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.117901)
+    ivc.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.0599)
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
@@ -78,7 +77,7 @@ def test_compute_vt_area():
     register_wrappers()
     problem = run_system(_ComputeVTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     vt_area = problem.get_val("data:geometry:vertical_tail:area", units="m**2")
-    assert vt_area == pytest.approx(5.24, abs=1e-2)
+    assert vt_area == pytest.approx(2.44, abs=1e-2)  # old-version obtained value 2.4m²
 
 
 def test_compute_ht_area():
@@ -86,11 +85,14 @@ def test_compute_ht_area():
 
     input_list = [
         "data:aerodynamics:aircraft:landing:CL_max",
+        "data:aerodynamics:aircraft:takeoff:CL_max",
+        "data:aerodynamics:wing:low_speed:CL_max_clean",
         "data:aerodynamics:aircraft:low_speed:CL0_clean",
         "data:aerodynamics:aircraft:low_speed:CL_alpha",
-        "data:aerodynamics:aircraft:takeoff:CL_max",
         "data:aerodynamics:flaps:landing:CL",
         "data:aerodynamics:flaps:takeoff:CL",
+        "data:aerodynamics:flaps:landing:CM",
+        "data:aerodynamics:flaps:takeoff:CM",
         "data:aerodynamics:horizontal_tail:low_speed:CL_alpha",
         "data:geometry:propulsion:engine:count",
         "data:geometry:propulsion:nacelle:height",
@@ -106,32 +108,33 @@ def test_compute_ht_area():
         "data:weight:aircraft:MTOW",
         "data:weight:aircraft:MLW",
         "data:weight:aircraft:CG:aft:x",
-        "data:weight:airframe:landing_gear:main:CG:x",
         "settings:weight:aircraft:CG:range",
     ]
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha",
-                   np.linspace(0.0, 15.0, HT_POINT_COUNT), units="deg")
+                   np.array([0.0, 7.5, 15.0, 22.5, 30.0]), units="deg")
     ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:CL",
-                   np.linspace(0.0, 15.0, HT_POINT_COUNT) * 0.05 + 0.005)
+                   np.array([-0.00472, 0.08476, 0.16876, 0.23578, 0.28567]))
     ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:CM",
-                   np.linspace(0.0, 15.0, HT_POINT_COUNT) * 0.001 + 0.05)
-    ivc.add_output("data:aerodynamics:elevator:low_speed:angle",
-                   np.linspace(-25.0, 25.0, ELEV_POINT_COUNT), units="deg")
-    ivc.add_output("data:aerodynamics:elevator:low_speed:CL",
-                   np.linspace(-25.0, 25.0, ELEV_POINT_COUNT) * -0.02 - 0.001)
+                   np.array([0.01308, -0.24393, -0.50001, -0.71332, -0.88161]))
+    ivc.add_output("data:aerodynamics:wing:low_speed:alpha",
+                   np.array([0.0, 7.5, 15.0, 22.5, 30.0]), units="deg")
+    ivc.add_output("data:aerodynamics:wing:low_speed:CM",
+                   np.array([-0.01332, 0.02356, 0.10046, 0.20401, 0.31282]))
+    ivc.add_output("data:aerodynamics:elevator:low_speed:CL_alpha", 0.6167, units="rad**-1")
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
+    ivc.add_output("data:weight:airframe:landing_gear:main:CG:x", 3.97, units="m")  # correct value to fit old version
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
     # noinspection PyTypeChecker
     problem = run_system(_ComputeHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     ht_area = problem.get_val("data:geometry:horizontal_tail:area", units="m**2")
-    assert ht_area == pytest.approx(-0.31, abs=1e-2)
+    assert ht_area == pytest.approx(5.48, abs=1e-2)  # old-version obtained value 3.9m²
 
 
 def test_compute_static_margin():

@@ -81,7 +81,9 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha", shape=len(_INPUT_AOAList), units="deg")
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL", shape=len(_INPUT_AOAList))
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:CM", shape=len(_INPUT_AOAList))
-        
+        self.add_output("data:aerodynamics:wing:low_speed:alpha", shape=len(_INPUT_AOAList), units="deg")
+        self.add_output("data:aerodynamics:wing:low_speed:CM", shape=len(_INPUT_AOAList))
+
         self.declare_partials("*", "*", method="fd")        
     
     def compute(self, inputs, outputs):
@@ -278,15 +280,19 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         
         # Post-processing --------------------------------------------------------------------------
         result_cl = []
-        result_cm = []
+        result_cm1 = []
+        result_cm2 = []
         for idx in range(len(_INPUT_AOAList)):
-            cl_htp, cm_wing = self._read_lod_file(output_file_list[idx])
+            cl_htp, cm_htp, cm_wing = self._read_lod_file(output_file_list[idx])
             result_cl.append(cl_htp)
-            result_cm.append(cm_wing)
+            result_cm1.append(cm_htp)
+            result_cm2.append(cm_wing)
 
         outputs['data:aerodynamics:horizontal_tail:low_speed:alpha'] = np.array(_INPUT_AOAList)
         outputs['data:aerodynamics:horizontal_tail:low_speed:CL'] = np.array(result_cl)
-        outputs['data:aerodynamics:horizontal_tail:low_speed:CM'] = np.array(result_cm)
+        outputs['data:aerodynamics:horizontal_tail:low_speed:CM'] = np.array(result_cm1)
+        outputs['data:aerodynamics:wing:low_speed:alpha'] = np.array(_INPUT_AOAList)
+        outputs['data:aerodynamics:wing:low_speed:CM'] = np.array(result_cm2)
 
         # Getting input/output files if needed
         if self.options[OPTION_RESULT_FOLDER_PATH] != "":
@@ -309,16 +315,21 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         """
         cl_htp = 0.0
         cm_htp = 0.0
+        cm_wing = 0.0
         with open(tmp_result_file_path, 'r') as lf:
             data = lf.readlines()
             for i in range(len(data)):
                 line = data[i].split()
                 line.append('**')  # avoid void line error
                 if line[0] == 'Comp':
-                    cl_htp = float(data[i+3].split()[5])+float(data[i+4].split()[5])  # sum CL left/right part of htp
-                    cm_htp = float(data[i+3].split()[12])+float(data[i+4].split()[12])  # sum CM left/right part of htp
+                    cm_wing = float(data[i+1].split()[12])\
+                              + float(data[i+2].split()[12])  # sum CM left/right part of wing
+                    cl_htp = float(data[i+3].split()[5])\
+                             + float(data[i+4].split()[5])  # sum CL left/right part of htp
+                    cm_htp = float(data[i+3].split()[12])\
+                             + float(data[i+4].split()[12])  # sum CM left/right part of htp
                 
-        return cl_htp, cm_htp
+        return cl_htp, cm_htp, cm_wing
     
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:

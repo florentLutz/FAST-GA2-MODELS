@@ -21,7 +21,6 @@ from pandas import read_csv
 from importlib_resources import open_text
 from typing import Union, Tuple, Optional
 from scipy import interpolate
-from ..constants import ELEV_POINT_COUNT
 
 from . import resources
 
@@ -29,7 +28,6 @@ LIFT_EFFECTIVENESS_FILENAME = "interpolation of lift effectiveness.txt"
 DELTA_CL_PLAIN_FLAP = "delta lift plain flap.csv"
 K_PLAIN_FLAP = "k plain flap.csv"
 KB_FLAPS = "kb flaps.csv"
-ELEVATOR_ANGLE_LIST = np.linspace(-25.0, 25.0, num=ELEV_POINT_COUNT)
 
 
 class ComputeDeltaHighLift(om.ExplicitComponent):
@@ -66,8 +64,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_output("data:aerodynamics:flaps:takeoff:CL_max")
         self.add_output("data:aerodynamics:flaps:takeoff:CM")
         self.add_output("data:aerodynamics:flaps:takeoff:CD")
-        self.add_output("data:aerodynamics:elevator:low_speed:angle", shape=len(ELEVATOR_ANGLE_LIST), units="deg")
-        self.add_output("data:aerodynamics:elevator:low_speed:CL", shape=len(ELEVATOR_ANGLE_LIST))
+        self.add_output("data:aerodynamics:elevator:low_speed:CL_alpha", units="rad**-1")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -113,18 +110,17 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                 )
 
         # Computes elevator contribution during low speed operations (for different deflection angle)
-        outputs["data:aerodynamics:elevator:low_speed:angle"] = ELEVATOR_ANGLE_LIST
-        outputs["data:aerodynamics:elevator:low_speed:CL"] = self._get_elevator_delta_cl(
+        outputs["data:aerodynamics:elevator:low_speed:CL_alpha"] = self._get_elevator_delta_cl(
                 inputs,
-                ELEVATOR_ANGLE_LIST,
-            )
+                25.0,
+            )  # get derivative for 25° angle
             
     def _get_elevator_delta_cl(self, inputs, elevator_angle: Union[float, np.array]) -> Union[float, np.array]:
         """
         Applies the plain flap lift variation function :meth:`_delta_lift_plainflap`.
 
         :param elevator_angle: elevator angle (in Degree)
-        :return: increment of lift coefficient
+        :return: lift coefficient derivative
         """
         
         ht_area = inputs["data:geometry:horizontal_tail:area"]
@@ -132,10 +128,10 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
 
         # Elevator (plain flap). Default: maximum deflection (25deg)
         cl_delta_theory, k = self._delta_lift_plainflap(abs(elevator_angle), 0.3, 0.1)
-        delta_cl_elev = (cl_delta_theory * k * elevator_angle) * ht_area / wing_area
-        delta_cl_elev *= 0.9  # Correction for the central fuselage part (no elevator there)
+        cl_alpha_elev = (cl_delta_theory * k) * ht_area / wing_area
+        cl_alpha_elev *= 0.9  # Correction for the central fuselage part (no elevator there)
                         
-        return delta_cl_elev
+        return cl_alpha_elev
 
     def _get_flaps_delta_cl(self, inputs, flap_angle: float, mach: float) -> Tuple[float, float]:
         """
@@ -354,8 +350,6 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         :return: lift increment and correction factor
         """
 
-        flap_angle = np.array(flap_angle)
-
         file = resources.__path__[0] + '\\' + DELTA_CL_PLAIN_FLAP
         db = read_csv(file)
 
@@ -429,7 +423,11 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         k_chord40 = interpolate.interp1d(x_40, y_40)
         k_chord50 = interpolate.interp1d(x_50, y_50)
         k = []
-        for angle in list(flap_angle):
+        if type(flap_angle) == float:
+            flap_angle = [flap_angle]
+        else:
+            flap_angle = list(flap_angle)
+        for angle in flap_angle:
             k_chord = [float(k_chord10(max(min(angle, max(x_10)), min(x_10)))),
                        float(k_chord15(max(min(angle, max(x_15)), min(x_15)))),
                        float(k_chord25(max(min(angle, max(x_25)), min(x_25)))),
