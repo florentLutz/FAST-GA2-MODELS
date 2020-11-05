@@ -47,7 +47,7 @@ class AerodynamicsHighSpeed(Group):
 
     def setup(self):
         self.add_subsystem("comp_re", ComputeReynolds(), promotes=["*"])
-        self.add_subsystem("xfoil_in", Connection(), promotes=["*"])
+        self.add_subsystem("xfoil_in", Connection(), promotes=["data:geometry:wing:MAC:length"])
         self.add_subsystem("comp_polar", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio"])
         if _OSWALD_BY_VLM:
             self.add_subsystem("oswald", ComputeOSWALDvlm(), promotes=["*"])
@@ -75,7 +75,7 @@ class AerodynamicsHighSpeed(Group):
 
         self.connect("data:aerodynamics:cruise:mach", "comp_polar.xfoil:mach")
         self.connect("data:aerodynamics:cruise:unit_reynolds", "comp_polar.xfoil:unit_reynolds")
-        self.connect("xfoil:length", "comp_polar.xfoil:length")
+        self.connect("xfoil_in.xfoil:length", "comp_polar.xfoil:length")
 
 
 class Connection(ExplicitComponent):
