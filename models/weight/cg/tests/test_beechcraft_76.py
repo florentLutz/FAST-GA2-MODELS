@@ -20,6 +20,7 @@ import openmdao.api as om
 
 import pytest
 from fastoad.io import VariableIO
+from typing import Union
 
 from ....tests.testing_utilities import run_system
 
@@ -46,30 +47,35 @@ def get_indep_var_comp(var_names):
     return ivc
 
 
-def list_inputs(group):
-    """ Reads input variables from a group and return as a list (run model with 0 value can lead to raise configuration
-    errors in models)"""
-    prob = om.Problem(model=group)
-    prob.setup()
-    prob.run_model()
-    data = prob.model.list_inputs(out_stream=None)
-    list_names = []
-    for idx in range(len(data)):
-        variable_name = data[idx][0].split('.')
-        list_names.append(variable_name[len(variable_name) - 1])
-    return list(dict.fromkeys(list_names))
+def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
+    """ Reads input variables from a component/problem and return as a list """
+
+    if isinstance(component, om.ExplicitComponent):
+        prob = om.Problem(model=component)
+        prob.setup()
+        data = prob.model.list_inputs(out_stream=None)
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0]
+            list_names.append(variable_name)
+    else:
+        prob = om.Problem(model=component)
+        prob.setup()
+        prob.run_model()
+        data = prob.model.list_inputs(out_stream=None)
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0].split('.')[-1]
+            list_names.append(variable_name)
+
+    return list_names
 
 
 def test_compute_cg_wing():
     """ Tests computation of wing center of gravity """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeWingCG(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeWingCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingCG(), ivc)
@@ -80,15 +86,8 @@ def test_compute_cg_wing():
 def test_compute_cg_fuselage():
     """ Tests computation of fuselage center of gravity """
 
-    # Input list from model (not generated because of assertion error for bad propulsion layout values)
-    input_list = [
-        "data:geometry:propulsion:layout",
-        "data:geometry:fuselage:length",
-        "data:geometry:propulsion:propeller:depth",
-    ]
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeFuselageCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuselageCG(), ivc)
@@ -99,13 +98,8 @@ def test_compute_cg_fuselage():
 def test_compute_cg_tail():
     """ Tests computation of tail center(s) of gravity """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeTailCG(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeTailCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeTailCG(), ivc)
@@ -118,13 +112,8 @@ def test_compute_cg_tail():
 def test_compute_cg_flight_control():
     """ Tests computation of flight control center of gravity """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeFlightControlCG(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeFlightControlCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFlightControlCG(), ivc)
@@ -135,13 +124,8 @@ def test_compute_cg_flight_control():
 def test_compute_cg_landing_gear():
     """ Tests computation of landing gear center(s) of gravity """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeLandingGearCG(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeLandingGearCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeLandingGearCG(), ivc)
@@ -152,23 +136,8 @@ def test_compute_cg_landing_gear():
 def test_compute_cg_engine():
     """ Tests computation of engine(s) center of gravity """
 
-    # Input list from model (not generated because of assertion error for bad propulsion layout values)
-    input_list = [
-        "data:geometry:propulsion:layout",
-        "data:geometry:wing:MAC:leading_edge:x:local",
-        "data:geometry:wing:MAC:length",
-        "data:geometry:wing:root:y",
-        "data:geometry:wing:root:chord",
-        "data:geometry:wing:tip:leading_edge:x:local",
-        "data:geometry:wing:tip:y",
-        "data:geometry:wing:tip:chord",
-        "data:geometry:wing:MAC:at25percent:x",
-        "data:geometry:propulsion:nacelle:length",
-        "data:geometry:propulsion:nacelle:y",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeEngineCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeEngineCG(), ivc)
@@ -179,13 +148,8 @@ def test_compute_cg_engine():
 def test_compute_cg_fuel_lines():
     """ Tests fuel lines center of gravity """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeFuelLinesCG(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file and add values calculated from other modules
+    ivc = get_indep_var_comp(list_inputs((ComputeFuelLinesCG())))
     ivc.add_output("data:weight:propulsion:engine:CG:x", 2.7, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
@@ -203,7 +167,7 @@ def test_compute_cg_tank():
     input_list = list_inputs(group)
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeTankCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeTankCG(), ivc)
@@ -219,8 +183,8 @@ def test_compute_cg_power_systems():
     group.add_subsystem("my_model", ComputePowerSystemsCG(), promotes=["*"])
     input_list = list_inputs(group)
 
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file and add values calculated from other modules
+    ivc = get_indep_var_comp(list_inputs(ComputePowerSystemsCG()))
     ivc.add_output("data:weight:propulsion:engine:CG:x", 2.7, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
@@ -234,13 +198,8 @@ def test_compute_cg_power_systems():
 def test_compute_cg_life_support_systems():
     """ Tests computation of life support systems center of gravity """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeLifeSupportCG(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeLifeSupportCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeLifeSupportCG(), ivc)
@@ -251,13 +210,8 @@ def test_compute_cg_life_support_systems():
 def test_compute_cg_navigation_systems():
     """ Tests computation of navigation systems center of gravity """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeNavigationSystemsCG(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeNavigationSystemsCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeNavigationSystemsCG(), ivc)
@@ -268,18 +222,8 @@ def test_compute_cg_navigation_systems():
 def test_compute_cg_passenger_seats():
     """ Tests computation of passenger seats center of gravity """
 
-    # Input list from model (not generated because of NaN conversion problem to integer)
-    input_list = [
-        "data:TLAR:NPAX",
-        "data:geometry:cabin:NPAX",
-        "data:geometry:fuselage:front_length",
-        "data:geometry:cabin:seats:passenger:count_by_row",
-        "data:geometry:cabin:seats:pilot:length",
-        "data:geometry:cabin:seats:passenger:length",
-    ]
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputePassengerSeatsCG()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputePassengerSeatsCG(), ivc)
@@ -290,13 +234,8 @@ def test_compute_cg_passenger_seats():
 def test_compute_cg_payload():
     """ Tests computation of payload center(s) of gravity """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputePayloadCG(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file and add values calculated from other modules
+    ivc = get_indep_var_comp(list_inputs(ComputePayloadCG()))
     ivc.add_output("data:weight:furniture:passenger_seats:CG:x", 4.13, units="m")   # use old fast-version
 
     # Run problem and check obtained value(s) is/(are) correct
@@ -312,13 +251,8 @@ def test_compute_cg_payload():
 def test_compute_cg_ratio_aft():
     """ Tests computation of center of gravity with aft estimation """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeCGRatioAft(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file and add values calculated from other modules
+    ivc = get_indep_var_comp(list_inputs(ComputeCGRatioAft()))
     ivc.add_output("data:weight:airframe:wing:CG:x", 0.39, units="m")
     ivc.add_output("data:weight:airframe:fuselage:CG:x", 3.99, units="m")
     ivc.add_output("data:weight:airframe:horizontal_tail:CG:x", 7.91, units="m")
@@ -347,13 +281,8 @@ def test_compute_cg_ratio_aft():
 def test_compute_cg_loadcase():
     """ Tests computation of center of gravity for all load case conf. """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeCGLoadCase(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file and add values calculated from other modules
+    ivc = get_indep_var_comp(list_inputs(ComputeCGLoadCase()))
     ivc.add_output("data:weight:payload:PAX:CG:x", 4.13, units="m")  # use old fast-version for calculation
     ivc.add_output("data:weight:payload:rear_fret:CG:x", 5.68, units="m")
     ivc.add_output("data:weight:payload:front_fret:CG:x", 0.0, units="m")
@@ -403,13 +332,8 @@ def test_compute_max_cg_ratio():
 def test_update_mlg():
     """ Tests computation of MLG update """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", UpdateMLG(), promotes=["*"])
-    input_list = list_inputs(group)
-
-    # Research independent input value in .xml file  and add values calculated from other modules
-    ivc = get_indep_var_comp(input_list)
+    # Research independent input value in .xml file and add values calculated from other modules
+    ivc = get_indep_var_comp(list_inputs(UpdateMLG()))
     ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.25)
     ivc.add_output("data:weight:airframe:landing_gear:front:CG:x", 1.71, units="m")
 

@@ -13,10 +13,12 @@
 
 import os.path as pth
 import numpy as np
+import openmdao.api as om
 
 import pytest
 from fastoad.io import VariableIO
 from fastoad.module_management import OpenMDAOSystemRegistry
+from typing import Union
 
 from ...tests.testing_utilities import run_system
 from ..compute_static_margin import ComputeStaticMargin
@@ -35,6 +37,33 @@ def get_indep_var_comp(var_names):
     return ivc
 
 
+def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
+    """ Reads input variables from a component/problem and return as a list """
+
+    register_wrappers()
+    if isinstance(component, om.ExplicitComponent):
+        prob = om.Problem(model=component)
+        prob.setup()
+        data = prob.model.list_inputs(out_stream=None)
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0]
+            list_names.append(variable_name)
+    else:
+        data = []
+        component.setup()
+        for subcomponent in component._static_subsystems_allprocs:
+            subprob = om.Problem(model=subcomponent)
+            subprob.setup()
+            data.extend(subprob.model.list_inputs(out_stream=None))
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0].split('.')[-1]
+            list_names.append(variable_name)
+
+    return list_names
+
+
 def register_wrappers():
     path_split = pth.dirname(__file__).split('\\')
     drive = path_split[0]
@@ -48,25 +77,8 @@ def register_wrappers():
 def test_compute_vt_area():
     """ Tests computation of the vertical tail area """
 
-    # Input list from model (not generated because of engine wrapper
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:geometry:wing:area",
-        "data:geometry:wing:span",
-        "data:geometry:wing:MAC:length",
-        "data:weight:aircraft:CG:aft:MAC_position",
-        "data:aerodynamics:fuselage:cruise:CnBeta",
-        "data:aerodynamics:vertical_tail:cruise:CL_alpha",
-        "data:TLAR:v_cruise",
-        "data:TLAR:v_approach",
-        "data:mission:sizing:main_route:cruise:altitude",
-        "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
-        "data:geometry:propulsion:nacelle:wet_area",
-        "data:geometry:propulsion:nacelle:y"
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeVTArea(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.364924)
     ivc.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.0599)
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
@@ -83,36 +95,9 @@ def test_compute_vt_area():
 def test_compute_ht_area():
     """ Tests computation of the horizontal tail area """
 
-    input_list = [
-        "data:aerodynamics:aircraft:landing:CL_max",
-        "data:aerodynamics:aircraft:takeoff:CL_max",
-        "data:aerodynamics:wing:low_speed:CL_max_clean",
-        "data:aerodynamics:aircraft:low_speed:CL0_clean",
-        "data:aerodynamics:aircraft:low_speed:CL_alpha",
-        "data:aerodynamics:flaps:landing:CL",
-        "data:aerodynamics:flaps:takeoff:CL",
-        "data:aerodynamics:flaps:landing:CM",
-        "data:aerodynamics:flaps:takeoff:CM",
-        "data:aerodynamics:horizontal_tail:low_speed:CL_alpha",
-        "data:geometry:propulsion:engine:count",
-        "data:geometry:propulsion:nacelle:height",
-        "data:geometry:wing:MAC:at25percent:x",
-        "data:geometry:wing:MAC:length",
-        "data:geometry:wing:area",
-        "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
-        "data:mission:sizing:landing:elevator_angle",
-        "data:mission:sizing:landing:thrust_rate",
-        "data:mission:sizing:takeoff:elevator_angle",
-        "data:mission:sizing:takeoff:thrust_rate",
-        "data:propulsion:MTO_thrust",
-        "data:weight:aircraft:MTOW",
-        "data:weight:aircraft:MLW",
-        "data:weight:aircraft:CG:aft:x",
-        "settings:weight:aircraft:CG:range",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    # noinspection PyTypeChecker
+    ivc = get_indep_var_comp(list_inputs(ComputeHTArea(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha",
                    np.array([0.0, 7.5, 15.0, 22.5, 30.0]), units="deg")
     ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:CL",
@@ -127,7 +112,6 @@ def test_compute_ht_area():
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
-    ivc.add_output("data:weight:airframe:landing_gear:main:CG:x", 3.97, units="m")  # correct value to fit old version
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()

@@ -24,6 +24,7 @@ from fastoad import BundleLoader
 from fastoad.models.propulsion.fuel_propulsion.base import FuelEngineSet
 from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting
+from typing import Union, List, Optional, Tuple
 
 _ANG_VEL = 12 * math.pi / 180  # 12 deg/s (typical for light aircraft)
 
@@ -39,9 +40,64 @@ class ComputeHTArea(om.Group):
         self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
-        self.add_subsystem("aero_coeff_landing", _ComputeAeroCoeff(landing=True), promotes=["*"])
-        self.add_subsystem("aero_coeff_takeoff", _ComputeAeroCoeff(), promotes=["*"])
-        self.add_subsystem("ht_area", _ComputeArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
+
+        self.add_subsystem(
+            "aero_coeff_landing",
+            _ComputeAeroCoeff(landing=True),
+            promotes=self.get_io_names(_ComputeAeroCoeff(landing=True), iotypes='inputs')
+        )
+        self.add_subsystem(
+            "aero_coeff_takeoff",
+            _ComputeAeroCoeff(),
+            promotes=self.get_io_names(_ComputeAeroCoeff(), iotypes='inputs')
+        )
+        self.add_subsystem(
+            "ht_area",
+            _ComputeArea(propulsion_id=self.options["propulsion_id"]),
+            promotes=self.get_io_names(
+                _ComputeArea(propulsion_id=self.options["propulsion_id"]),
+                excludes=[
+                    "landing:cl_ht",
+                    "landing:cm_wing",
+                    "takeoff:cl_ht",
+                    "takeoff:cm_wing",
+                    "low_speed:cl_alpha_ht",
+                ]
+            )
+        )
+
+        self.connect("aero_coeff_landing.cl_ht", "ht_area.landing:cl_ht")
+        self.connect("aero_coeff_landing.cm_wing", "ht_area.landing:cm_wing")
+        self.connect("aero_coeff_takeoff.cl_ht", "ht_area.takeoff:cl_ht")
+        self.connect("aero_coeff_takeoff.cm_wing", "ht_area.takeoff:cm_wing")
+        self.connect("aero_coeff_takeoff.cl_alpha_ht", "ht_area.low_speed:cl_alpha_ht")
+
+    @staticmethod
+    def get_io_names(
+            component: om.ExplicitComponent,
+            excludes: Optional[Union[str, List[str]]] = None,
+            iotypes: Optional[Union[str, Tuple[str]]] = ('inputs', 'outputs')) -> List[str]:
+        prob = om.Problem(model=component)
+        prob.setup()
+        data = []
+        if type(iotypes) == tuple:
+            data.extend(prob.model.list_inputs(out_stream=None))
+            data.extend(prob.model.list_outputs(out_stream=None))
+        else:
+            if iotypes == 'inputs':
+                data.extend(prob.model.list_inputs(out_stream=None))
+            else:
+                data.extend(prob.model.list_outputs(out_stream=None))
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0]
+            if excludes is None:
+                list_names.append(variable_name)
+            else:
+                if variable_name not in list(excludes):
+                    list_names.append(variable_name)
+
+        return list_names
 
 
 class _ComputeArea(om.ExplicitComponent):
@@ -235,15 +291,11 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         self.add_input("data:aerodynamics:flaps:landing:CL", val=np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CL", val=np.nan)
         self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", val=np.nan, units="rad**-1")
-        if self.options["landing"]:
-            self.add_input("data:mission:sizing:landing:elevator_angle", val=np.nan, units="rad")
-            self.add_output("landing:cl_ht")
-            self.add_output("landing:cm_wing")
-        else:
-            self.add_input("data:mission:sizing:takeoff:elevator_angle", val=np.nan, units="rad")
-            self.add_output("takeoff:cl_ht")
-            self.add_output("takeoff:cm_wing")
-            self.add_output("low_speed:cl_alpha_ht")
+        self.add_input("data:mission:sizing:landing:elevator_angle", val=np.nan, units="rad")
+        self.add_input("data:mission:sizing:takeoff:elevator_angle", val=np.nan, units="rad")
+        self.add_output("cl_ht")
+        self.add_output("cm_wing")
+        self.add_output("cl_alpha_ht")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -311,13 +363,9 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         # Define Cl_alpha with ht reference surface
         cl_alpha_ht = cl_alpha_ht * wing_area / ht_area
 
-        if self.options["landing"]:
-            outputs["landing:cl_ht"] = cl_ht
-            outputs["landing:cm_wing"] = cm_wing
-        else:
-            outputs["takeoff:cl_ht"] = cl_ht
-            outputs["takeoff:cm_wing"] = cm_wing
-            outputs["low_speed:cl_alpha_ht"] = cl_alpha_ht
+        outputs["cl_ht"] = cl_ht
+        outputs["cm_wing"] = cm_wing
+        outputs["cl_alpha_ht"] = cl_alpha_ht
 
     @staticmethod
     def _extrapolate(x, xp, yp) -> float:
@@ -325,8 +373,13 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         Extrapolate linearly out of range x-value
         """
         if (x >= xp[0]) and (x <= xp[-1]):
-            return float(np.interp(x, xp, yp))
+            result = float(np.interp(x, xp, yp))
         elif x < xp[0]:
-            return float(yp[0] + (x - xp[0]) * (yp[1] - yp[0]) / (xp[1] - xp[0]))
-        elif x > xp[-1]:
-            return float(yp[-1] + (x - xp[-1]) * (yp[-1] - yp[-2]) / (xp[-1] - xp[-2]))
+            result = float(yp[0] + (x - xp[0]) * (yp[1] - yp[0]) / (xp[1] - xp[0]))
+        else:
+            result = float(yp[-1] + (x - xp[-1]) * (yp[-1] - yp[-2]) / (xp[-1] - xp[-2]))
+
+        if result is None:
+            result = np.array([np.nan])
+
+        return result

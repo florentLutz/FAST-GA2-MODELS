@@ -21,6 +21,7 @@ import openmdao.api as om
 import pytest
 from fastoad.io import VariableIO
 from fastoad.module_management import OpenMDAOSystemRegistry
+from typing import Union
 
 from ...tests.testing_utilities import run_system
 from ..takeoff import TakeOffPhase, _v2, _vr_from_v2, _vloff_from_v2, _simulate_takeoff
@@ -39,18 +40,29 @@ def get_indep_var_comp(var_names):
     return ivc
 
 
-def list_inputs(group):
-    """ Reads input variables from a group and return as a list (run model with 0 value can lead to raise configuration
-    errors in models)"""
-    prob = om.Problem(model=group)
-    prob.setup()
-    prob.run_model()
-    data = prob.model.list_inputs(out_stream=None)
-    list_names = []
-    for idx in range(len(data)):
-        variable_name = data[idx][0].split('.')
-        list_names.append(variable_name[len(variable_name) - 1])
-    return list(dict.fromkeys(list_names))
+def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
+    """ Reads input variables from a component/problem and return as a list """
+
+    register_wrappers()
+    if isinstance(component, om.ExplicitComponent):
+        prob = om.Problem(model=component)
+        prob.setup()
+        data = prob.model.list_inputs(out_stream=None)
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0]
+            list_names.append(variable_name)
+    else:
+        prob = om.Problem(model=component)
+        prob.setup()
+        prob.run_model()
+        data = prob.model.list_inputs(out_stream=None)
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0].split('.')[-1]
+            list_names.append(variable_name)
+
+    return list_names
 
 
 def register_wrappers():
@@ -66,25 +78,8 @@ def register_wrappers():
 def test_v2():
     """ Tests safety speed """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:aerodynamics:wing:low_speed:CL_max_clean",
-        "data:aerodynamics:aircraft:low_speed:CL0_clean",
-        "data:aerodynamics:flaps:takeoff:CL",
-        "data:aerodynamics:aircraft:low_speed:CL_alpha",
-        "data:aerodynamics:aircraft:low_speed:CD0",
-        "data:aerodynamics:flaps:takeoff:CD",
-        "data:aerodynamics:aircraft:low_speed:induced_drag_coefficient",
-        "data:geometry:wing:area",
-        "data:geometry:wing:span",
-        "data:geometry:landing_gear:height",
-        "data:weight:aircraft:MTOW",
-        "data:mission:sizing:takeoff:thrust_rate",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(_v2(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
@@ -92,111 +87,60 @@ def test_v2():
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
     problem = run_system(_v2(propulsion_id=ENGINE_WRAPPER), ivc)
-    v2 = problem.get_val("v2:v2", units="m/s")
+    v2 = problem.get_val("v2:speed", units="m/s")
     assert v2 == pytest.approx(37.79, abs=1e-2)
-    alpha = problem.get_val("v2:alpha", units="deg")
+    alpha = problem.get_val("v2:angle", units="deg")
     assert alpha == pytest.approx(8.49, abs=1e-2)
 
 
 def test_vloff():
     """ Tests lift-off speed """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:aerodynamics:aircraft:low_speed:CL0_clean",
-        "data:aerodynamics:flaps:takeoff:CL",
-        "data:aerodynamics:aircraft:low_speed:CL_alpha",
-        "data:aerodynamics:aircraft:low_speed:CD0",
-        "data:aerodynamics:flaps:takeoff:CD",
-        "data:aerodynamics:aircraft:low_speed:induced_drag_coefficient",
-        "data:geometry:wing:area",
-        "data:geometry:wing:span",
-        "data:geometry:landing_gear:height",
-        "data:weight:aircraft:MTOW",
-        "data:mission:sizing:takeoff:thrust_rate",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(_vloff_from_v2(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
-    ivc.add_output("vloff:v2", 37.79, units='m/s')
-    ivc.add_output("vloff:alpha_v2", 8.49, units='deg')
+    ivc.add_output("v2:speed", 37.79, units='m/s')
+    ivc.add_output("v2:angle", 8.49, units='deg')
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
     problem = run_system(_vloff_from_v2(propulsion_id=ENGINE_WRAPPER), ivc)
-    vloff = problem.get_val("vloff:vloff", units="m/s")
+    vloff = problem.get_val("vloff:speed", units="m/s")
     assert vloff == pytest.approx(36.88, abs=1e-2)
-    alpha = problem.get_val("vloff:alpha", units="deg")
+    alpha = problem.get_val("vloff:angle", units="deg")
     assert alpha == pytest.approx(8.49, abs=1e-2)
 
 
 def test_vr():
     """ Tests rotation speed """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:aerodynamics:aircraft:low_speed:CL0_clean",
-        "data:aerodynamics:flaps:takeoff:CL",
-        "data:aerodynamics:aircraft:low_speed:CL_alpha",
-        "data:aerodynamics:aircraft:low_speed:CD0",
-        "data:aerodynamics:flaps:takeoff:CD",
-        "data:aerodynamics:aircraft:low_speed:induced_drag_coefficient",
-        "data:geometry:wing:area",
-        "data:geometry:wing:span",
-        "data:geometry:landing_gear:height",
-        "data:weight:aircraft:MTOW",
-        "data:mission:sizing:takeoff:thrust_rate",
-        "data:mission:sizing:takeoff:friction_coefficient_no_brake",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(_vr_from_v2(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
-    ivc.add_output("vr:vloff", 36.88, units='m/s')
-    ivc.add_output("vr:alpha_vloff", 8.49, units='deg')
+    ivc.add_output("vloff:speed", 36.88, units='m/s')
+    ivc.add_output("vloff:angle", 8.49, units='deg')
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
     problem = run_system(_vr_from_v2(propulsion_id=ENGINE_WRAPPER), ivc)
-    vr = problem.get_val("vr:vr", units="m/s")
+    vr = problem.get_val("vr:speed", units="m/s")
     assert vr == pytest.approx(28.51, abs=1e-2)
 
 
 def test_simulate_takeoff():
     """ Tests simulate takeoff """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:aerodynamics:wing:low_speed:CL_max_clean",
-        "data:aerodynamics:aircraft:low_speed:CL0_clean",
-        "data:aerodynamics:flaps:takeoff:CL",
-        "data:aerodynamics:aircraft:low_speed:CL_alpha",
-        "data:aerodynamics:aircraft:low_speed:CD0",
-        "data:aerodynamics:flaps:takeoff:CD",
-        "data:aerodynamics:aircraft:low_speed:induced_drag_coefficient",
-        "data:geometry:wing:area",
-        "data:geometry:wing:span",
-        "data:geometry:landing_gear:height",
-        "data:weight:aircraft:MTOW",
-        "data:mission:sizing:takeoff:thrust_rate",
-        "data:mission:sizing:takeoff:friction_coefficient_no_brake",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(_simulate_takeoff(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
-    ivc.add_output("takeoff:min_vr", 28.51, units='m/s')
-    ivc.add_output("takeoff:alpha_v2", 8.49, units='deg')
+    ivc.add_output("vr:speed", 28.51, units='m/s')
+    ivc.add_output("v2:angle", 8.49, units='deg')
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
@@ -249,19 +193,8 @@ def test_takeoffphase_connections():
 def test_compute_taxi():
     """ Tests taxi in/out phase """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:mission:sizing:taxi_out:thrust_rate",
-        "data:mission:sizing:taxi_out:duration",
-        "data:mission:sizing:taxi_out:speed",
-        "data:mission:sizing:taxi_in:thrust_rate",
-        "data:mission:sizing:taxi_in:duration",
-        "data:mission:sizing:taxi_in:speed",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=True)))
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
@@ -271,6 +204,14 @@ def test_compute_taxi():
     problem = run_system(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=True), ivc)
     fuel_mass = problem.get_val("data:mission:sizing:taxi_out:fuel", units="kg")
     assert fuel_mass == pytest.approx(0.50, abs=1e-2)  # result strongly dependent on the defined Thrust limit
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=False)))
+    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
+    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
+    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=False), ivc)
     fuel_mass = problem.get_val("data:mission:sizing:taxi_in:fuel", units="kg")
     assert fuel_mass == pytest.approx(0.50, abs=1e-2)  # result strongly dependent on the defined Thrust limit
@@ -279,19 +220,8 @@ def test_compute_taxi():
 def test_compute_climb():
     """ Tests climb phase """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:mission:sizing:main_route:cruise:altitude",
-        "data:aerodynamics:aircraft:cruise:CD0",
-        "data:aerodynamics:aircraft:cruise:induced_drag_coefficient",
-        "data:geometry:wing:area",
-        "data:weight:aircraft:MTOW",
-        "data:mission:sizing:main_route:climb:thrust_rate"
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(_compute_climb(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
@@ -315,20 +245,8 @@ def test_compute_climb():
 def test_compute_cruise():
     """ Tests cruise phase """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:TLAR:v_cruise",
-        "data:TLAR:range",
-        "data:mission:sizing:main_route:cruise:altitude",
-        "data:aerodynamics:aircraft:cruise:CD0",
-        "data:aerodynamics:aircraft:cruise:induced_drag_coefficient",
-        "data:geometry:wing:area",
-        "data:weight:aircraft:MTOW",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(_compute_cruise(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
@@ -350,20 +268,8 @@ def test_compute_cruise():
 def test_compute_descent():
     """ Tests descent phase """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:mission:sizing:main_route:cruise:altitude",
-        "data:mission:sizing:main_route:descent:descent_rate",
-        "data:aerodynamics:aircraft:cruise:optimal_CL",
-        "data:aerodynamics:aircraft:cruise:CD0",
-        "data:aerodynamics:aircraft:cruise:induced_drag_coefficient",
-        "data:geometry:wing:area",
-        "data:weight:aircraft:MTOW",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(_compute_descent(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)

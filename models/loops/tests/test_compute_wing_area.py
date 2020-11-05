@@ -29,7 +29,7 @@ def test_compute_wing_area():
 
     # Driven by fuel
     ivc = om.IndepVarComp()
-    ivc.add_output("data:propulsion:engine:fuel_type", 1.0)
+    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:geometry:wing:root:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:tip:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.149)
@@ -50,7 +50,7 @@ def test_compute_wing_area():
 
     # Driven by CL max
     ivc = om.IndepVarComp()
-    ivc.add_output("data:propulsion:engine:fuel_type", 1.0)
+    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
     ivc.add_output("data:geometry:wing:root:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:tip:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.149)

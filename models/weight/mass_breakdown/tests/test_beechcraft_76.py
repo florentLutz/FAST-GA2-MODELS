@@ -20,6 +20,7 @@ import os.path as pth
 import openmdao.api as om
 import pytest
 from fastoad.io import VariableIO
+from typing import Union
 
 from ....tests.testing_utilities import run_system
 from ..a_airframe import (
@@ -56,33 +57,41 @@ def get_indep_var_comp(var_names):
     return ivc
 
 
-def list_inputs(group):
-    """ Reads input variables from a group and return as a list (run model with 0 value can lead to raise configuration
-    errors in models)"""
-    prob = om.Problem(model=group)
-    prob.setup()
-    prob.run_model()
-    data = prob.model.list_inputs(out_stream=None)
-    list_names = []
-    for idx in range(len(data)):
-        variable_name = data[idx][0].split('.')
-        list_names.append(variable_name[len(variable_name) - 1])
-    return list(dict.fromkeys(list_names))
+def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
+    """ Reads input variables from a component/problem and return as a list """
+
+    if isinstance(component, om.ExplicitComponent):
+        prob = om.Problem(model=component)
+        prob.setup()
+        data = prob.model.list_inputs(out_stream=None)
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0]
+            list_names.append(variable_name)
+    else:
+        prob = om.Problem(model=component)
+        prob.setup()
+        prob.run_model()
+        data = prob.model.list_inputs(out_stream=None)
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0].split('.')[-1]
+            list_names.append(variable_name)
+
+    return list_names
 
 
 def test_compute_payload():
 
-    ivc = om.IndepVarComp()
-
     # Run problem and check obtained value(s) is/(are) correct
+    ivc = om.IndepVarComp()
     ivc.add_output("data:TLAR:NPAX", val=2.0)
     problem = run_system(ComputePayload(), ivc)
     assert problem["data:weight:aircraft:payload"] == pytest.approx(320.0, abs=1e-2)
     assert problem["data:weight:aircraft:max_payload"] == pytest.approx(360.0, abs=1e-2)
 
-    ivc = om.IndepVarComp()
-
     # Run problem and check obtained value(s) is/(are) correct
+    ivc = om.IndepVarComp()
     ivc.add_output("data:TLAR:NPAX", val=10.0)
     ivc.add_output("settings:weight:aircraft:payload:design_mass_per_passenger", 1.0, units="kg")
     ivc.add_output("settings:weight:aircraft:payload:max_mass_per_passenger", 2.0, units="kg")
@@ -94,13 +103,8 @@ def test_compute_payload():
 def test_compute_wing_weight():
     """ Tests wing weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeWingWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeWingWeight()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingWeight(), ivc)
@@ -111,13 +115,8 @@ def test_compute_wing_weight():
 def test_compute_fuselage_weight():
     """ Tests fuselage weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeFuselageWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeFuselageWeight()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuselageWeight(), ivc)
@@ -128,13 +127,8 @@ def test_compute_fuselage_weight():
 def test_compute_empennage_weight():
     """ Tests empennage weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeTailWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeTailWeight()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeTailWeight(), ivc)
@@ -147,13 +141,8 @@ def test_compute_empennage_weight():
 def test_compute_flight_controls_weight():
     """ Tests flight controls weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeFlightControlsWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeFlightControlsWeight()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFlightControlsWeight(), ivc)
@@ -164,13 +153,8 @@ def test_compute_flight_controls_weight():
 def test_compute_landing_gear_weight():
     """ Tests landing gear weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeLandingGearWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeLandingGearWeight()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeLandingGearWeight(), ivc)
@@ -192,7 +176,7 @@ def test_compute_engine_weight():
     ]
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeEngineWeight()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeEngineWeight(), ivc)
@@ -203,13 +187,8 @@ def test_compute_engine_weight():
 def test_compute_fuel_lines_weight():
     """ Tests fuel lines weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeFuelLinesWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeFuelLinesWeight()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuelLinesWeight(), ivc)
@@ -220,13 +199,8 @@ def test_compute_fuel_lines_weight():
 def test_compute_navigation_systems_weight():
     """ Tests navigation systems weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeNavigationSystemsWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeNavigationSystemsWeight()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeNavigationSystemsWeight(), ivc)
@@ -237,13 +211,8 @@ def test_compute_navigation_systems_weight():
 def test_compute_power_systems_weight():
     """ Tests power systems weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputePowerSystemsWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputePowerSystemsWeight()))
     ivc.add_output("data:weight:systems:navigation:mass", 33.46, units="kg")
     ivc.add_output("data:weight:propulsion:fuel_lines:mass", 32.95, units="kg")
 
@@ -258,13 +227,8 @@ def test_compute_power_systems_weight():
 def test_compute_life_support_systems_weight():
     """ Tests life support systems weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeLifeSupportSystemsWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeLifeSupportSystemsWeight()))
     ivc.add_output("data:weight:systems:navigation:mass", 33.46, units="kg")
 
     # Run problem and check obtained value(s) is/(are) correct
@@ -276,13 +240,8 @@ def test_compute_life_support_systems_weight():
 def test_compute_passenger_seats_weight():
     """ Tests passenger seats weight computation from sample XML data """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputePassengerSeatsWeight(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputePassengerSeatsWeight()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputePassengerSeatsWeight(), ivc)
@@ -315,6 +274,7 @@ def test_loop_compute_owe():
             "data:weight:aircraft:MTOW",
         ]
     ).to_ivc()
+    input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
 
     # noinspection PyTypeChecker
     mass_computation_1 = run_system(MassBreakdown(payload_from_npax=True), input_vars)
@@ -329,6 +289,7 @@ def test_loop_compute_owe():
             "data:weight:aircraft:MTOW",
         ]
     ).to_ivc()
+    input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
     # noinspection PyTypeChecker
     mass_computation_2 = run_system(MassBreakdown(payload_from_npax=False), input_vars)
     oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")

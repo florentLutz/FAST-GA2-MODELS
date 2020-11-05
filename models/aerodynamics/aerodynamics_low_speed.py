@@ -48,14 +48,13 @@ class AerodynamicsLowSpeed(Group):
     def setup(self):
         self.add_subsystem("comp_re", ComputeReynolds(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("xfoil_in", Connection(), promotes=["*"])
-        self.add_subsystem("comp_polar2", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio", "xfoil:mach",
-                                                                  "xfoil:unit_reynolds"])
-        self.add_subsystem("comp_polar3", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio", "xfoil:mach",
-                                                                  "xfoil:unit_reynolds"])
+        self.add_subsystem("comp_polar2", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio"])
+        self.add_subsystem("comp_polar3", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio"])
         if _OSWALD_BY_VLM:
-            self.add_subsystem("comp_polar1", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio",
-                                                                      "xfoil:mach", "xfoil:unit_reynolds"])
+            self.add_subsystem("comp_polar1", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio"])
             self.add_subsystem("oswald", ComputeOSWALDvlm(low_speed_aero=True), promotes=["*"])
+            self.connect("data:aerodynamics:low_speed:mach", "comp_polar1.xfoil:mach")
+            self.connect("data:aerodynamics:low_speed:unit_reynolds", "comp_polar1.xfoil:unit_reynolds")
             self.connect("xfoil:length1", "comp_polar1.xfoil:length")
             self.connect("comp_polar1.xfoil:CL", "data:aerodynamics:wing:low_speed:CL")
             self.connect("comp_polar1.xfoil:CDp", "data:aerodynamics:wing:low_speed:CDp")
@@ -79,10 +78,12 @@ class AerodynamicsLowSpeed(Group):
         self.add_subsystem("cl_alpha_ht", ComputeHTPCLALPHAopenvsp(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cl_max", ComputeMaxCL(), promotes=["*"])
 
-        self.connect("data:aerodynamics:low_speed:mach", "xfoil:mach")
-        self.connect("data:aerodynamics:low_speed:unit_reynolds", "xfoil:unit_reynolds")
+        self.connect("data:aerodynamics:low_speed:mach", "comp_polar2.xfoil:mach")
+        self.connect("data:aerodynamics:low_speed:unit_reynolds", "comp_polar2.xfoil:unit_reynolds")
         self.connect("xfoil:length2", "comp_polar2.xfoil:length")
         self.connect("comp_polar2.xfoil:CL_max_2D", "data:aerodynamics:wing:low_speed:root:CL_max_2D")
+        self.connect("data:aerodynamics:low_speed:mach", "comp_polar3.xfoil:mach")
+        self.connect("data:aerodynamics:low_speed:unit_reynolds", "comp_polar3.xfoil:unit_reynolds")
         self.connect("xfoil:length3", "comp_polar3.xfoil:length")
         self.connect("comp_polar3.xfoil:CL_max_2D", "data:aerodynamics:wing:low_speed:tip:CL_max_2D")
 

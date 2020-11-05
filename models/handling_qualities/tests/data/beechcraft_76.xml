@@ -148,7 +148,7 @@
 				<landing_gear>
 					<main>
 						<CG>
-							<x units="m">4.19<!--main landing gear (A51): X-position of center of gravity--></x>
+							<x units="m">3.97<!--main landing gear (A51): X-position of center of gravity--></x>
 						</CG>
 					</main>
 				</landing_gear>

@@ -22,6 +22,7 @@ from platform import system
 import tempfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Union
 
 import pytest
 from fastoad.io import VariableIO
@@ -74,18 +75,28 @@ def get_indep_var_comp(var_names):
     return ivc
 
 
-def list_inputs(group):
-    """ Reads input variables from a group and return as a list (run model with 0 value can lead to raise configuration
-    errors in models)"""
-    prob = om.Problem(model=group)
-    prob.setup()
-    prob.run_model()
-    data = prob.model.list_inputs(out_stream=None)
-    list_names = []
-    for idx in range(len(data)):
-        variable_name = data[idx][0].split('.')
-        list_names.append(variable_name[len(variable_name) - 1])
-    return list(dict.fromkeys(list_names))
+def list_inputs(component: om.ExplicitComponent) -> list:
+    """ Reads input variables from a component/problem and return as a list """
+
+    if isinstance(component, om.ExplicitComponent):
+        prob = om.Problem(model=component)
+        prob.setup()
+        data = prob.model.list_inputs(out_stream=None)
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0]
+            list_names.append(variable_name)
+    else:
+        prob = om.Problem(model=component)
+        prob.setup()
+        prob.run_model()
+        data = prob.model.list_inputs(out_stream=None)
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0].split('.')[-1]
+            list_names.append(variable_name)
+
+    return list_names
 
 
 def reshape_curve(y, cl):
@@ -112,15 +123,8 @@ def reshape_polar(cl, cdp):
 def test_compute_reynolds():
     """ Tests high and low speed reynolds calculation """
 
-    # Define parameters (with .xml file: cause NaN values not supported in Atmosphere)
-    input_list = [
-        "data:TLAR:v_approach",
-        "data:TLAR:v_cruise",
-        "data:mission:sizing:main_route:cruise:altitude",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeReynolds()))
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeReynolds(), ivc)
@@ -128,6 +132,11 @@ def test_compute_reynolds():
     assert mach == pytest.approx(0.2457, abs=1e-4)
     reynolds = problem["data:aerodynamics:cruise:unit_reynolds"]
     assert reynolds == pytest.approx(4571770, abs=1)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeReynolds(low_speed_aero=True)))
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeReynolds(low_speed_aero=True), ivc)
     mach = problem["data:aerodynamics:low_speed:mach"]
     assert mach == pytest.approx(0.1179, abs=1e-4)
@@ -138,17 +147,8 @@ def test_compute_reynolds():
 def test_cd0_high_speed():
     """ Tests drag coefficient @ high speed """
 
-    # Generate input list from model
-    group = om.Group()
-    ivc = om.IndepVarComp()
-    ivc.add_output("data:aerodynamics:cruise:mach", 0.2457)
-    ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 4571770)
-    group.add_subsystem("constants", ivc, promotes=["*"])
-    group.add_subsystem("my_model", CD0(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(CD0()))
     ivc.add_output("data:aerodynamics:cruise:mach", 0.2457)
     ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 4571770)
 
@@ -175,18 +175,9 @@ def test_cd0_high_speed():
 def test_cd0_low_speed():
     """ Tests drag coefficient @ low speed """
 
-    # Generate input list from model
-    group = om.Group()
-    ivc = om.IndepVarComp()
-    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1179)
-    ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2746999)
-    group.add_subsystem("constants", ivc, promotes=["*"])
-    # noinspection PyTypeChecker
-    group.add_subsystem("my_model", CD0(low_speed_aero=True), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    # noinspection PyTypeChecker
+    ivc = get_indep_var_comp(list_inputs(CD0(low_speed_aero=True)))
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
     ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822)  # correction to ...
 
@@ -215,11 +206,7 @@ def test_polar():
     """ Tests polar execution (XFOIL) @ high and low speed """
 
     # Define high-speed parameters (with .xml file and additional inputs)
-    input_list = [
-        "data:geometry:wing:thickness_ratio",
-        "data:geometry:wing:MAC:length",
-    ]
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(XfoilPolar()))
     ivc.add_output("xfoil:mach", 0.245)
     ivc.add_output("xfoil:unit_reynolds", 4571770)
     ivc.add_output("xfoil:length", 1.549, units="m")  # group connection data:geometry:wing:MAC:length -> xfoil:length
@@ -236,7 +223,7 @@ def test_polar():
     assert cdp_1 == pytest.approx(0.0041, abs=1e-4)
 
     # Define low-speed parameters (with .xml file and additional inputs)
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(XfoilPolar()))
     ivc.add_output("xfoil:mach", 0.1179)
     ivc.add_output("xfoil:unit_reynolds", 2746999)
     ivc.add_output("xfoil:length", 1.549, units="m")  # group connection data:geometry:wing:MAC:length -> xfoil:length
@@ -258,26 +245,8 @@ def test_polar():
 def test_vlm_comp_high_speed():
     """ Tests vlm components @ high speed """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:TLAR:v_cruise",
-        "data:geometry:wing:area",
-        "data:geometry:wing:span",
-        "data:geometry:wing:aspect_ratio",
-        "data:geometry:wing:kink:span_ratio",
-        "data:geometry:wing:MAC:length",
-        "data:geometry:wing:root:y",
-        "data:geometry:wing:root:chord",
-        "data:geometry:wing:tip:chord",
-        "data:geometry:flap:span_ratio",
-        "data:geometry:horizontal_tail:span",
-        "data:geometry:horizontal_tail:root:chord",
-        "data:geometry:horizontal_tail:tip:chord",
-        "data:geometry:fuselage:maximum_width",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeOSWALDvlm()))
     ivc.add_output("data:aerodynamics:cruise:mach", 0.245)
     cl = np.zeros(POLAR_POINT_COUNT)
     cdp = np.zeros(POLAR_POINT_COUNT)
@@ -300,6 +269,12 @@ def test_vlm_comp_high_speed():
     problem = run_system(ComputeOSWALDvlm(), ivc)
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
     assert coef_k == pytest.approx(0.0531, abs=1e-4)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeWingCLALPHAvlm()))
+    ivc.add_output("data:aerodynamics:cruise:mach", 0.245)
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingCLALPHAvlm(), ivc)
     cl0 = problem["data:aerodynamics:aircraft:cruise:CL0_clean"]
     assert cl0 == pytest.approx(0.1511, abs=1e-4)
@@ -310,25 +285,8 @@ def test_vlm_comp_high_speed():
 def test_vlm_comp_low_speed():
     """ Tests vlm components @ high speed """
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:wing:area",
-        "data:geometry:wing:span",
-        "data:geometry:wing:aspect_ratio",
-        "data:geometry:wing:kink:span_ratio",
-        "data:geometry:wing:MAC:length",
-        "data:geometry:wing:root:y",
-        "data:geometry:wing:root:chord",
-        "data:geometry:wing:tip:chord",
-        "data:geometry:flap:span_ratio",
-        "data:geometry:horizontal_tail:span",
-        "data:geometry:horizontal_tail:root:chord",
-        "data:geometry:horizontal_tail:tip:chord",
-        "data:geometry:fuselage:maximum_width",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeOSWALDvlm(low_speed_aero=True)))
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
     cl = np.zeros(POLAR_POINT_COUNT)
     cdp = np.zeros(POLAR_POINT_COUNT)
@@ -351,6 +309,12 @@ def test_vlm_comp_low_speed():
     problem = run_system(ComputeOSWALDvlm(low_speed_aero=True), ivc)
     coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
     assert coef_k == pytest.approx(0.0528, abs=1e-4)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeWingCLALPHAvlm(low_speed_aero=True)))
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingCLALPHAvlm(low_speed_aero=True), ivc)
     cl0 = problem["data:aerodynamics:aircraft:low_speed:CL0_clean"]
     assert cl0 == pytest.approx(0.1475, abs=1e-4)
@@ -369,33 +333,8 @@ def test_openvsp_comp_high_speed():
     # Create result temporary directory
     results_folder = _create_tmp_directory()
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:mission:sizing:main_route:cruise:altitude",
-        "data:geometry:wing:MAC:leading_edge:x:local",
-        "data:geometry:wing:MAC:length",
-        "data:geometry:fuselage:maximum_width",
-        "data:geometry:wing:root:y",
-        "data:geometry:wing:root:chord",
-        "data:geometry:wing:tip:y",
-        "data:geometry:wing:tip:chord",
-        "data:geometry:wing:sweep_0",
-        "data:geometry:wing:MAC:at25percent:x",
-        "data:geometry:wing:area",
-        "data:geometry:wing:span",
-        "data:geometry:fuselage:maximum_height",
-        "data:geometry:horizontal_tail:sweep_25",
-        "data:geometry:horizontal_tail:span",
-        "data:geometry:horizontal_tail:root:chord",
-        "data:geometry:horizontal_tail:tip:chord",
-        "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
-        "data:geometry:horizontal_tail:MAC:length",
-        "data:geometry:horizontal_tail:MAC:at25percent:x:local",
-        "data:geometry:horizontal_tail:z:from_wingMAC25",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeOSWALDopenvsp()))
     ivc.add_output("data:aerodynamics:cruise:mach", 0.245)
 
     # Run problem and check obtained value(s) is/(are) correct
@@ -403,12 +342,24 @@ def test_openvsp_comp_high_speed():
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
     assert coef_k == pytest.approx(0.0480, abs=1e-4)
     assert pth.exists(pth.join(results_folder.name, 'OSWALD'))
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeWingCLALPHAopenvsp()))
+    ivc.add_output("data:aerodynamics:cruise:mach", 0.245)
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingCLALPHAopenvsp(result_folder_path=results_folder.name), ivc)
     cl0 = problem["data:aerodynamics:aircraft:cruise:CL0_clean"]
     assert cl0 == pytest.approx(0.0906, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:cruise:CL_alpha", units="rad**-1")
     assert cl_alpha_wing == pytest.approx(4.650, abs=1e-3)
     assert pth.exists(pth.join(results_folder.name, 'ClAlphaWING'))
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeHTPCLALPHAopenvsp()))
+    ivc.add_output("data:aerodynamics:cruise:mach", 0.245)
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeHTPCLALPHAopenvsp(result_folder_path=results_folder.name), ivc)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
     assert cl_alpha_htp == pytest.approx(0.7027, abs=1e-4)
@@ -424,39 +375,20 @@ def test_openvsp_comp_low_speed():
     # Create result temporary directory
     results_folder = _create_tmp_directory()
 
-    # Input list from model (not generated because NaN values not supported by vspcript/vspaero)
-    input_list = [
-        "data:geometry:wing:MAC:leading_edge:x:local",
-        "data:geometry:wing:MAC:length",
-        "data:geometry:fuselage:maximum_width",
-        "data:geometry:wing:root:y",
-        "data:geometry:wing:root:chord",
-        "data:geometry:wing:tip:y",
-        "data:geometry:wing:tip:chord",
-        "data:geometry:wing:sweep_0",
-        "data:geometry:wing:MAC:at25percent:x",
-        "data:geometry:wing:area",
-        "data:geometry:wing:span",
-        "data:geometry:fuselage:maximum_height",
-        "data:geometry:horizontal_tail:sweep_25",
-        "data:geometry:horizontal_tail:span",
-        "data:geometry:horizontal_tail:root:chord",
-        "data:geometry:horizontal_tail:tip:chord",
-        "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
-        "data:geometry:horizontal_tail:MAC:length",
-        "data:geometry:horizontal_tail:MAC:at25percent:x:local",
-        "data:geometry:horizontal_tail:z:from_wingMAC25",
-
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeOSWALDopenvsp()))
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeOSWALDopenvsp(low_speed_aero=True), ivc)
     coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
     assert coef_k == pytest.approx(0.0480, abs=1e-4)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeOSWALDopenvsp()))
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingCLALPHAopenvsp(low_speed_aero=True), ivc)
     cl0 = problem["data:aerodynamics:aircraft:low_speed:CL0_clean"]
     assert cl0 == pytest.approx(0.0889, abs=1e-4)
@@ -467,9 +399,21 @@ def test_openvsp_comp_low_speed():
     y_interp, cl_interp = reshape_curve(y_interp, cl_interp)
     cl_med = np.interp((y_interp[0]+y_interp[-1])/2.0, y_interp, cl_interp)
     assert cl_med == pytest.approx(0.0950, abs=1e-4)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeHTPCLALPHAopenvsp()))
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeHTPCLALPHAopenvsp(low_speed_aero=True), ivc)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
     assert cl_alpha_htp == pytest.approx(0.696, abs=1e-3)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeHTPCLCMopenvsp()))
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeHTPCLCMopenvsp(result_folder_path=results_folder.name), ivc)
     alpha_interp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:alpha", units="deg")
     cl_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CL"]
@@ -490,26 +434,8 @@ def test_openvsp_comp_low_speed():
 def test_high_lift():
     """ Tests high-lift contribution """
 
-    # Input list from model (not generated because NaN values not supported by interpolation function)
-    input_list = [
-        "data:geometry:wing:span",
-        "data:geometry:wing:area",
-        "data:geometry:horizontal_tail:area",
-        "data:geometry:wing:taper_ratio",
-        "data:geometry:fuselage:maximum_width",
-        "data:geometry:wing:root:y",
-        "data:geometry:wing:root:chord",
-        "data:geometry:flap:chord_ratio",
-        "data:geometry:flap:span_ratio",
-        "data:geometry:flap_type",
-        "data:aerodynamics:aircraft:low_speed:CL_alpha",
-        "data:aerodynamics:low_speed:mach",
-        "data:mission:sizing:landing:flap_angle",
-        "data:mission:sizing:takeoff:flap_angle",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeDeltaHighLift()))
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
     ivc.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha", 4.569, units="rad**-1")
 
@@ -538,14 +464,8 @@ def test_high_lift():
 def test_max_cl():
     """ Tests maximum cl component with Openvsp and VLM results"""
 
-    # Input list from model (not generated because NaN values not supported by interpolation function)
-    input_list = [
-        "data:geometry:wing:root:y",
-        "data:geometry:wing:tip:y",
-    ]
-
     # Research independent input value in .xml file for Openvsp test
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeMaxCL()))
     y_openvsp = np.zeros(SPAN_MESH_POINT_OPENVSP)
     cl_openvsp = np.zeros(SPAN_MESH_POINT_OPENVSP)
     y_openvsp[0:39] = [0.04279, 0.12836, 0.21393, 0.2995, 0.38507, 0.47064, 0.55621,
@@ -578,7 +498,7 @@ def test_max_cl():
     assert cl_max_landing == pytest.approx(2.0858, abs=1e-2)
 
     # Research independent input value in .xml file for VLM test
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeMaxCL()))
     y_vlm = np.zeros(SPAN_MESH_POINT_OPENVSP)
     cl_vlm = np.zeros(SPAN_MESH_POINT_OPENVSP)
     y_vlm[0:17] = [0.09983333, 0.2995, 0.49916667, 0.918, 1.556,
@@ -632,14 +552,8 @@ def test_l_d_max():
 def test_cnbeta():
     """ Tests cn beta fuselage """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("cnbeta_fus", ComputeCnBetaFuselage(), promotes=["*"])
-    input_list = list_inputs(group)
-    # print(input_list)
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(input_list)
+    ivc = get_indep_var_comp(list_inputs(ComputeCnBetaFuselage()))
     ivc.add_output("data:aerodynamics:cruise:mach", 0.245)
 
     # Run problem and check obtained value(s) is/(are) correct

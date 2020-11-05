@@ -23,6 +23,7 @@ from fastoad.constants import EngineSetting
 from fastoad.models.propulsion.fuel_propulsion.base import FuelEngineSet
 from fastoad.utils.physics import Atmosphere
 from scipy.constants import g
+from typing import Union, List, Optional, Tuple
 
 ALPHA_LIMIT = 13.5 * math.pi / 180.0  # Limit angle to touch tail on ground in rad
 ALPHA_RATE = 3.0 * math.pi / 180.0  # Angular rotation speed in rad/s
@@ -36,32 +37,80 @@ class TakeOffPhase(om.Group):
         self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
-        self.add_subsystem("compute_v2", _v2(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
-        self.add_subsystem("compute_vloff", _vloff_from_v2(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
-        self.add_subsystem("compute_vr", _vr_from_v2(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
-        self.add_subsystem("simulate_takeoff", _simulate_takeoff(propulsion_id=self.options["propulsion_id"]),
-                           promotes=["*"])
-        self.connect("v2:v2", "vloff:v2")
-        self.connect("v2:alpha", "vloff:alpha_v2")
-        self.connect("vloff:vloff", "vr:vloff")
-        self.connect("vloff:alpha", "vr:alpha_vloff")
-        self.connect("vr:vr", "takeoff:min_vr")
-        self.connect("v2:alpha", "takeoff:alpha_v2")
 
+        self.add_subsystem(
+            "compute_v2",
+            _v2(propulsion_id=self.options["propulsion_id"]),
+            promotes=self.get_io_names(_v2(propulsion_id=self.options["propulsion_id"]), iotypes='inputs')
+        )
+        self.add_subsystem(
+            "compute_vloff",
+            _vloff_from_v2(propulsion_id=self.options["propulsion_id"]),
+            promotes=self.get_io_names(
+                _vloff_from_v2(propulsion_id=self.options["propulsion_id"]),
+                excludes=[
+                    "v2:speed",
+                    "v2:angle",
+                ],
+                iotypes='inputs',
+            )
+        )
+        self.add_subsystem(
+            "compute_vr",
+            _vr_from_v2(propulsion_id=self.options["propulsion_id"]),
+            promotes=self.get_io_names(
+                _vr_from_v2(propulsion_id=self.options["propulsion_id"]),
+                excludes=[
+                    "vloff:speed",
+                    "vloff:angle",
+                ],
+                iotypes='inputs',
+            )
+        )
+        self.add_subsystem(
+            "simulate_takeoff",
+            _simulate_takeoff(propulsion_id=self.options["propulsion_id"]),
+            promotes=self.get_io_names(
+                _simulate_takeoff(propulsion_id=self.options["propulsion_id"]),
+                excludes=[
+                    "vr:speed",
+                    "v2:angle",
+                ]
+            )
+        )
+        self.connect("compute_v2.v2:speed", "compute_vloff.v2:speed")
+        self.connect("compute_v2.v2:angle", "compute_vloff.v2:angle")
+        self.connect("compute_vloff.vloff:speed", "compute_vr.vloff:speed")
+        self.connect("compute_vloff.vloff:angle", "compute_vr.vloff:angle")
+        self.connect("compute_vr.vr:speed", "simulate_takeoff.vr:speed")
+        self.connect("compute_v2.v2:angle", "simulate_takeoff.v2:angle")
 
-class TakeOffSpeed(om.Group):
+    @staticmethod
+    def get_io_names(
+            component: om.ExplicitComponent,
+            excludes: Optional[Union[str, List[str]]] = None,
+            iotypes: Optional[Union[str, Tuple[str]]] = ('inputs', 'outputs')) -> List[str]:
+        prob = om.Problem(model=component)
+        prob.setup()
+        data = []
+        if type(iotypes) == tuple:
+            data.extend(prob.model.list_inputs(out_stream=None))
+            data.extend(prob.model.list_outputs(out_stream=None))
+        else:
+            if iotypes == 'inputs':
+                data.extend(prob.model.list_inputs(out_stream=None))
+            else:
+                data.extend(prob.model.list_outputs(out_stream=None))
+        list_names = []
+        for idx in range(len(data)):
+            variable_name = data[idx][0]
+            if excludes is None:
+                list_names.append(variable_name)
+            else:
+                if variable_name not in list(excludes):
+                    list_names.append(variable_name)
 
-    def initialize(self):
-        self.options.declare("propulsion_id", default="", types=str)
-
-    def setup(self):
-        self.add_subsystem("compute_v2", _v2(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
-        self.add_subsystem("compute_vloff", _vloff_from_v2(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
-        self.add_subsystem("compute_vr", _vr_from_v2(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
-        self.connect("v2:v2", "vloff:v2")
-        self.connect("v2:alpha", "vloff:alpha_v2")
-        self.connect("vloff:vloff", "vr:vloff")
-        self.connect("vloff:alpha", "vr:alpha_vloff")
+        return list_names
 
 
 class _v2(om.ExplicitComponent):
@@ -95,8 +144,8 @@ class _v2(om.ExplicitComponent):
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
 
-        self.add_output("v2:v2", units='m/s')
-        self.add_output("v2:alpha", units='rad')
+        self.add_output("v2:speed", units='m/s')
+        self.add_output("v2:angle", units='rad')
         self.add_output("v2:climb_rate")
 
         self.declare_partials("*", "*", method="fd")
@@ -143,8 +192,8 @@ class _v2(om.ExplicitComponent):
             rel_error = abs((new_gamma - gamma) / new_gamma)
             gamma = new_gamma
 
-        outputs["v2:v2"] = v2
-        outputs["v2:alpha"] = alpha
+        outputs["v2:speed"] = v2
+        outputs["v2:angle"] = alpha
         outputs["v2:climb_rate"] = math.sin(gamma)
 
 
@@ -178,11 +227,11 @@ class _vloff_from_v2(om.ExplicitComponent):
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:takeoff:thrust_rate", np.nan)
-        self.add_input("vloff:v2", np.nan, units='m/s')
-        self.add_input("vloff:alpha_v2", np.nan, units='rad')
+        self.add_input("v2:speed", np.nan, units='m/s')
+        self.add_input("v2:angle", np.nan, units='rad')
 
-        self.add_output("vloff:vloff", units='m/s')
-        self.add_output("vloff:alpha", units='rad')
+        self.add_output("vloff:speed", units='m/s')
+        self.add_output("vloff:angle", units='rad')
 
         self.declare_partials("*", "*", method="fd")
 
@@ -200,8 +249,8 @@ class _vloff_from_v2(om.ExplicitComponent):
         lg_height = inputs["data:geometry:landing_gear:height"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         thrust_rate = inputs["data:mission:sizing:takeoff:thrust_rate"]
-        v2_target = float(inputs["vloff:v2"])
-        alpha_v2 = float(inputs["vloff:alpha_v2"])
+        v2_target = float(inputs["v2:speed"])
+        alpha_v2 = float(inputs["v2:angle"])
 
         # Define ground factor effect on Drag
         k_ground = lambda altitude: (
@@ -286,8 +335,8 @@ class _vloff_from_v2(om.ExplicitComponent):
                 alpha = np.interp(v2_target, v2, alpha)
                 vloff = np.interp(v2_target, v2, vloff)
 
-        outputs["vloff:vloff"] = vloff
-        outputs["vloff:alpha"] = alpha
+        outputs["vloff:speed"] = vloff
+        outputs["vloff:angle"] = alpha
 
 
 class _vr_from_v2(om.ExplicitComponent):
@@ -322,10 +371,10 @@ class _vr_from_v2(om.ExplicitComponent):
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:takeoff:thrust_rate", np.nan)
         self.add_input("data:mission:sizing:takeoff:friction_coefficient_no_brake", np.nan)
-        self.add_input("vr:vloff", np.nan, units='m/s')
-        self.add_input("vr:alpha_vloff", np.nan, units='rad')
+        self.add_input("vloff:speed", np.nan, units='m/s')
+        self.add_input("vloff:angle", np.nan, units='rad')
 
-        self.add_output("vr:vr", units='m/s')
+        self.add_output("vr:speed", units='m/s')
 
         self.declare_partials("*", "*", method="fd")
 
@@ -343,8 +392,8 @@ class _vr_from_v2(om.ExplicitComponent):
         mtow = inputs["data:weight:aircraft:MTOW"]
         thrust_rate = inputs["data:mission:sizing:takeoff:thrust_rate"]
         friction_coeff = inputs["data:mission:sizing:takeoff:friction_coefficient_no_brake"]
-        v_t = float(inputs["vr:vloff"])
-        alpha_t = float(inputs["vr:alpha_vloff"])
+        v_t = float(inputs["vloff:speed"])
+        alpha_t = float(inputs["vloff:angle"])
 
         # Define ground factor effect on Drag
         k_ground = 33. * (lg_height / wing_span) ** 1.5 / (1. + 33. * (lg_height / wing_span) ** 1.5)
@@ -372,7 +421,7 @@ class _vr_from_v2(om.ExplicitComponent):
             v_t = v_t - acc_x * dt
             alpha_t = alpha_t - ALPHA_RATE * dt
 
-        outputs["vr:vr"] = v_t
+        outputs["vr:speed"] = v_t
 
 
 class _simulate_takeoff(om.ExplicitComponent):
@@ -406,8 +455,8 @@ class _simulate_takeoff(om.ExplicitComponent):
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:takeoff:thrust_rate", np.nan)
         self.add_input("data:mission:sizing:takeoff:friction_coefficient_no_brake", np.nan)
-        self.add_input("takeoff:min_vr", np.nan, units='m/s')
-        self.add_input("takeoff:alpha_v2", np.nan, units='rad')
+        self.add_input("vr:speed", np.nan, units='m/s')
+        self.add_input("v2:angle", np.nan, units='rad')
 
         self.add_output("data:mission:sizing:takeoff:VR", units='m/s')
         self.add_output("data:mission:sizing:takeoff:VLOF", units='m/s')
@@ -435,7 +484,7 @@ class _simulate_takeoff(om.ExplicitComponent):
         mtow = inputs["data:weight:aircraft:MTOW"]
         thrust_rate = inputs["data:mission:sizing:takeoff:thrust_rate"]
         friction_coeff = inputs["data:mission:sizing:takeoff:friction_coefficient_no_brake"]
-        alpha_v2 = float(inputs["takeoff:alpha_v2"])
+        alpha_v2 = float(inputs["v2:angle"])
 
         # Define ground factor effect on Drag
         k_ground = lambda altitude: (
@@ -448,7 +497,7 @@ class _simulate_takeoff(om.ExplicitComponent):
             k = 1.0
         else:
             k = 1.1
-        vr = max(k * vs1, float(inputs["takeoff:min_vr"]))
+        vr = max(k * vs1, float(inputs["vr:speed"]))
         # Start calculation of flight from null speed to 35ft high
         alpha_t = 0.0
         gamma_t = 0.0
