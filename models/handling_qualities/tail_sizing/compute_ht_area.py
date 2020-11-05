@@ -39,28 +39,6 @@ class ComputeHTArea(om.Group):
         self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
-        self.add_subsystem("ht_area", _ComputeHTArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
-
-        # Solvers setup
-        self.nonlinear_solver = om.NonlinearBlockGS()
-        self.nonlinear_solver.options["iprint"] = 0
-        self.nonlinear_solver.options["maxiter"] = 200
-
-        self.linear_solver = om.LinearBlockGS()
-        self.linear_solver.options["iprint"] = 0
-
-
-class _ComputeHTArea(om.Group):
-    """
-    Computes area of horizontal tail plane
-
-    Area is computed to fulfill aircraft balance requirement at rotation speed
-    """
-
-    def initialize(self):
-        self.options.declare("propulsion_id", default="", types=str)
-
-    def setup(self):
         self.add_subsystem("aero_coeff_landing", _ComputeAeroCoeff(landing=True), promotes=["*"])
         self.add_subsystem("aero_coeff_takeoff", _ComputeAeroCoeff(), promotes=["*"])
         self.add_subsystem("ht_area", _ComputeArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])

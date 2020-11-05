@@ -8,7 +8,7 @@ input_file = "../data/beechcraft_76.xml"
 output_file = "../results/oad_process_outputs.xml"
 
 [model]
-    nonlinear_solver = "om.NonlinearBlockGS(maxiter=100)"
+    nonlinear_solver = "om.NonlinearBlockGS(maxiter=100, iprint=2, debug_print=True)"
     linear_solver = "om.DirectSolver()"
     [model.geometry]
         id = "fastga.geometry.legacy"

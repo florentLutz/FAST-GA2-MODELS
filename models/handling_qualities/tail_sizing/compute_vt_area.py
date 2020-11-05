@@ -23,34 +23,11 @@ from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting
 
 
-class ComputeVTArea(om.Group):
+class ComputeVTArea(om.ExplicitComponent):
     """
     Computes needed vt area to:
       - have enough rotational moment/controllability during cruise
       - compensate 1-failed engine linear trajectory at limited altitude (5000ft)
-    """
-
-    def initialize(self):
-        self.options.declare("propulsion_id", default="", types=str)
-
-    def setup(self):
-        self.add_subsystem("vt_area", _ComputeVTArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
-
-        # Solvers setup
-        self.nonlinear_solver = om.NonlinearBlockGS()
-        self.nonlinear_solver.options["iprint"] = 0
-        self.nonlinear_solver.options["maxiter"] = 200
-
-        self.linear_solver = om.LinearBlockGS()
-        self.linear_solver.options["iprint"] = 0
-
-
-class _ComputeVTArea(om.ExplicitComponent):
-    """
-    Computes area of vertical tail plane
-
-    Area is computed to fulfill lateral stability requirement and engine failure compensation
-    for dual-engine aircraft.
     """
 
     def __init__(self, **kwargs):

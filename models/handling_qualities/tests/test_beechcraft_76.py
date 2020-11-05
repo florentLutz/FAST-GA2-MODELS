@@ -20,8 +20,8 @@ from fastoad.module_management import OpenMDAOSystemRegistry
 
 from ...tests.testing_utilities import run_system
 from ..compute_static_margin import ComputeStaticMargin
-from ..tail_sizing.compute_ht_area import _ComputeHTArea
-from ..tail_sizing.compute_vt_area import _ComputeVTArea
+from ..tail_sizing.compute_ht_area import ComputeHTArea
+from ..tail_sizing.compute_vt_area import ComputeVTArea
 
 XML_FILE = "beechcraft_76.xml"
 ENGINE_WRAPPER = "fastga.wrapper.propulsion.basicIC_engine"
@@ -75,7 +75,7 @@ def test_compute_vt_area():
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(_ComputeVTArea(propulsion_id=ENGINE_WRAPPER), ivc)
+    problem = run_system(ComputeVTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     vt_area = problem.get_val("data:geometry:vertical_tail:area", units="m**2")
     assert vt_area == pytest.approx(2.44, abs=1e-2)  # old-version obtained value 2.4m²
 
@@ -132,7 +132,7 @@ def test_compute_ht_area():
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
     # noinspection PyTypeChecker
-    problem = run_system(_ComputeHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
+    problem = run_system(ComputeHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     ht_area = problem.get_val("data:geometry:horizontal_tail:area", units="m**2")
     assert ht_area == pytest.approx(5.48, abs=1e-2)  # old-version obtained value 3.9m²
 

@@ -55,6 +55,9 @@
 				<taper_ratio>1.0<!--taper ratio of horizontal tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>
 			</horizontal_tail>
+			<landing_gear>
+				<type>1.0<!--0=non-retractable landing gears / 1=retractable landing gear--></type>
+			</landing_gear>
 			<propulsion>
 				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage)--></layout>
 				<engine>
@@ -67,6 +70,7 @@
 				<length units="m">0.960<!--total propulsion length--></length>
 				<propeller>
 					<diameter units="m">1.93<!--propeller diameter--></diameter>
+					<depth units="m">0.386<!--propeller depth--></depth>
 				</propeller>
 			</propulsion>
 			<vertical_tail>
@@ -82,6 +86,9 @@
 					</at25percent>
 				</MAC>
 				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
+				<kink>
+					<span_ratio>0.0<!--ratio (Y-position of kink)/(semi-span)--></span_ratio>
+				</kink>
 				<sweep_25 units="deg">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
 				<taper_ratio>1.0<!--taper ratio of wing--></taper_ratio>
 				<thickness_ratio>0.12<!--mean thickness ratio of wing--></thickness_ratio>

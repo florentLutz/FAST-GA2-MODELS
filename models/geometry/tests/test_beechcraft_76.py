@@ -378,7 +378,7 @@ def test_geometry_wing_y():
     wing_y2 = problem.get_val("data:geometry:wing:root:y", units="m")
     assert wing_y2 == pytest.approx(0.599, abs=1e-3)
     wing_y3 = problem.get_val("data:geometry:wing:kink:y", units="m")
-    assert wing_y3 == pytest.approx(0.599, abs=1e-3)  # point 3 and 2 equal (previous version ignored)
+    assert wing_y3 == pytest.approx(0.0, abs=1e-3)  # point 3 is virtual central point
     wing_y4 = problem.get_val("data:geometry:wing:tip:y", units="m")
     assert wing_y4 == pytest.approx(6.181, abs=1e-3)
 
@@ -428,13 +428,25 @@ def test_geometry_wing_l2_l3():
 def test_geometry_wing_x():
     """ Tests computation of the wing Xs """
 
-    # Define input values calculated from other modules
-    ivc = om.IndepVarComp()
+    # Generate input list from model
+    group = om.Group()
+    group.add_subsystem("my_model", ComputeWingX(), promotes=["*"])
+    input_list = list_inputs(group)
+
+    # Research independent input value in .xml file and add values calculated from other modules
+    ivc = get_indep_var_comp(input_list)
     ivc.add_output("data:geometry:wing:root:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:tip:chord", 1.549, units="m")
+    ivc.add_output("data:geometry:wing:kink:chord", 1.549, units="m")
+    ivc.add_output("data:geometry:wing:root:virtual_chord", 1.549, units="m")
+    ivc.add_output("data:geometry:wing:root:y", 0.6, units="m")
+    ivc.add_output("data:geometry:wing:kink:y", 0.0, units="m")
+    ivc.add_output("data:geometry:wing:tip:y", 6.181, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingX(), ivc)
+    wing_x3 = problem.get_val("data:geometry:wing:kink:leading_edge:x:local", units="m")
+    assert wing_x3 == pytest.approx(0.0, abs=1e-3)
     wing_x4 = problem.get_val("data:geometry:wing:tip:leading_edge:x:local", units="m")
     assert wing_x4 == pytest.approx(0.0, abs=1e-3)
 

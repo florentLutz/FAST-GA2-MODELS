@@ -79,6 +79,10 @@
 				</MAC>
 				<area units="m**2">19.151<!--wing reference area--></area>
 				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
+				<kink>
+					<span_ratio>0.0<!--ratio (Y-position of kink)/(semi-span)--></span_ratio>
+				</kink>
+				<sweep_25 units="deg">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
 				<taper_ratio>1.0<!--taper ratio of wing--></taper_ratio>
 				<thickness_ratio>0.12<!--mean thickness ratio of wing--></thickness_ratio>
 			</wing>

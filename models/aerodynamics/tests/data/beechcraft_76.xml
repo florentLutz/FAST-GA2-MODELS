@@ -61,8 +61,8 @@
 			</horizontal_tail>
 			<landing_gear>
 				<height units="m">1.22<!--mean value of (flap chord)/(section chord)--></height>
+				<type>1.0<!--0=non-retractable landing gears / 1=retractable landing gear--></type>
 			</landing_gear>
-			<landing_gear_type>1.0<!--0=non-retractable landing gears / 1=retractable landing gear--></landing_gear_type>
 			<propulsion>
 				<engine>
 					<count>2.0<!--number of engines--></count>
