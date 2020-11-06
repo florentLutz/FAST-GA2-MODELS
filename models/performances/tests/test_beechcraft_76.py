@@ -255,6 +255,7 @@ def test_compute_cruise():
     ivc.add_output("data:mission:sizing:initial_climb:fuel", 0.07, units="kg")
     ivc.add_output("data:mission:sizing:main_route:climb:fuel", 5.56, units="kg")
     ivc.add_output("data:mission:sizing:main_route:climb:distance", 13.2, units="km")
+    ivc.add_output("data:mission:sizing:main_route:descent:distance", 0.0, units="km")
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
@@ -306,7 +307,7 @@ def test_loop_cruise_distance():
     # noinspection PyTypeChecker
     problem = run_system(Sizing(propulsion_id=ENGINE_WRAPPER), ivc)
     m_total = problem.get_val("data:mission:sizing:fuel", units="kg")
-    assert m_total == pytest.approx(214.2, abs=1e-1)
+    assert m_total == pytest.approx(208.16, abs=1e-1)
     climb_distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="NM")
     cruise_distance = problem.get_val("data:mission:sizing:main_route:cruise:distance", units="NM")
     descent_distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="NM")

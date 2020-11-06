@@ -16,6 +16,7 @@ import numpy as np
 import warnings
 import math
 import openmdao.api as om
+import copy
 
 from fastoad import BundleLoader
 from fastoad.base.flight_point import FlightPoint
@@ -130,8 +131,21 @@ class _compute_climb(om.ExplicitComponent):
         self.add_output("data:mission:sizing:main_route:climb:distance", units="m")
         self.add_output("data:mission:sizing:main_route:climb:duration", units="s")
         self.add_output("data:mission:sizing:main_route:climb:v_cas", units="m/s")
-        
-        self.declare_partials("*", "*", method="fd")
+
+        self.declare_partials(
+            "*",
+            [
+                "data:aerodynamics:aircraft:cruise:CD0",
+                "data:aerodynamics:aircraft:cruise:induced_drag_coefficient",
+                "data:geometry:wing:area",
+                "data:weight:aircraft:MTOW",
+                "data:mission:sizing:taxi_out:fuel",
+                "data:mission:sizing:holding:fuel",
+                "data:mission:sizing:takeoff:fuel",
+                "data:mission:sizing:initial_climb:fuel",
+            ],
+            method="fd",
+        )
         
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
@@ -234,13 +248,29 @@ class _compute_cruise(om.ExplicitComponent):
         self.add_input("data:mission:sizing:initial_climb:fuel", np.nan, units="kg")
         self.add_input("data:mission:sizing:main_route:climb:fuel", np.nan, units="kg")
         self.add_input("data:mission:sizing:main_route:climb:distance", np.nan, units="m")
-        self.add_input("data:mission:sizing:main_route:descent:distance", 0.0, units="m")
+        self.add_input("data:mission:sizing:main_route:descent:distance", np.nan, units="m")
 
         self.add_output("data:mission:sizing:main_route:cruise:fuel", units="kg")
         self.add_output("data:mission:sizing:main_route:cruise:distance", units="m")
         self.add_output("data:mission:sizing:main_route:cruise:duration", units="s")
 
-        self.declare_partials("*", "*", method="fd")
+        self.declare_partials(
+            "*",
+            [
+                "data:aerodynamics:aircraft:cruise:CD0",
+                "data:aerodynamics:aircraft:cruise:induced_drag_coefficient",
+                "data:geometry:wing:area",
+                "data:weight:aircraft:MTOW",
+                "data:mission:sizing:taxi_out:fuel",
+                "data:mission:sizing:holding:fuel",
+                "data:mission:sizing:takeoff:fuel",
+                "data:mission:sizing:initial_climb:fuel",
+                "data:mission:sizing:main_route:climb:fuel",
+                "data:mission:sizing:main_route:climb:distance",
+                "data:mission:sizing:main_route:descent:distance",
+            ],
+            method="fd",
+        )
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         propulsion_model = FuelEngineSet(
@@ -357,10 +387,26 @@ class _compute_descent(om.ExplicitComponent):
         self.add_input("data:mission:sizing:main_route:cruise:fuel", np.nan, units="kg")
 
         self.add_output("data:mission:sizing:main_route:descent:fuel", units="kg")
-        self.add_output("data:mission:sizing:main_route:descent:distance", units="m")
+        self.add_output("data:mission:sizing:main_route:descent:distance", 0.0, units="m")
         self.add_output("data:mission:sizing:main_route:descent:duration", units="s")
 
-        self.declare_partials("*", "*", method="fd")
+        self.declare_partials(
+            "*",
+            [
+                "data:aerodynamics:aircraft:cruise:optimal_CL",
+                "data:aerodynamics:aircraft:cruise:CD0",
+                "data:aerodynamics:aircraft:cruise:induced_drag_coefficient",
+                "data:geometry:wing:area",
+                "data:weight:aircraft:MTOW",
+                "data:mission:sizing:taxi_out:fuel",
+                "data:mission:sizing:holding:fuel",
+                "data:mission:sizing:takeoff:fuel",
+                "data:mission:sizing:initial_climb:fuel",
+                "data:mission:sizing:main_route:climb:fuel",
+                "data:mission:sizing:main_route:cruise:fuel",
+            ],
+            method="fd",
+            )
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         propulsion_model = FuelEngineSet(
@@ -382,7 +428,7 @@ class _compute_descent(om.ExplicitComponent):
 
         # Define initial conditions
         gamma = math.asin(descent_rate)
-        altitude_t = cruise_altitude
+        altitude_t = copy.deepcopy(cruise_altitude)
         distance_t = 0.0
         time_t = 0.0
         mass_fuel_t = 0.0
