@@ -248,7 +248,7 @@ def test_compute_fuselage_cabin_sizing():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuselageGeometryCabinSizing(), ivc)
     npax_1 = problem.get_val("data:geometry:cabin:NPAX")
-    assert npax_1 == pytest.approx(4.0, abs=1)
+    assert npax_1 == pytest.approx(2.0, abs=1)
     fuselage_length = problem.get_val("data:geometry:fuselage:length", units="m")
     assert fuselage_length == pytest.approx(8.888, abs=1e-3)
     fuselage_width_max = problem.get_val("data:geometry:fuselage:maximum_width", units="m")
@@ -258,15 +258,15 @@ def test_compute_fuselage_cabin_sizing():
     fuselage_lav = problem.get_val("data:geometry:fuselage:front_length", units="m")
     assert fuselage_lav == pytest.approx(2.274, abs=1e-3)
     fuselage_lar = problem.get_val("data:geometry:fuselage:rear_length", units="m")
-    assert fuselage_lar == pytest.approx(2.852, abs=1e-3)
+    assert fuselage_lar == pytest.approx(4.007, abs=1e-3)
     fuselage_lpax = problem.get_val("data:geometry:fuselage:PAX_length", units="m")
-    assert fuselage_lpax == pytest.approx(2.35, abs=1e-3)
+    assert fuselage_lpax == pytest.approx(1.550, abs=1e-3)
     fuselage_lcabin = problem.get_val("data:geometry:cabin:length", units="m")
-    assert fuselage_lcabin == pytest.approx(3.759, abs=1e-3)
+    assert fuselage_lcabin == pytest.approx(2.604, abs=1e-3)
     fuselage_wet_area = problem.get_val("data:geometry:fuselage:wet_area", units="m**2")
-    assert fuselage_wet_area == pytest.approx(30.311, abs=1e-1)  # difference comes from LAR=0.0 in old version
+    assert fuselage_wet_area == pytest.approx(29.081, abs=1e-1)  # difference comes from LAR=0.0 in old version
     luggage_length = problem.get_val("data:geometry:fuselage:luggage_length", units="m")
-    assert luggage_length == pytest.approx(0.709, abs=1e-3)
+    assert luggage_length == pytest.approx(0.354, abs=1e-3)
 
 
 def test_compute_fuselage_basic():
@@ -503,6 +503,7 @@ def test_geometry_total_area():
     ivc.add_output("data:geometry:horizontal_tail:wet_area", 7.428, units="m**2")
     ivc.add_output("data:geometry:fuselage:wet_area", 33.354, units="m**2")
     ivc.add_output("data:geometry:wing:wet_area", 37.011, units="m**2")
+    ivc.add_output("data:geometry:propulsion:nacelle:wet_area", 4.499, units="m**2")
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeTotalArea(), ivc)

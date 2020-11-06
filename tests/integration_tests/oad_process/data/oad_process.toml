@@ -4,27 +4,11 @@ title = "OAD Process"
 
 module_folders = ["../../../../"]
 
-input_file = "../data/beechcraft_76.xml"
+input_file = "../data/geometry.xml"
 output_file = "../results/oad_process_outputs.xml"
 
 [model]
     nonlinear_solver = "om.NonlinearBlockGS(maxiter=100, iprint=2, debug_print=True, reraise_child_analysiserror=True)"
-    linear_solver = "om.DirectSolver()"
+
     [model.geometry]
         id = "fastga.geometry.legacy"
-    [model.weight]
-        id = "fastga.weight.legacy"
-    [model.aerodynamics_highspeed]
-        id = "fastga.aerodynamics.highspeed.legacy"
-    [model.aerodynamics_lowspeed]
-        id = "fastga.aerodynamics.lowspeed.legacy"
-    [model.performance]
-        id = "fastga.performances.sizing"
-        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-    [model.hq.tail_sizing]
-        id = "fastga.handling_qualities.tail_sizing"
-        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-    [model.hq.static_margin]
-        id = "fastga.handling_qualities.static_margin"
-    [model.loop]
-        id = "fastga.loop.wing_area"

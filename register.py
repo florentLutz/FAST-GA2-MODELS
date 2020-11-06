@@ -21,6 +21,7 @@ from .models.geometry import Geometry
 from .models.handling_qualities.compute_static_margin import ComputeStaticMargin
 from .models.handling_qualities.tail_sizing.compute_tail_areas import ComputeTailAreas
 from .models.loops.compute_wing_area import ComputeWingArea
+from .models.weight.mass_breakdown.update_mtow import UpdateMTOW
 from .models.performances.sizing import Sizing
 from .models.propulsion.fuel_propulsion.basicIC_engine import OMBasicICEngineComponent
 from .models.weight.weight import Weight
@@ -71,6 +72,12 @@ OpenMDAOSystemRegistry.register_system(
     "fastga.loop.wing_area",
     domain=ModelDomain.OTHER
 )
+OpenMDAOSystemRegistry.register_system(
+    UpdateMTOW,
+    "fastga.loop.mtow",
+    domain=ModelDomain.OTHER
+)
+
 
 # Weight ######################################################################
 OpenMDAOSystemRegistry.register_system(

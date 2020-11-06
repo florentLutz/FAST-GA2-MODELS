@@ -16,7 +16,7 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-			<NPAX>2.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
+			<NPAX>4.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
 		</TLAR>
 		<geometry>
 			<cabin>
@@ -48,7 +48,7 @@
 				<thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>
 			</horizontal_tail>
 			<propulsion>
-				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
+				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage)--></layout>
 				<engine>
 					<count>2.0<!--number of engines--></count>
 					<height units="m">0.628<!--engine height--></height>

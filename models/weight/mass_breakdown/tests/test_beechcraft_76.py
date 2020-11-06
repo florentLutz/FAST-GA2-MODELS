@@ -271,7 +271,7 @@ def test_loop_compute_owe():
     input_vars = reader.read(
         ignore=[
             "data:weight:aircraft:max_payload",
-            "data:weight:aircraft:MTOW",
+            # "data:weight:aircraft:MTOW",
         ]
     ).to_ivc()
     input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
@@ -279,18 +279,18 @@ def test_loop_compute_owe():
     # noinspection PyTypeChecker
     mass_computation_1 = run_system(MassBreakdown(payload_from_npax=True), input_vars)
     oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1026.50, abs=1e-2)
+    assert oew == pytest.approx(1098.77, abs=1e-2)  # 1026.50 (with MTOW local loop)
 
     # with payload as input
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read(
         ignore=[
-            "data:weight:aircraft:MTOW",
+            # "data:weight:aircraft:MTOW",
         ]
     ).to_ivc()
     input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
     # noinspection PyTypeChecker
     mass_computation_2 = run_system(MassBreakdown(payload_from_npax=False), input_vars)
     oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1009.19, abs=1e-2)
+    assert oew == pytest.approx(1098.77, abs=1e-2)  # 1009.19 (with MTOW local loop)

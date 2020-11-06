@@ -27,7 +27,7 @@ class UpdateMTOW(ExplicitComponent):
         self.add_input("data:weight:aircraft:MZFW", val=np.nan, units="kg")
         self.add_input("data:mission:sizing:fuel", val=np.nan, units="kg")
 
-        self.add_output("data:weight:aircraft:MTOW", units="kg")
+        self.add_output("data:weight:aircraft:MTOW", 1500.0, units="kg")
 
         self.declare_partials("*", "*", method="fd")
 
