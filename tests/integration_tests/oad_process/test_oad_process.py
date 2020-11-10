@@ -48,8 +48,8 @@ def test_oad_process(cleanup):
     problem.recording_options["record_residuals"] = True
     problem.recording_options["record_responses"] = True
     problem.read_inputs()
-    problem.setup()
-    problem.set_solver_print(level=3)
+    problem.setup(check=True)
+    problem.set_solver_print(level=2)
     problem.run_model()
     problem.write_outputs()
 
@@ -61,6 +61,8 @@ def test_oad_process(cleanup):
         problem, outfile=pth.join(RESULTS_FOLDER_PATH, "connections.html"), show_browser=False
     )
     om.n2(problem, outfile=pth.join(RESULTS_FOLDER_PATH, "n2.html"), show_browser=False)
+
+    assert False
     """
     # Check that weight-performances loop correctly converged
     assert_allclose(
