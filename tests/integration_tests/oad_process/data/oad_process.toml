@@ -9,15 +9,19 @@ output_file = "../results/oad_process_outputs.xml"
 
 [model]
     nonlinear_solver = "om.NonlinearBlockGS(maxiter=100, iprint=2, debug_print=True, reraise_child_analysiserror=True)"
-
+    linear_solver = "om.DirectSolver(iprint=2)"
     [model.geometry]
         id = "fastga.geometry.legacy"
+        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
     [model.weight]
         id = "fastga.weight.legacy"
+        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
     [model.aerodynamics_highspeed]
         id = "fastga.aerodynamics.highspeed.legacy"
+        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
     [model.aerodynamics_lowspeed]
         id = "fastga.aerodynamics.lowspeed.legacy"
+        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
     [model.performance]
         id = "fastga.performances.sizing"
         propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"

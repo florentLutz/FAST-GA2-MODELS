@@ -44,9 +44,13 @@ def test_oad_process(cleanup):
 
     recorder = om.SqliteRecorder("track_solving_process")
     problem.driver.add_recorder(recorder)
+    problem.recording_options["record_inputs"] = True
+    problem.recording_options["record_residuals"] = True
+    problem.recording_options["record_responses"] = True
     problem.read_inputs()
-    problem.setup()
-    problem.set_solver_print(level=3)
+    print('\n')
+    problem.setup(check=True)
+    problem.set_solver_print(level=2)
     problem.run_model()
     problem.write_outputs()
 

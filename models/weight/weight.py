@@ -33,6 +33,9 @@ class Weight(om.Group):
     from OWE, which should come from a mission computation that will assess needed block fuel.
     """
 
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
     def setup(self):
+        self.add_subsystem("mass_breakdown", MassBreakdown(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
         self.add_subsystem("cg", CG(), promotes=["*"])
-        self.add_subsystem("mass_breakdown", MassBreakdown(), promotes=["*"])

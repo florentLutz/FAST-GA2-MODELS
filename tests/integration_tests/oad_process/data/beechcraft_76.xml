@@ -60,18 +60,8 @@
 			</landing_gear>
 			<propulsion>
 				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage)--></layout>
-				<engine>
-					<count>2.0<!--number of engines--></count>
-					<height units="m">0.628<!--engine height--></height>
-					<length units="m">0.960<!--engine length--></length>
-					<width units="m">0.792<!--engine width--></width>
-					<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
-				</engine>
-				<length units="m">0.960<!--total propulsion length--></length>
-				<propeller>
-					<diameter units="m">1.93<!--propeller diameter--></diameter>
-					<depth units="m">0.386<!--propeller depth--></depth>
-				</propeller>
+				<count>2.0<!--number of engines--></count>
+				<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
 			</propulsion>
 			<vertical_tail>
 				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>

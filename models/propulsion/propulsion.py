@@ -188,7 +188,7 @@ class BaseOMPropulsionComponent(om.ExplicitComponent, ABC):
         self.add_input("data:propulsion:required_thrust", np.nan, shape=shape, units="N")
 
         self.add_output("data:propulsion:SFC", shape=shape, units="kg/s/N", ref=1e-4)
-        self.add_output("data:propulsion:thrust_rate", shape=shape, lower=0.0, upper=1.0)
+        self.add_output("data:propulsion:thrust_rate", shape=shape, lower=np.zeros(shape), upper=np.ones(shape))
         self.add_output("data:propulsion:thrust", shape=shape, units="N", ref=1e5)
 
         self.declare_partials("*", "*", method="fd")
