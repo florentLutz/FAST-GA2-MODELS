@@ -41,6 +41,7 @@ _INPUT_AOAList = [7.0]
 _AIRFOIL_0_FILE_NAME = "naca23012.af"
 _AIRFOIL_1_FILE_NAME = "naca23012.af"
 _AIRFOIL_2_FILE_NAME = "naca23012.af"
+_STDERR_FILE_NAME = "vspaero_calc.err"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
 
@@ -121,6 +122,8 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
 
         # I/O files --------------------------------------------------------------------------------
         tmp_directory = self._create_tmp_directory()
+        # avoid to dump void xternal_code_comp_error.out error file
+        self.stderr = pth.join(tmp_directory.name, _STDERR_FILE_NAME)
         if self.options[OPTION_OPENVSP_EXE_PATH]:
             target_directory = pth.abspath(self.options[OPTION_OPENVSP_EXE_PATH])
         else:

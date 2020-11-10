@@ -51,7 +51,6 @@ from ..aerodynamics_low_speed import _OSWALD_BY_VLM as LS_OSWALD_BY_VLM
 from ..aerodynamics_low_speed import _CLALPHA_BY_VLM as LS_CLALPHA_BY_VLM
 
 RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
-ERROR_FILE = pth.join(pth.dirname(__file__), "external_code_comp_error.out")
 xfoil_path = None if system() == "Windows" else get_xfoil_path()
 
 XML_FILE = "beechcraft_76.xml"
@@ -654,7 +653,3 @@ def test_low_speed_connection():
         assert cl_max_landing == pytest.approx(2.0961, abs=1e-4)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
     assert cl_alpha_htp == pytest.approx(0.6967, abs=1e-4)
-
-    # Remove error file
-    if os.path.exists(ERROR_FILE):
-        os.remove(ERROR_FILE)
