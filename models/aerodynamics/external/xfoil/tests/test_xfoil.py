@@ -19,6 +19,7 @@ Test module for XFOIL component
 import os.path as pth
 import shutil
 from platform import system
+import warnings
 
 import pytest
 from openmdao.core.indepvarcomp import IndepVarComp
@@ -54,6 +55,9 @@ def test_compute():
     assert problem["xfoil:CL_max_2D"] == pytest.approx(1.98, 1e-2)
     assert not pth.exists(XFOIL_RESULTS)
 
+    # Deactivate warnings for wished crash of xfoil
+    warnings.simplefilter("ignore")
+
     xfoil_comp = XfoilPolar(
         alpha_start=12.0, alpha_end=20.0, iter_limit=20, xfoil_exe_path=xfoil_path
     )  # will stop before real max CL
@@ -67,6 +71,9 @@ def test_compute():
     problem = run_system(xfoil_comp, ivc)
     assert problem["xfoil:CL_max_2D"] == pytest.approx(DEFAULT_2D_CL_MAX, 1e-2)
     assert not pth.exists(XFOIL_RESULTS)
+
+    # Reactivate warnings
+    warnings.simplefilter("default")
 
     xfoil_comp = XfoilPolar(
         iter_limit=20, result_folder_path=XFOIL_RESULTS, xfoil_exe_path=xfoil_path

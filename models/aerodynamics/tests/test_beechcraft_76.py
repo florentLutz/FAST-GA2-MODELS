@@ -26,6 +26,7 @@ from typing import Union
 
 import pytest
 from fastoad.io import VariableIO
+from fastoad.module_management import OpenMDAOSystemRegistry
 
 from fastoad.models.aerodynamics.constants import POLAR_POINT_COUNT
 from ...tests.testing_utilities import run_system
@@ -52,7 +53,9 @@ from ..aerodynamics_low_speed import _CLALPHA_BY_VLM as LS_CLALPHA_BY_VLM
 RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
 ERROR_FILE = pth.join(pth.dirname(__file__), "external_code_comp_error.out")
 xfoil_path = None if system() == "Windows" else get_xfoil_path()
+
 XML_FILE = "beechcraft_76.xml"
+ENGINE_WRAPPER = "fastga.wrapper.propulsion.basicIC_engine"
 
 
 def _create_tmp_directory() -> TemporaryDirectory:
@@ -75,9 +78,10 @@ def get_indep_var_comp(var_names):
     return ivc
 
 
-def list_inputs(component: om.ExplicitComponent) -> list:
+def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
     """ Reads input variables from a component/problem and return as a list """
 
+    register_wrappers()
     if isinstance(component, om.ExplicitComponent):
         prob = om.Problem(model=component)
         prob.setup()
@@ -87,16 +91,39 @@ def list_inputs(component: om.ExplicitComponent) -> list:
             variable_name = data[idx][0]
             list_names.append(variable_name)
     else:
-        prob = om.Problem(model=component)
-        prob.setup()
-        prob.run_model()
-        data = prob.model.list_inputs(out_stream=None)
+        data = []
+        component.setup()
+        subcomponents = component.static_subsystems_allprocs
+        idx = 0
+        while idx < (len(subcomponents)-1):
+            if isinstance(subcomponents[idx], om.ExplicitComponent):
+                idx += 1
+            else:
+                add_subcomponents = subcomponents[idx]
+                add_subcomponents.setup()
+                add_subcomponents = add_subcomponents.static_subsystems_allprocs
+                del subcomponents[idx]
+                subcomponents.extend(add_subcomponents)
+        for subcomponent in subcomponents:
+            subprob = om.Problem(model=subcomponent)
+            subprob.setup()
+            data.extend(subprob.model.list_inputs(out_stream=None))
         list_names = []
         for idx in range(len(data)):
             variable_name = data[idx][0].split('.')[-1]
             list_names.append(variable_name)
 
-    return list_names
+    return list(dict.fromkeys(list_names))
+
+
+def register_wrappers():
+    path_split = pth.dirname(__file__).split('\\')
+    drive = path_split[0]
+    del path_split[0]
+    while not(path_split[-1] == "models"):
+        del path_split[-1]
+    path = drive + "\\" + pth.join(*path_split)
+    OpenMDAOSystemRegistry.explore_folder(path)
 
 
 def reshape_curve(y, cl):
@@ -148,12 +175,15 @@ def test_cd0_high_speed():
     """ Tests drag coefficient @ high speed """
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(CD0()))
+    # noinspection PyTypeChecker
+    ivc = get_indep_var_comp(list_inputs(CD0(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:aerodynamics:cruise:mach", 0.2457)
     ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 4571770)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(CD0(), ivc)
+    register_wrappers()
+    # noinspection PyTypeChecker
+    problem = run_system(CD0(propulsion_id=ENGINE_WRAPPER), ivc)
     cd0_wing = problem["data:aerodynamics:wing:cruise:CD0"]
     assert cd0_wing == pytest.approx(0.00506, abs=1e-5)
     cd0_fus = problem["data:aerodynamics:fuselage:cruise:CD0"]
@@ -163,13 +193,13 @@ def test_cd0_high_speed():
     cd0_vt = problem["data:aerodynamics:vertical_tail:cruise:CD0"]
     assert cd0_vt == pytest.approx(0.00077, abs=1e-5)
     cd0_nac = problem["data:aerodynamics:nacelles:cruise:CD0"]
-    assert cd0_nac == pytest.approx(0.00202, abs=1e-5)
+    assert cd0_nac == pytest.approx(0.00185, abs=1e-5)
     cd0_lg = problem["data:aerodynamics:landing_gear:cruise:CD0"]
     assert cd0_lg == pytest.approx(0.0, abs=1e-5)
     cd0_other = problem["data:aerodynamics:other:cruise:CD0"]
     assert cd0_other == pytest.approx(0.00202, abs=1e-5)
     cd0_total = 1.25*(cd0_wing + cd0_fus + cd0_ht + cd0_vt + cd0_nac + cd0_lg + cd0_other)
-    assert cd0_total == pytest.approx(0.02003, abs=1e-5)
+    assert cd0_total == pytest.approx(0.01982, abs=1e-5)
 
 
 def test_cd0_low_speed():
@@ -177,13 +207,14 @@ def test_cd0_low_speed():
 
     # Research independent input value in .xml file
     # noinspection PyTypeChecker
-    ivc = get_indep_var_comp(list_inputs(CD0(low_speed_aero=True)))
+    ivc = get_indep_var_comp(list_inputs(CD0(propulsion_id=ENGINE_WRAPPER, low_speed_aero=True)))
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
     ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822)  # correction to ...
 
     # Run problem and check obtained value(s) is/(are) correct
+    register_wrappers()
     # noinspection PyTypeChecker
-    problem = run_system(CD0(low_speed_aero=True), ivc)
+    problem = run_system(CD0(propulsion_id=ENGINE_WRAPPER, low_speed_aero=True), ivc)
     cd0_wing = problem["data:aerodynamics:wing:low_speed:CD0"]
     assert cd0_wing == pytest.approx(0.00555, abs=1e-5)
     cd0_fus = problem["data:aerodynamics:fuselage:low_speed:CD0"]
@@ -193,13 +224,13 @@ def test_cd0_low_speed():
     cd0_vt = problem["data:aerodynamics:vertical_tail:low_speed:CD0"]
     assert cd0_vt == pytest.approx(0.00086, abs=1e-5)
     cd0_nac = problem["data:aerodynamics:nacelles:low_speed:CD0"]
-    assert cd0_nac == pytest.approx(0.00221, abs=1e-5)
+    assert cd0_nac == pytest.approx(0.00202, abs=1e-5)
     cd0_lg = problem["data:aerodynamics:landing_gear:low_speed:CD0"]
     assert cd0_lg == pytest.approx(0.01900, abs=1e-5)
     cd0_other = problem["data:aerodynamics:other:low_speed:CD0"]
     assert cd0_other == pytest.approx(0.00202, abs=1e-5)
     cd0_total = 1.25*(cd0_wing + cd0_fus + cd0_ht + cd0_vt + cd0_nac + cd0_lg + cd0_other)
-    assert cd0_total == pytest.approx(0.04562, abs=1e-5)
+    assert cd0_total == pytest.approx(0.04538, abs=1e-5)
 
 
 def test_polar():
@@ -569,9 +600,11 @@ def test_high_speed_connection():
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
-    problem = run_system(AerodynamicsHighSpeed(), input_vars)
+    register_wrappers()
+    # noinspection PyTypeChecker
+    problem = run_system(AerodynamicsHighSpeed(propulsion_id=ENGINE_WRAPPER), input_vars)
     cd0 = problem["data:aerodynamics:aircraft:cruise:CD0"]
-    assert cd0 == pytest.approx(0.0200, abs=1e-4)
+    assert cd0 == pytest.approx(0.0198, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
     if HS_OSWALD_BY_VLM:
         assert coef_k == pytest.approx(0.0522, abs=1e-4)
@@ -595,9 +628,11 @@ def test_low_speed_connection():
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
-    problem = run_system(AerodynamicsLowSpeed(), input_vars)
+    register_wrappers()
+    # noinspection PyTypeChecker
+    problem = run_system(AerodynamicsLowSpeed(propulsion_id=ENGINE_WRAPPER), input_vars)
     cd0 = problem["data:aerodynamics:aircraft:low_speed:CD0"]
-    assert cd0 == pytest.approx(0.0454, abs=1e-4)
+    assert cd0 == pytest.approx(0.0452, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
     if LS_OSWALD_BY_VLM:
         assert coef_k == pytest.approx(0.0528, abs=1e-4)

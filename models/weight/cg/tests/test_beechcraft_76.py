@@ -161,11 +161,6 @@ def test_compute_cg_fuel_lines():
 def test_compute_cg_tank():
     """ Tests tank center of gravity """
 
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputeTankCG(), promotes=["*"])
-    input_list = list_inputs(group)
-
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(ComputeTankCG()))
 
@@ -177,11 +172,6 @@ def test_compute_cg_tank():
 
 def test_compute_cg_power_systems():
     """ Tests computation of power systems center of gravity """
-
-    # Generate input list from model
-    group = om.Group()
-    group.add_subsystem("my_model", ComputePowerSystemsCG(), promotes=["*"])
-    input_list = list_inputs(group)
 
     # Research independent input value in .xml file and add values calculated from other modules
     ivc = get_indep_var_comp(list_inputs(ComputePowerSystemsCG()))
@@ -343,8 +333,8 @@ def test_update_mlg():
     assert cg_a51 == pytest.approx(4.19, abs=1e-2)
 
 
-def test_compute_aircraft_cg():
-    """ Tests computation of static margin """
+def test_complete_cg():
+    """ Run computation of all models """
 
     # with data from file
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
@@ -352,7 +342,7 @@ def test_compute_aircraft_cg():
     input_vars = reader.read().to_ivc()
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(CG(), input_vars)
+    problem = run_system(CG(), input_vars, check=True)
     cg_global = problem.get_val("data:weight:aircraft:CG:aft:x", units="m")
     assert cg_global == pytest.approx(3.46, abs=1e-1)
     cg_ratio = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")

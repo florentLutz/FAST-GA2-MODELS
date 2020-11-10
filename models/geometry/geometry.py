@@ -43,6 +43,7 @@ class Geometry(om.Group):
 
     def initialize(self):
         self.options.declare(CABIN_SIZING_OPTION, types=float, default=1.0)
+        self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
         
@@ -50,13 +51,15 @@ class Geometry(om.Group):
         self.add_subsystem("compute_ht", ComputeHorizontalTailGeometry(), promotes=["*"])
         if self.options[CABIN_SIZING_OPTION] == 1.0:
             self.add_subsystem(
-                "compute_fuselage", ComputeFuselageGeometryCabinSizing(), promotes=["*"]
+                "compute_fuselage", ComputeFuselageGeometryCabinSizing(propulsion_id=self.options["propulsion_id"]),
+                promotes=["*"]
             )
         else:
             self.add_subsystem("compute_fuselage", ComputeFuselageGeometryBasic(), promotes=["*"])
 
         self.add_subsystem("compute_wing", ComputeWingGeometry(), promotes=["*"])
         self.add_subsystem(
-            "compute_engine_nacelle", ComputeNacelleGeometry(), promotes=["*"]
+            "compute_engine_nacelle", ComputeNacelleGeometry(propulsion_id=self.options["propulsion_id"]),
+            promotes=["*"]
         )
         self.add_subsystem("compute_total_area", ComputeTotalArea(), promotes=["*"])

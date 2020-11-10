@@ -21,6 +21,7 @@ import openmdao.api as om
 import pytest
 from fastoad.io import VariableIO
 from typing import Union
+from fastoad.module_management import OpenMDAOSystemRegistry
 
 from ...tests.testing_utilities import run_system
 
@@ -55,8 +56,10 @@ from ..geom_components.vt.components import (
 )
 from ..geom_components.nacelle.compute_nacelle import ComputeNacelleGeometry
 from ..geom_components import ComputeTotalArea
+from ..geometry import Geometry
 
 XML_FILE = "beechcraft_76.xml"
+ENGINE_WRAPPER = "fastga.wrapper.propulsion.basicIC_engine"
 
 
 def get_indep_var_comp(var_names):
@@ -70,6 +73,7 @@ def get_indep_var_comp(var_names):
 def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
     """ Reads input variables from a component/problem and return as a list """
 
+    register_wrappers()
     if isinstance(component, om.ExplicitComponent):
         prob = om.Problem(model=component)
         prob.setup()
@@ -79,16 +83,39 @@ def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
             variable_name = data[idx][0]
             list_names.append(variable_name)
     else:
-        prob = om.Problem(model=component)
-        prob.setup()
-        prob.run_model()
-        data = prob.model.list_inputs(out_stream=None)
+        data = []
+        component.setup()
+        subcomponents = component.static_subsystems_allprocs
+        idx = 0
+        while idx < (len(subcomponents)-1):
+            if isinstance(subcomponents[idx], om.ExplicitComponent):
+                idx += 1
+            else:
+                add_subcomponents = subcomponents[idx]
+                add_subcomponents.setup()
+                add_subcomponents = add_subcomponents.static_subsystems_allprocs
+                del subcomponents[idx]
+                subcomponents.extend(add_subcomponents)
+        for subcomponent in subcomponents:
+            subprob = om.Problem(model=subcomponent)
+            subprob.setup()
+            data.extend(subprob.model.list_inputs(out_stream=None))
         list_names = []
         for idx in range(len(data)):
             variable_name = data[idx][0].split('.')[-1]
             list_names.append(variable_name)
 
-    return list_names
+    return list(dict.fromkeys(list_names))
+
+
+def register_wrappers():
+    path_split = pth.dirname(__file__).split('\\')
+    drive = path_split[0]
+    del path_split[0]
+    while not(path_split[-1] == "models"):
+        del path_split[-1]
+    path = drive + "\\" + pth.join(*path_split)
+    OpenMDAOSystemRegistry.explore_folder(path)
 
 
 def test_compute_vt_chords():
@@ -231,6 +258,7 @@ def test_compute_ht_wet_area():
     ivc = get_indep_var_comp(list_inputs(ComputeHTWetArea()))
 
     # Run problem and check obtained value(s) is/(are) correct
+    register_wrappers()
     problem = run_system(ComputeHTWetArea(), ivc)
     wet_area = problem.get_val("data:geometry:horizontal_tail:wet_area", units="m**2")
     assert wet_area == pytest.approx(7.428, abs=1e-2)
@@ -240,13 +268,13 @@ def test_compute_fuselage_cabin_sizing():
     """ Tests computation of the fuselage with cabin sizing """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeFuselageGeometryCabinSizing()))
+    ivc = get_indep_var_comp(list_inputs(ComputeFuselageGeometryCabinSizing(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:geometry:horizontal_tail:MAC:length", 0.868, units="m")
     ivc.add_output("data:geometry:vertical_tail:MAC:length", 1.472, units="m")
     ivc.add_output("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", 4.334, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeFuselageGeometryCabinSizing(), ivc)
+    problem = run_system(ComputeFuselageGeometryCabinSizing(propulsion_id=ENGINE_WRAPPER), ivc)
     npax_1 = problem.get_val("data:geometry:cabin:NPAX")
     assert npax_1 == pytest.approx(2.0, abs=1)
     fuselage_length = problem.get_val("data:geometry:fuselage:length", units="m")
@@ -472,24 +500,22 @@ def test_geometry_nacelle():
     """ Tests computation of the nacelle and pylons component """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeNacelleGeometry()))
+    ivc = get_indep_var_comp(list_inputs(ComputeNacelleGeometry(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:geometry:fuselage:maximum_width", 1.198, units="m")
     ivc.add_output("data:geometry:wing:span", 12.363, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeNacelleGeometry(), ivc)
+    problem = run_system(ComputeNacelleGeometry(propulsion_id=ENGINE_WRAPPER), ivc)
     nacelle_length = problem.get_val("data:geometry:propulsion:nacelle:length", units="m")
-    assert nacelle_length == pytest.approx(1.44, abs=1e-3)
-    nacelle_diameter = problem.get_val("data:geometry:propulsion:nacelle:diameter", units="m")
-    assert nacelle_diameter == pytest.approx(0.871, abs=1e-3)
+    assert nacelle_length == pytest.approx(1.237, abs=1e-3)
     nacelle_height = problem.get_val("data:geometry:propulsion:nacelle:height", units="m")
-    assert nacelle_height == pytest.approx(0.691, abs=1e-3)
+    assert nacelle_height == pytest.approx(0.623, abs=1e-3)
     nacelle_width = problem.get_val("data:geometry:propulsion:nacelle:width", units="m")
-    assert nacelle_width == pytest.approx(0.871, abs=1e-3)
+    assert nacelle_width == pytest.approx(0.929, abs=1e-3)
     nacelle_wet_area = problem.get_val("data:geometry:propulsion:nacelle:wet_area", units="m**2")
-    assert nacelle_wet_area == pytest.approx(4.499, abs=1e-3)
+    assert nacelle_wet_area == pytest.approx(3.841, abs=1e-3)
     lg_height = problem.get_val("data:geometry:landing_gear:height", units="m")
-    assert lg_height == pytest.approx(1.22, abs=1e-3)
+    assert lg_height == pytest.approx(0.872, abs=1e-3)
     y_nacelle = problem.get_val("data:geometry:propulsion:nacelle:y", units="m")
     assert y_nacelle == pytest.approx(2.102, abs=1e-3)
 
@@ -509,3 +535,15 @@ def test_geometry_total_area():
     problem = run_system(ComputeTotalArea(), ivc)
     total_surface = problem.get_val("data:geometry:aircraft:wet_area", units="m**2")
     assert total_surface == pytest.approx(92.056, abs=1e-3)
+
+
+def test_complete_geometry():
+    """ Run computation of all models """
+
+    # Research independent input value in .xml file and add values calculated from other modules
+    # noinspection PyTypeChecker
+    ivc = get_indep_var_comp(list_inputs(Geometry(propulsion_id=ENGINE_WRAPPER)))
+
+    # Run problem and check obtained value(s) is/(are) correct
+    # noinspection PyTypeChecker
+    run_system(Geometry(propulsion_id=ENGINE_WRAPPER), ivc)

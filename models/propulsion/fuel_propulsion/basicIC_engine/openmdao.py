@@ -15,7 +15,8 @@
 import numpy as np
 from openmdao.core.component import Component
 
-from fastoad.models.propulsion import IOMPropulsionWrapper, IPropulsion, BaseOMPropulsionComponent
+from ...propulsion import IPropulsion, BaseOMPropulsionComponent
+from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad.openmdao.validity_checker import ValidityDomainChecker
 from .basicIC_engine import BasicICEngine
@@ -68,6 +69,8 @@ class OMBasicICEngineWrapper(IOMPropulsionWrapper):
         component.add_input("data:propulsion:IC_engine:max_power", np.nan, units="W")
         component.add_input("data:propulsion:IC_engine:fuel_type", np.nan)
         component.add_input("data:propulsion:IC_engine:strokes_nb", np.nan)
+        component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
+        component.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
 
     @staticmethod
     def get_model(inputs) -> IPropulsion:
@@ -77,6 +80,8 @@ class OMBasicICEngineWrapper(IOMPropulsionWrapper):
         """
         engine_params = {
             "max_power": inputs["data:propulsion:IC_engine:max_power"],
+            "design_altitude": inputs["data:mission:sizing:main_route:cruise:altitude"],
+            "design_speed": inputs["data:TLAR:v_cruise"],
             "fuel_type": inputs["data:propulsion:IC_engine:fuel_type"],
             "strokes_nb": inputs["data:propulsion:IC_engine:strokes_nb"],
         }
@@ -86,11 +91,10 @@ class OMBasicICEngineWrapper(IOMPropulsionWrapper):
 
 @ValidityDomainChecker(
     {
-        "data:propulsion:thrust_rate": (0.0, 1.0),
-        "data:propulsion:mach": (0.0, 0.85),
         "data:propulsion:IC_engine:max_power": (50000, 250000),  # power range validity
         "data:propulsion:IC_engine:fuel_type": [1.0, 2.0],  # fuel list
         "data:propulsion:IC_engine:strokes_nb": [2.0, 4.0],  # architecture list
+        "data:propulsion:thrust_rate": (0.0, 1.0),  # limitation of SFC ratio model
     }
 )
 class OMBasicICEngineComponent(BaseOMPropulsionComponent):

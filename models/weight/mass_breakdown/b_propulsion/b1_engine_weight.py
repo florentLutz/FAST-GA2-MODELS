@@ -16,32 +16,39 @@ Estimation of engine weight
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
+from ....propulsion.fuel_propulsion.base import FuelEngineSet
+from fastoad import BundleLoader
 
 
-# FIXME:  the weight estimation of the engine should be defined within the engine model (handle hybrid architecture)
 class ComputeEngineWeight(ExplicitComponent):
     """
-    Engine weight estimation
+    Engine weight estimation calling wrapper
 
     """
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._engine_wrapper = None
+
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
     def setup(self):
+        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
+        self._engine_wrapper.setup(self)
         
-        self.add_input("data:propulsion:IC_engine:max_power", val=np.nan, units="hp")
-        self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
+        self.add_input("data:geometry:propulsion:count", val=np.nan)
         
         self.add_output("data:weight:propulsion:engine:mass", units="lb")
 
-        self.declare_partials("data:weight:propulsion:engine:mass",
-                              ["data:propulsion:IC_engine:max_power"],
-                              method="fd",
-                              )
+        self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        power_sl = inputs["data:propulsion:IC_engine:max_power"] * (746/735.5)  # conversion to european hp
-        n_engines = inputs["data:geometry:propulsion:engine:count"]
-        
-        b1 = ((power_sl - 21.55)/0.5515)*n_engines
-            
+
+        propulsion_model = FuelEngineSet(
+            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
+        )
+
+        b1 = propulsion_model.compute_weight()
+
         outputs["data:weight:propulsion:engine:mass"] = b1

@@ -81,9 +81,9 @@
 				</MAC>
 			</horizontal_tail>
 			<propulsion>
-				<engine>
-					<count>2.0<!--number of engines--></count>
-				</engine>
+				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
+				<count>2.0<!--number of engines--></count>
+				<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
 				<nacelle>
 					<height units="m">0.691<!--nacelle height--></height>
 					<wet_area units="m**2">4.499<!--wet area of nacelle--></wet_area>
@@ -134,6 +134,13 @@
 				</takeoff>
 			</sizing>
 		</mission>
+		<propulsion>
+			<IC_engine>
+				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
+				<max_power units="W">130000.0<!--max power @ see level--></max_power>
+				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
+			</IC_engine>
+		</propulsion>
 		<weight>
 			<aircraft>
 				<CG>

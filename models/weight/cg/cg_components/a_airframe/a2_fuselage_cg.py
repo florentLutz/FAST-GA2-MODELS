@@ -16,6 +16,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+import warnings
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
@@ -27,31 +28,23 @@ class ComputeFuselageCG(ExplicitComponent):
 
         self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:propeller:depth", val=np.nan, units="m")
         
         self.add_output("data:weight:airframe:fuselage:CG:x", units="m")
 
-        self.declare_partials(
-            "data:weight:airframe:fuselage:CG:x",
-            [
-                "data:geometry:fuselage:length",
-                "data:geometry:propulsion:propeller:depth",
-            ],
-            method="fd",
-        )
+        self.declare_partials("data:weight:airframe:fuselage:CG:x", "data:geometry:fuselage:length", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        propulsion_loc = inputs["data:geometry:propulsion:layout"]
+        prop_layout = inputs["data:geometry:propulsion:layout"]
         fus_length = inputs["data:geometry:fuselage:length"]
-        l_spinner = inputs["data:geometry:propulsion:propeller:depth"]
         
         # Fuselage gravity center
-        if propulsion_loc == 1.0:
+        if prop_layout == 1.0:
             x_cg_a2 = 0.45 * fus_length
-        elif propulsion_loc == 3.0:  # nose mount
-            x_cg_a2 = 0.33 * (fus_length - l_spinner)
+        elif prop_layout == 3.0:  # nose mount
+            x_cg_a2 = 0.33 * fus_length
         else:  # FIXME: no equation for configuration 2.0
-            raise ValueError('Model only available for propulsion layout 1.0 or 3.0!')
+            x_cg_a2 = 0.45 * fus_length
+            warnings.warn('Propulsion layout {} not implemented in model, replaced by layout 1!'.format(prop_layout))
         
         outputs["data:weight:airframe:fuselage:CG:x"] = x_cg_a2

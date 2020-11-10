@@ -44,6 +44,8 @@ def test_OMBasicICEngineComponent():
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")
     ivc.add_output("data:propulsion:IC_engine:fuel_type", 1)
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4)
+    ivc.add_output("data:TLAR:v_cruise", 158.0, units="kn")
+    ivc.add_output("data:mission:sizing:main_route:cruise:altitude", 8000.0, units="ft")
 
     ivc.add_output("data:propulsion:mach", [machs, machs])
     ivc.add_output("data:propulsion:altitude", [altitudes, altitudes], units="m")

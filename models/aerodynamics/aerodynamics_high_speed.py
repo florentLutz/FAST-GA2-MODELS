@@ -45,6 +45,9 @@ class AerodynamicsHighSpeed(Group):
     Models for high speed aerodynamics
     """
 
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
     def setup(self):
         self.add_subsystem("comp_re", ComputeReynolds(), promotes=["*"])
         self.add_subsystem("xfoil_in", Connection(), promotes=["data:geometry:wing:MAC:length"])
@@ -64,7 +67,7 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("cd0_fuselage", Cd0Fuselage(), promotes=["*"])
         self.add_subsystem("cd0_ht", Cd0HorizontalTail(), promotes=["*"])
         self.add_subsystem("cd0_vt", Cd0VerticalTail(), promotes=["*"])
-        self.add_subsystem("cd0_nacelle", Cd0Nacelle(), promotes=["*"])
+        self.add_subsystem("cd0_nacelle", Cd0Nacelle(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
         self.add_subsystem("cd0_l_gear", Cd0LandingGear(), promotes=["*"])
         self.add_subsystem("cd0_other", Cd0Other(), promotes=["*"])
         self.add_subsystem("cd0_total", Cd0Total(), promotes=["*"])

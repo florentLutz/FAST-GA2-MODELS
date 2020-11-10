@@ -25,7 +25,7 @@ class Cd0Other(ExplicitComponent):
 
     def setup(self):
 
-        self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
+        self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         
@@ -38,13 +38,15 @@ class Cd0Other(ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        engine_number = float(inputs["data:geometry:propulsion:engine:count"])
+        prop_layout = inputs["data:geometry:propulsion:layout"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         wing_area = inputs["data:geometry:wing:area"]
         
         # COWLING (only if engine in fuselage): cx_cowl*wing_area assumed typical (Gudmunsson p739)
-        engine_in_fus = engine_number % 2.0
-        cd0_cowling = 0.0267/wing_area * engine_in_fus
+        if prop_layout == 3.0:
+            cd0_cowling = 0.0267 / wing_area
+        else:
+            cd0_cowling = 0.0
         # Cooling (piston engine only)
         # Gudmunsson p715. Assuming cx_cooling*wing area/MTOW value of the book is typical
         cd0_cooling = 7.054E-6 / wing_area * mtow  # FIXME: no type piston engine defined...

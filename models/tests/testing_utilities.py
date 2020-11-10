@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def run_system(
-    component: SystemSubclass, input_vars: om.IndepVarComp, setup_mode="auto", add_solvers=False
+    component: SystemSubclass, input_vars: om.IndepVarComp, setup_mode="auto", add_solvers=False, check=False
 ):
     """ Runs and returns an OpenMDAO problem with provided component and data"""
     problem = om.Problem()
@@ -37,7 +37,9 @@ def run_system(
         model.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
         model.linear_solver = om.DirectSolver()
 
-    problem.setup(mode=setup_mode)
+    if check:
+        print('\n')
+    problem.setup(mode=setup_mode, check=check)
     missing, _ = get_unconnected_input_names(problem, _LOGGER)
     assert not missing, "These inputs are not provided: %s" % missing
 

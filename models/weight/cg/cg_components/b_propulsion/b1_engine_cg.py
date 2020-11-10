@@ -16,6 +16,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+import warnings
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
@@ -58,7 +59,7 @@ class ComputeEngineCG(ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
-        propulsion_loc = inputs["data:geometry:propulsion:layout"]
+        prop_layout = inputs["data:geometry:propulsion:layout"]
         x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         y2_wing = inputs["data:geometry:wing:root:y"]
@@ -70,7 +71,7 @@ class ComputeEngineCG(ExplicitComponent):
         nacelle_length = inputs["data:geometry:propulsion:nacelle:length"]
         y_nacell = inputs["data:geometry:propulsion:nacelle:y"]
         
-        if propulsion_loc == 1.0:
+        if prop_layout == 1.0:
             if y_nacell > y2_wing:  # Nacelle in the tapered part of the wing
                 l_wing_nac = l4_wing + (l2_wing - l4_wing) * (y4_wing - y_nacell) / (y4_wing - y2_wing)
                 delta_x_nacell = 0.05 * l_wing_nac
@@ -84,9 +85,22 @@ class ComputeEngineCG(ExplicitComponent):
                 delta_x_nacell = 0.05 * l_wing_nac
                 x_nacell_cg = -delta_x_nacell - 0.2 * nacelle_length
                 x_cg_b1 = fa_length - 0.25 * l0_wing - (x0_wing - x_nacell_cg)
-        elif propulsion_loc == 3.0:
+        elif prop_layout == 3.0:
             x_cg_b1 = nacelle_length / 2
         else:  # FIXME: no equation for configuration 2.0
-            raise ValueError('Model only available for propulsion layout 1.0 or 3.0!')
+            if y_nacell > y2_wing:  # Nacelle in the tapered part of the wing
+                l_wing_nac = l4_wing + (l2_wing - l4_wing) * (y4_wing - y_nacell) / (y4_wing - y2_wing)
+                delta_x_nacell = 0.05 * l_wing_nac
+                x_nacell_cg = (
+                        x4_wing * (y_nacell - y2_wing) / (y4_wing - y2_wing)
+                        - delta_x_nacell - 0.2 * nacelle_length
+                )
+                x_cg_b1 = fa_length - 0.25 * l0_wing - (x0_wing - x_nacell_cg)
+            else:  # Nacelle in the straight part of the wing
+                l_wing_nac = l2_wing
+                delta_x_nacell = 0.05 * l_wing_nac
+                x_nacell_cg = -delta_x_nacell - 0.2 * nacelle_length
+                x_cg_b1 = fa_length - 0.25 * l0_wing - (x0_wing - x_nacell_cg)
+            warnings.warn('Propulsion layout {} not implemented in model, replaced by layout 1!'.format(prop_layout))
             
         outputs["data:weight:propulsion:engine:CG:x"] = x_cg_b1

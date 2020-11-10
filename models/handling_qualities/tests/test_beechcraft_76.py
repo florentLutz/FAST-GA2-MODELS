@@ -52,7 +52,18 @@ def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
     else:
         data = []
         component.setup()
-        for subcomponent in component._static_subsystems_allprocs:
+        subcomponents = component.static_subsystems_allprocs
+        idx = 0
+        while idx < (len(subcomponents) - 1):
+            if isinstance(subcomponents[idx], om.ExplicitComponent):
+                idx += 1
+            else:
+                add_subcomponents = subcomponents[idx]
+                add_subcomponents.setup()
+                add_subcomponents = add_subcomponents.static_subsystems_allprocs
+                del subcomponents[idx]
+                subcomponents.extend(add_subcomponents)
+        for subcomponent in subcomponents:
             subprob = om.Problem(model=subcomponent)
             subprob.setup()
             data.extend(subprob.model.list_inputs(out_stream=None))
@@ -61,15 +72,15 @@ def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
             variable_name = data[idx][0].split('.')[-1]
             list_names.append(variable_name)
 
-    return list_names
+    return list(dict.fromkeys(list_names))
 
 
 def register_wrappers():
     path_split = pth.dirname(__file__).split('\\')
     drive = path_split[0]
     del path_split[0]
-    del path_split[-1]
-    del path_split[-1]
+    while not(path_split[-1] == "models"):
+        del path_split[-1]
     path = drive + "\\" + pth.join(*path_split)
     OpenMDAOSystemRegistry.explore_folder(path)
 
@@ -81,9 +92,6 @@ def test_compute_vt_area():
     ivc = get_indep_var_comp(list_inputs(ComputeVTArea(propulsion_id=ENGINE_WRAPPER)))
     ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.364924)
     ivc.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.0599)
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
@@ -109,9 +117,6 @@ def test_compute_ht_area():
     ivc.add_output("data:aerodynamics:wing:low_speed:CM",
                    np.array([-0.01332, 0.02356, 0.10046, 0.20401, 0.31282]))
     ivc.add_output("data:aerodynamics:elevator:low_speed:CL_alpha", 0.6167, units="rad**-1")
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()

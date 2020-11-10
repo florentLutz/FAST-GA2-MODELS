@@ -17,6 +17,7 @@ Computation of wing area
 import numpy as np
 import openmdao.api as om
 from scipy.constants import g
+import warnings
 
 
 class ComputeWingArea(om.Group):
@@ -71,10 +72,13 @@ class _ComputeWingArea(om.ExplicitComponent):
 
         if fuel_type == 1.0:
             m_vol_fuel = 730  # gasoline volume-mass [kg/m**3], cold worst case
-        else:
+        elif fuel_type == 2.0:
             m_vol_fuel = 860  # gasoil volume-mass [kg/m**3], cold worst case
+        else:
+            m_vol_fuel = 730
+            warnings.warn("Fuel type {} does not exist, replaced by type 1!".format(fuel_type))
 
-        # Tanks are between 1st (30% MAC) and 3rd (60% MAC) longeron: 35% of the wing
+        # Tanks are between 1st (30% MAC) and 3rd (60% MAC) longeron: 30% of the wing
         ave_thichness = 0.7 * (
                 root_chord * root_thickness_ratio
                 + tip_chord * tip_thickness_ratio

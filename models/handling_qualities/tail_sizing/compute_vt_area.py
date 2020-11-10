@@ -41,16 +41,14 @@ class ComputeVTArea(om.ExplicitComponent):
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
-        self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
+        self.add_input("data:geometry:propulsion:count", val=np.nan)
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan)
         self.add_input("data:aerodynamics:fuselage:cruise:CnBeta", val=np.nan)
         self.add_input("data:aerodynamics:vertical_tail:cruise:CL_alpha", val=np.nan, units="rad**-1")
-        self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
         self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
-        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
         self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:propulsion:nacelle:y", val=np.nan, units="m")
@@ -84,9 +82,9 @@ class ComputeVTArea(om.ExplicitComponent):
         # Returns maximum area.
 
         propulsion_model = FuelEngineSet(
-            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:engine:count"]
+            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
         )
-        engine_number = inputs["data:geometry:propulsion:engine:count"]
+        engine_number = inputs["data:geometry:propulsion:count"]
         wing_area = inputs["data:geometry:wing:area"]
         span = inputs["data:geometry:wing:span"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]

@@ -18,6 +18,8 @@
 import numpy as np
 import math
 from openmdao.core.explicitcomponent import ExplicitComponent
+from ....propulsion.fuel_propulsion.base import FuelEngineSet
+from fastoad import BundleLoader
 
 
 class ComputeFuselageGeometryBasic(ExplicitComponent):
@@ -63,7 +65,16 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
     # TODO: Document equations. Cite sources
     """ Geometry of fuselage part A - Cabin (Commercial) estimation """
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._engine_wrapper = None
+
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
     def setup(self):
+        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
+        self._engine_wrapper.setup(self)
 
         self.add_input("data:TLAR:NPAX", val=np.nan)
         self.add_input("data:geometry:cabin:seats:pilot:length", val=np.nan, units="m")
@@ -73,7 +84,6 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
         self.add_input("data:geometry:cabin:aisle_width", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:layout", val=np.nan)
-        self.add_input("data:geometry:propulsion:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
@@ -94,7 +104,8 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         self.declare_partials("*", "*", method="fd")  # FIXME: declare proper partials without int values
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
+
+        propulsion_model = FuelEngineSet(self._engine_wrapper.get_model(inputs), 1.0)
         npax = inputs["data:TLAR:NPAX"]
         l_pilot_seats = inputs["data:geometry:cabin:seats:pilot:length"]
         w_pilot_seats = inputs["data:geometry:cabin:seats:pilot:width"]
@@ -102,8 +113,7 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         w_pass_seats = inputs["data:geometry:cabin:seats:passenger:width"]
         seats_p_row = inputs["data:geometry:cabin:seats:passenger:count_by_row"]
         w_aisle = inputs["data:geometry:cabin:aisle_width"]
-        engine_loc = inputs["data:geometry:propulsion:layout"]
-        propulsion_length = inputs["data:geometry:propulsion:length"]
+        prop_layout = inputs["data:geometry:propulsion:layout"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         ht_lp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
         vt_lp = inputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"]
@@ -113,7 +123,11 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         # Length of instrument panel
         l_instr = 0.7
         # Length of pax cabin
-        npax_1 = math.ceil(npax/seats_p_row)*seats_p_row
+        # noinspection PyBroadException
+        try:
+            npax_1 = math.ceil(npax/seats_p_row)*seats_p_row
+        except:
+            npax_1 = npax
         n_rows = npax_1 / seats_p_row
         lpax = l_pilot_seats + n_rows*l_pass_seats
         # Cabin width considered is for side by side seats
@@ -129,7 +143,8 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         # Cabin total length
         cabin_length = l_instr + lpax + l_lug
         # Calculate nose length
-        if engine_loc == 3.0:  # engine located in nose
+        if prop_layout == 3.0:  # engine located in nose
+            _, _, propulsion_length, _ = propulsion_model.compute_dimensions()
             lav = propulsion_length
         else:
             lav = 1.7 * h_f 

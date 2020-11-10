@@ -17,6 +17,7 @@
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
+import warnings
 
 
 class ComputeMFW(ExplicitComponent):
@@ -56,9 +57,10 @@ class ComputeMFW(ExplicitComponent):
         elif fuel_type == 2.0:
             m_vol_fuel = 860  # gasoil volume-mass [kg/m**3], cold worst case
         else:
-            raise IOError("Bad motor configuration: only fuel type 1/2 available.")
+            m_vol_fuel = 730
+            warnings.warn("Fuel type {} does not exist, replaced by type 1!".format(fuel_type))
 
-        # Tanks are between 1st (30% MAC) and 3rd (60% MAC) longeron: 35% of the wing
+        # Tanks are between 1st (30% MAC) and 3rd (60% MAC) longeron: 30% of the wing
         ave_thichness = 0.7 * (
                 root_chord * root_thickness_ratio
                 + tip_chord * tip_thickness_ratio

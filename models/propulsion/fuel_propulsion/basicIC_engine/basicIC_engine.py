@@ -14,22 +14,47 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-
+import math
 import numpy as np
 import pandas as pd
 from typing import Union, Sequence, Tuple, Optional
+from scipy.constants import g
 
 from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting
 from fastoad.exceptions import FastUnknownEngineSettingError
 from .exceptions import FastBasicICEngineInconsistentInputParametersError
-from fastoad.models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from ..base import AbstractFuelPropulsion
 from fastoad.utils.physics import Atmosphere
+from fastoad.base.dict import DynamicAttributeDict, AddKeyAttributes
 
 # Logger for this module
 _LOGGER = logging.getLogger(__name__)
 
 PROPELLER_EFFICIENCY = 0.8
+
+# Set of dictionary keys that are mapped to instance attributes.
+ENGINE_LABELS = {
+    "power_SL": dict(doc="Power at sea level in watts."),
+    "mass": dict(doc="Mass in kilograms."),
+    "length": dict(doc="Length in meters."),
+    "height": dict(doc="Height in meters."),
+    "width": dict(doc="Width in meters."),
+}
+# Set of dictionary keys that are mapped to instance attributes.
+NACELLE_LABELS = {
+    "wet_area": dict(doc="Wet area in meters²."),
+    "length": dict(doc="Length in meters."),
+    "height": dict(doc="Height in meters."),
+    "width": dict(doc="Width in meters."),
+}
+# Set of dictionary keys that are mapped to instance attributes.
+PROPELLER_LABELS = {
+    "area": dict(doc="Area in meters²."),
+    "depth": dict(doc="Depth in meters."),
+    "diameter": dict(doc="Diameter in meters."),
+    "thrust_SL": dict(doc="Fixed point thrust at sea level in kilograms."),
+}
 
 
 class BasicICEngine(AbstractFuelPropulsion):
@@ -37,6 +62,8 @@ class BasicICEngine(AbstractFuelPropulsion):
     def __init__(
             self,
             max_power: float,
+            design_altitude: float,
+            design_speed: float,
             fuel_type: float,
             strokes_nb: float,
     ):
@@ -46,23 +73,39 @@ class BasicICEngine(AbstractFuelPropulsion):
         It computes engine characteristics using fuel type, motor architecture
         and constant propeller efficiency using analytical model from following sources:
 
-        :param max_power: maximum delivered mechanical power of engine (unit=W)
+        :param max_power: maximum delivered mechanical power of engine (units=W)
+        :param design_altitude: design altitude for cruise (units=m)
+        :param design_speed: design altitude for cruise (units=m/s)
         :param fuel_type: 1.0 for gasoline and 2.0 for gasoil engine
         :param strokes_nb: can be either 2-strockes (=2.0) or 4-strockes (=4.0)
         """
-
-        self.ref = {
-            "max_power": 132480,
-            "max_thrust": 3600,
-            "length": 0.83,
-            "height": 0.57,
-            "width": 0.85,
-            "mass": 136,
-        }  # Lycoming IO-360-B1A
+        if fuel_type == 1.0:
+            self.ref = {
+                "max_power": 132480,
+                "length": 0.83,
+                "height": 0.57,
+                "width": 0.85,
+                "mass": 136,
+            }  # Lycoming IO-360-B1A
+        else:
+            self.ref = {
+                "max_power": 160000,
+                "length": 0.859,
+                "height": 0.659,
+                "width": 0.650,
+                "mass": 205,
+            }  # TDA CR 1.9 16V
         self.max_power = max_power
+        self.design_altitude = design_altitude
+        self.design_speed = design_speed
         self.fuel_type = fuel_type
         self.strokes_nb = strokes_nb
         self.idle_thrust_rate = 0.01
+
+        # Declare sub-components attribute
+        self.engine = Engine(power_SL=max_power)
+        self.nacelle = None
+        self.propeller = None
 
         # This dictionary is expected to have a Mixture coefficient for all EngineSetting values
         self.mixture_values = {
@@ -87,7 +130,7 @@ class BasicICEngine(AbstractFuelPropulsion):
             flight_points.thrust_rate,
             flight_points.thrust,
         )
-        flight_points.sfc = sfc
+        flight_points['sfc'] = sfc
         flight_points.thrust_rate = thrust_rate
         flight_points.thrust = thrust
 
@@ -327,33 +370,136 @@ class BasicICEngine(AbstractFuelPropulsion):
         mach = np.asarray(mach)
         sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
         max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
-        thrust_1 = self.ref["max_thrust"] * max_power / self.ref["max_power"]
-        thrust_2 = max_power * PROPELLER_EFFICIENCY / (mach * Atmosphere(altitude).speed_of_sound)
+        _, _, _, _ = self.compute_dimensions()
+        thrust_1 = (self.propeller["thrust_SL"]*g) * sigma**(1/3)  # considered fixed point @altitude
+        thrust_2 = max_power * PROPELLER_EFFICIENCY / np.maximum(mach * Atmosphere(altitude).speed_of_sound, 1e-20)
 
         return np.minimum(thrust_1, thrust_2)
 
-    def engine_weight(self) -> float:
+    def compute_weight(self) -> float:
         """
-        Computes weight of installed engine, depending on maximum power.
+        Computes weight of installed propulsion (engine, nacelle and propeller) depending on maximum power.
         Uses model described in :...
-        :return: installed weight (in kg)
-        """
-        # FIXME : separate raw engine weight and installation factor
-        installation_factor = 1.0
-        weight = self.ref["mass"] * (self.max_power / self.ref["max_power"])
 
-        installed_weight = installation_factor * weight
+        """
+
+        power_sl = self.max_power / 735.5  # conversion to european hp
+        installed_weight = ((power_sl - 21.55) / 0.5515)
+        self.engine.mass = installed_weight
 
         return installed_weight
 
-    def engine_dim(self) -> Tuple[float, float, float]:
+    def compute_dimensions(self) -> (float, float, float, float):
         """
-        Computes engine dimensions from maximum power.
+        Computes propulsion dimensions (engine/nacelle/propeller) from maximum power.
         Model from :...
-        :return: engine length (in m)
-        """
-        length = self.ref["length"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
-        height = self.ref["height"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
-        width = self.ref["width"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
 
-        return length, height, width
+        """
+
+        # Compute engine dimensions
+        self.engine.length = self.ref["length"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
+        self.engine.height = self.ref["height"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
+        self.engine.width = self.ref["width"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
+
+        # Compute nacelle dimensions
+        self.nacelle = Nacelle(
+            height=self.engine.height * 1.1,
+            width=self.engine.width * 1.1,
+            length=1.5 * self.engine.length,
+        )
+        self.nacelle.wet_area = 2 * (self.nacelle.height + self.nacelle.width) * self.nacelle.length
+
+        # Compute propeller dimensions (2-blades)
+        w_propeller = 2500  # regulated propeller speed in RPM
+        v_sound = Atmosphere(self.design_altitude, altitude_in_feet=False).speed_of_sound
+        d_max = (((v_sound*0.85)**2 - self.design_speed**2) / ((w_propeller*math.pi/30)/2)**2)**0.5
+        d_opt = 1.04**2 * ((self.max_power/735.5) * 1e8 / (w_propeller**2 * self.design_speed * 3.6))**(1/4)
+        d = min(d_max, d_opt)
+        t_0 = 7.4 * ((self.max_power/735.5) * d)**(2/3)
+        area = 13307 * t_0 / (d**2 * w_propeller**2)
+        chord = area/d
+        self.propeller = Propeller(
+            area=area,
+            depth=chord*1.1,
+            diameter=d,
+            thrust_SL=t_0,
+        )
+
+        return self.nacelle["height"], self.nacelle["width"], self.nacelle["length"], self.nacelle["wet_area"]
+
+    def compute_drag(self, mach, unit_reynolds, wing_mac):
+        """
+        Compute nacelle drag coefficient cd0.
+
+        """
+
+        # Compute dimensions
+        _, _, _, _ = self.compute_dimensions()
+        # Local Reynolds:
+        reynolds = unit_reynolds * self.nacelle.length
+        # Roskam method for wing-nacelle interaction factor (vol 6 page 3.62)
+        cf_nac = 0.455 / ((1 + 0.144 * mach ** 2) ** 0.65 * (math.log10(reynolds)) ** 2.58)  # 100% turbulent
+        f = self.nacelle.length / math.sqrt(4 * self.nacelle.height * self.nacelle.width / math.pi)
+        ff_nac = 1 + 0.35 / f  # Raymer (seen in Gudmunsson)
+        if_nac = 0.036 * self.nacelle.width * wing_mac * 0.04
+        drag_force = (cf_nac * ff_nac * self.nacelle.wet_area + if_nac)
+
+        return drag_force
+
+
+@AddKeyAttributes(ENGINE_LABELS)
+class Engine(DynamicAttributeDict):
+    """
+    Class for storing data for engine.
+
+    An instance is a simple dict, but for convenience, each item can be accessed
+    as an attribute (inspired by pandas DataFrames). Hence, one can write::
+
+        >>> engine = Engine(power_SL=10000.)
+        >>> engine["power_SL"]
+        10000.0
+        >>> engine["mass"] = 70000.
+        >>> engine.mass
+        70000.0
+        >>> engine.mass = 50000.
+        >>> engine["mass"]
+        50000.0
+
+    Note: constructor will forbid usage of unknown keys as keyword argument, but
+    other methods will allow them, while not making the matching between dict
+    keys and attributes, hence::
+
+        >>> engine["foo"] = 42  # Ok
+        >>> bar = engine.foo  # raises exception !!!!
+        >>> engine.foo = 50  # allowed by Python
+        >>> # But inner dict is not affected:
+        >>> engine.foo
+        50
+        >>> engine["foo"]
+        42
+
+    This class is especially useful for generating pandas DataFrame: a pandas
+    DataFrame can be generated from a list of dict... or a list of FlightPoint
+    instances.
+
+    The set of dictionary keys that are mapped to instance attributes is given by
+    the :meth:`get_attribute_keys`.
+    """
+
+
+@AddKeyAttributes(NACELLE_LABELS)
+class Nacelle(DynamicAttributeDict):
+    """
+    Class for storing data for nacelle.
+
+    Similar to :class:`Engine`.
+    """
+
+
+@AddKeyAttributes(PROPELLER_LABELS)
+class Propeller(DynamicAttributeDict):
+    """
+    Class for storing data for propeller.
+
+    Similar to :class:`Engine`.
+    """

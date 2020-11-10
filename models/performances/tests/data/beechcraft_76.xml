@@ -53,9 +53,9 @@
 				<height units="m">1.22<!--mean value of (flap chord)/(section chord)--></height>
 			</landing_gear>
 			<propulsion>
-				<engine>
-					<count>2.0<!--number of engines--></count>
-				</engine>
+				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
+				<count>2.0<!--number of engines--></count>
+				<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
 			</propulsion>
 			<wing>
 				<area units="m**2">19.151<!--wing reference area--></area>
@@ -96,6 +96,13 @@
 			</taxi_out>
 		  </sizing>
 		</mission>
+		<propulsion>
+			<IC_engine>
+				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
+				<max_power units="W">130000.0<!--max power @ see level--></max_power>
+				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
+			</IC_engine>
+		</propulsion>
 		<weight>
 			<aircraft>
 				<MTOW units="kg">1785.5<!--maximum takeoff weight--></MTOW>

@@ -20,6 +20,7 @@ import os.path as pth
 import openmdao.api as om
 import pytest
 from fastoad.io import VariableIO
+from fastoad.module_management import OpenMDAOSystemRegistry
 from typing import Union
 
 from ....tests.testing_utilities import run_system
@@ -47,6 +48,7 @@ from ..mass_breakdown import MassBreakdown, ComputeOperatingWeightEmpty
 from ..payload import ComputePayload
 
 XML_FILE = "beechcraft_76.xml"
+ENGINE_WRAPPER = "fastga.wrapper.propulsion.basicIC_engine"
 
 
 def get_indep_var_comp(var_names):
@@ -60,6 +62,7 @@ def get_indep_var_comp(var_names):
 def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
     """ Reads input variables from a component/problem and return as a list """
 
+    register_wrappers()
     if isinstance(component, om.ExplicitComponent):
         prob = om.Problem(model=component)
         prob.setup()
@@ -69,16 +72,39 @@ def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
             variable_name = data[idx][0]
             list_names.append(variable_name)
     else:
-        prob = om.Problem(model=component)
-        prob.setup()
-        prob.run_model()
-        data = prob.model.list_inputs(out_stream=None)
+        data = []
+        component.setup()
+        subcomponents = component.static_subsystems_allprocs
+        idx = 0
+        while idx < (len(subcomponents) - 1):
+            if isinstance(subcomponents[idx], om.ExplicitComponent):
+                idx += 1
+            else:
+                add_subcomponents = subcomponents[idx]
+                add_subcomponents.setup()
+                add_subcomponents = add_subcomponents.static_subsystems_allprocs
+                del subcomponents[idx]
+                subcomponents.extend(add_subcomponents)
+        for subcomponent in subcomponents:
+            subprob = om.Problem(model=subcomponent)
+            subprob.setup()
+            data.extend(subprob.model.list_inputs(out_stream=None))
         list_names = []
         for idx in range(len(data)):
             variable_name = data[idx][0].split('.')[-1]
             list_names.append(variable_name)
 
-    return list_names
+    return list(dict.fromkeys(list_names))
+
+
+def register_wrappers():
+    path_split = pth.dirname(__file__).split('\\')
+    drive = path_split[0]
+    del path_split[0]
+    while not(path_split[-1] == "models"):
+        del path_split[-1]
+    path = drive + "\\" + pth.join(*path_split)
+    OpenMDAOSystemRegistry.explore_folder(path)
 
 
 def test_compute_payload():
@@ -167,21 +193,14 @@ def test_compute_landing_gear_weight():
 def test_compute_engine_weight():
     """ Tests engine weight computation from sample XML data """
 
-    # Input list from model (not generated because of the assertion error on bad motor configuration)
-    input_list = [
-        "data:geometry:propulsion:engine:count",
-        "data:propulsion:IC_engine:max_power",
-        "data:propulsion:IC_engine:fuel_type",
-        "data:propulsion:IC_engine:n_strokes",
-    ]
-
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeEngineWeight()))
+    ivc = get_indep_var_comp(list_inputs(ComputeEngineWeight(propulsion_id=ENGINE_WRAPPER)))
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeEngineWeight(), ivc)
+    register_wrappers()
+    problem = run_system(ComputeEngineWeight(propulsion_id=ENGINE_WRAPPER), ivc)
     weight_b1 = problem.get_val("data:weight:propulsion:engine:mass", units="kg")
-    assert weight_b1 == pytest.approx(255.41, abs=1e-2)
+    assert weight_b1 == pytest.approx(255.29, abs=1e-2)
 
 
 def test_compute_fuel_lines_weight():
@@ -256,10 +275,11 @@ def test_evaluate_owe():
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
 
-    mass_computation = run_system(ComputeOperatingWeightEmpty(), input_vars, setup_mode="fwd")
+    # noinspection PyTypeChecker
+    mass_computation = run_system(ComputeOperatingWeightEmpty(propulsion_id=ENGINE_WRAPPER), input_vars)
 
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1098.77, abs=1e-2)
+    assert oew == pytest.approx(1098.66, abs=1e-2)
 
 
 def test_loop_compute_owe():
@@ -277,9 +297,13 @@ def test_loop_compute_owe():
     input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
 
     # noinspection PyTypeChecker
-    mass_computation_1 = run_system(MassBreakdown(payload_from_npax=True), input_vars)
+    mass_computation_1 = run_system(
+        MassBreakdown(propulsion_id=ENGINE_WRAPPER, payload_from_npax=True),
+        input_vars,
+        check=True,
+    )
     oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1098.77, abs=1e-2)  # 1026.50 (with MTOW local loop)
+    assert oew == pytest.approx(1098.66, abs=1e-2)  # 1026.50 (with MTOW local loop)
 
     # with payload as input
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
@@ -291,6 +315,10 @@ def test_loop_compute_owe():
     ).to_ivc()
     input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
     # noinspection PyTypeChecker
-    mass_computation_2 = run_system(MassBreakdown(payload_from_npax=False), input_vars)
+    mass_computation_2 = run_system(
+        MassBreakdown(propulsion_id=ENGINE_WRAPPER, payload_from_npax=False),
+        input_vars,
+        check=False,
+    )
     oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1098.77, abs=1e-2)  # 1009.19 (with MTOW local loop)
+    assert oew == pytest.approx(1098.66, abs=1e-2)  # 1009.19 (with MTOW local loop)

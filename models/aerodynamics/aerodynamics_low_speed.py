@@ -45,6 +45,9 @@ class AerodynamicsLowSpeed(Group):
     Models for low speed aerodynamics
     """
 
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
     def setup(self):
         self.add_subsystem("comp_re", ComputeReynolds(low_speed_aero=True), promotes=["*"])
         self.add_subsystem(
@@ -77,7 +80,8 @@ class AerodynamicsLowSpeed(Group):
         self.add_subsystem("cd0_fuselage", Cd0Fuselage(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cd0_ht", Cd0HorizontalTail(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cd0_vt", Cd0VerticalTail(low_speed_aero=True), promotes=["*"])
-        self.add_subsystem("cd0_nacelle", Cd0Nacelle(low_speed_aero=True), promotes=["*"])
+        self.add_subsystem("cd0_nacelle", Cd0Nacelle(propulsion_id=self.options["propulsion_id"],
+                                                     low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cd0_l_gear", Cd0LandingGear(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cd0_other", Cd0Other(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cd0_total", Cd0Total(low_speed_aero=True), promotes=["*"])

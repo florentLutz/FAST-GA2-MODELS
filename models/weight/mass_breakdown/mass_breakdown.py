@@ -58,30 +58,32 @@ class MassBreakdown(om.Group):
 
     def initialize(self):
         self.options.declare(PAYLOAD_FROM_NPAX, types=bool, default=True)
+        self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
         if self.options[PAYLOAD_FROM_NPAX]:
             self.add_subsystem("payload", ComputePayload(), promotes=["*"])
-        self.add_subsystem("owe", ComputeOperatingWeightEmpty(), promotes=["*"])
+        self.add_subsystem("owe", ComputeOperatingWeightEmpty(propulsion_id=self.options["propulsion_id"]),
+                           promotes=["*"])
         self.add_subsystem("update_mzfw_and_mlw", UpdateMLWandMZFW(), promotes=["*"])
         # self.add_subsystem("update_mtow", UpdateMTOW(), promotes=["*"])
 
         # Solvers setup
-        self.nonlinear_solver = om.NonlinearBlockGS()
-        self.nonlinear_solver.options["debug_print"] = True
-        self.nonlinear_solver.options["err_on_non_converge"] = True
-        self.nonlinear_solver.options["iprint"] = 1
-        self.nonlinear_solver.options["maxiter"] = 50
-        self.nonlinear_solver.options["reraise_child_analysiserror"] = True
-        self.nonlinear_solver.options["rtol"] = 1e-3
+        # self.nonlinear_solver = om.NonlinearBlockGS()
+        # self.nonlinear_solver.options["debug_print"] = True
+        # self.nonlinear_solver.options["err_on_non_converge"] = True
+        # self.nonlinear_solver.options["iprint"] = 1
+        # self.nonlinear_solver.options["maxiter"] = 50
+        # self.nonlinear_solver.options["reraise_child_analysiserror"] = True
+        # self.nonlinear_solver.options["rtol"] = 1e-3
         # self.nonlinear_solver.options["stall_limit"] = 1
         # self.nonlinear_solver.options["stall_tol"] = 1e-5
 
-        self.linear_solver = om.LinearBlockGS()
-        self.linear_solver.options["err_on_non_converge"] = True
-        self.linear_solver.options["iprint"] = 1
-        self.linear_solver.options["maxiter"] = 10
-        self.linear_solver.options["rtol"] = 1e-3
+        # self.linear_solver = om.LinearBlockGS()
+        # self.linear_solver.options["err_on_non_converge"] = True
+        # self.linear_solver.options["iprint"] = 1
+        # self.linear_solver.options["maxiter"] = 10
+        # self.linear_solver.options["rtol"] = 1e-3
 
 
 class ComputeOperatingWeightEmpty(om.Group):
@@ -90,6 +92,9 @@ class ComputeOperatingWeightEmpty(om.Group):
     This group aggregates weight from all components of the aircraft.
     """
 
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
     def setup(self):
         # Airframe
         self.add_subsystem("wing_weight", ComputeWingWeight(), promotes=["*"])
@@ -97,7 +102,8 @@ class ComputeOperatingWeightEmpty(om.Group):
         self.add_subsystem("empennage_weight", ComputeTailWeight(), promotes=["*"])
         self.add_subsystem("flight_controls_weight", ComputeFlightControlsWeight(), promotes=["*"])
         self.add_subsystem("landing_gear_weight", ComputeLandingGearWeight(), promotes=["*"])
-        self.add_subsystem("engine_weight", ComputeEngineWeight(), promotes=["*"])
+        self.add_subsystem("engine_weight", ComputeEngineWeight(propulsion_id=self.options["propulsion_id"]),
+                           promotes=["*"])
         self.add_subsystem("fuel_lines_weight", ComputeFuelLinesWeight(), promotes=["*"])
         self.add_subsystem("navigation_systems_weight", ComputeNavigationSystemsWeight(), promotes=["*"])
         self.add_subsystem("power_systems_weight", ComputePowerSystemsWeight(), promotes=["*"])

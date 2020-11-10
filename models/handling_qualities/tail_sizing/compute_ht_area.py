@@ -116,7 +116,7 @@ class _ComputeArea(om.ExplicitComponent):
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
-        self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
+        self.add_input("data:geometry:propulsion:count", val=np.nan)
         self.add_input("settings:weight:aircraft:CG:range", val=0.3)
         self.add_input("data:mission:sizing:takeoff:thrust_rate", val=np.nan)
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
@@ -154,9 +154,9 @@ class _ComputeArea(om.ExplicitComponent):
         # forward CG position. Returns maximum area.
 
         propulsion_model = FuelEngineSet(
-            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:engine:count"]
+            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
         )
-        n_engines = inputs["data:geometry:propulsion:engine:count"]
+        n_engines = inputs["data:geometry:propulsion:count"]
         cg_range = inputs["settings:weight:aircraft:CG:range"]
         takeoff_t_rate = inputs["data:mission:sizing:takeoff:thrust_rate"]
         wing_area = inputs["data:geometry:wing:area"]
@@ -273,7 +273,7 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
 
     def setup(self):
 
-        self.add_input("data:geometry:propulsion:engine:count", val=np.nan)
+        self.add_input("data:geometry:propulsion:count", val=np.nan)
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:horizontal_tail:area", val=2.0, units="m**2")
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="kg")
@@ -301,7 +301,7 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        n_engines = inputs["data:geometry:propulsion:engine:count"]
+        n_engines = inputs["data:geometry:propulsion:count"]
         wing_area = inputs["data:geometry:wing:area"]
         ht_area = inputs["data:geometry:horizontal_tail:area"]
         mlw = inputs["data:weight:aircraft:MLW"]

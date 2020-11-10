@@ -64,15 +64,9 @@
 				<type>1.0<!--0=non-retractable landing gears / 1=retractable landing gear--></type>
 			</landing_gear>
 			<propulsion>
-				<engine>
-					<count>2.0<!--number of engines--></count>
-				</engine>
-				<nacelle>
-					<height units="m">0.691<!--nacelle height--></height>
-					<length units="m">1.44<!--nacelle length--></length>
-					<wet_area units="m**2">4.499<!--wet area of nacelle--></wet_area>
-					<width units="m">0.871<!--nacelle width--></width>
-				</nacelle>
+				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
+				<count>2.0<!--number of engines--></count>
+				<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
 			</propulsion>
 			<vertical_tail>
 				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>
@@ -120,22 +114,29 @@
 			</wing>
 		</geometry>
 		<mission>
-		  <sizing>
-			<landing>
-			  <elevator_angle units="deg">-25.0<!--elevator maximum angle during landing phase in sizing mission--></elevator_angle>
-			  <flap_angle units="deg">30.0<!--flap angle during landing phase in sizing mission--></flap_angle>
-			</landing>
-			<main_route>
+		  	<sizing>
+				<landing>
+			  		<elevator_angle units="deg">-25.0<!--elevator maximum angle during landing phase in sizing mission--></elevator_angle>
+			  		<flap_angle units="deg">30.0<!--flap angle during landing phase in sizing mission--></flap_angle>
+				</landing>
+				<main_route>
 				<cruise>
-				  <altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
+				  	<altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
 				</cruise>
-			</main_route>
-			<takeoff>
-			  <elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>
-			  <flap_angle units="deg">10.0<!--flap angle during takeoff phase in sizing mission--></flap_angle>
-			</takeoff>
-		  </sizing>
+				</main_route>
+				<takeoff>
+				  	<elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>
+				  	<flap_angle units="deg">10.0<!--flap angle during takeoff phase in sizing mission--></flap_angle>
+				</takeoff>
+		  	</sizing>
 		</mission>
+		<propulsion>
+			<IC_engine>
+				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
+				<max_power units="W">130000.0<!--max power @ see level--></max_power>
+				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
+			</IC_engine>
+		</propulsion>
 		<weight>
 			<aircraft>
 				<MTOW units="kg">1915.02<!--maximum takeoff weight--></MTOW>

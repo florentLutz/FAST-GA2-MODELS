@@ -25,6 +25,7 @@ from openmdao.core.group import Group
 class CD0(Group):
     def initialize(self):
         self.options.declare("low_speed_aero", default=False, types=bool)
+        self.options.declare("propulsion_id", default="", types=str)
         
     def setup(self):
         if self.options["low_speed_aero"]:
@@ -32,7 +33,10 @@ class CD0(Group):
             self.add_subsystem("cd0_fuselage", Cd0Fuselage(low_speed_aero=True), promotes=["*"])
             self.add_subsystem("cd0_ht", Cd0HorizontalTail(low_speed_aero=True), promotes=["*"])
             self.add_subsystem("cd0_vt", Cd0VerticalTail(low_speed_aero=True), promotes=["*"])
-            self.add_subsystem("cd0_nac", Cd0Nacelle(low_speed_aero=True), promotes=["*"])
+            self.add_subsystem("cd0_nac", Cd0Nacelle(
+                propulsion_id=self.options["propulsion_id"],
+                low_speed_aero=True
+            ), promotes=["*"])
             self.add_subsystem("cd0_lg", Cd0LandingGear(low_speed_aero=True), promotes=["*"])
             self.add_subsystem("cd0_other", Cd0Other(low_speed_aero=True), promotes=["*"])
             self.add_subsystem("cd0_total", Cd0Total(low_speed_aero=True), promotes=["*"])
@@ -41,7 +45,7 @@ class CD0(Group):
             self.add_subsystem("cd0_fuselage", Cd0Fuselage(), promotes=["*"])
             self.add_subsystem("cd0_ht", Cd0HorizontalTail(), promotes=["*"])
             self.add_subsystem("cd0_vt", Cd0VerticalTail(), promotes=["*"])
-            self.add_subsystem("cd0_nac", Cd0Nacelle(), promotes=["*"])
+            self.add_subsystem("cd0_nac", Cd0Nacelle(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
             self.add_subsystem("cd0_lg", Cd0LandingGear(), promotes=["*"])
             self.add_subsystem("cd0_other", Cd0Other(), promotes=["*"])
             self.add_subsystem("cd0_total", Cd0Total(), promotes=["*"])

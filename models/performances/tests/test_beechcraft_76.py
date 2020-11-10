@@ -53,24 +53,37 @@ def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
             variable_name = data[idx][0]
             list_names.append(variable_name)
     else:
-        prob = om.Problem(model=component)
-        prob.setup()
-        prob.run_model()
-        data = prob.model.list_inputs(out_stream=None)
+        data = []
+        component.setup()
+        subcomponents = component.static_subsystems_allprocs
+        idx = 0
+        while idx < (len(subcomponents) - 1):
+            if isinstance(subcomponents[idx], om.ExplicitComponent):
+                idx += 1
+            else:
+                add_subcomponents = subcomponents[idx]
+                add_subcomponents.setup()
+                add_subcomponents = add_subcomponents.static_subsystems_allprocs
+                del subcomponents[idx]
+                subcomponents.extend(add_subcomponents)
+        for subcomponent in subcomponents:
+            subprob = om.Problem(model=subcomponent)
+            subprob.setup()
+            data.extend(subprob.model.list_inputs(out_stream=None))
         list_names = []
         for idx in range(len(data)):
             variable_name = data[idx][0].split('.')[-1]
             list_names.append(variable_name)
 
-    return list_names
+    return list(dict.fromkeys(list_names))
 
 
 def register_wrappers():
     path_split = pth.dirname(__file__).split('\\')
     drive = path_split[0]
     del path_split[0]
-    del path_split[-1]
-    del path_split[-1]
+    while not(path_split[-1] == "models"):
+        del path_split[-1]
     path = drive + "\\" + pth.join(*path_split)
     OpenMDAOSystemRegistry.explore_folder(path)
 
@@ -80,9 +93,6 @@ def test_v2():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(_v2(propulsion_id=ENGINE_WRAPPER)))
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
@@ -98,9 +108,6 @@ def test_vloff():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(_vloff_from_v2(propulsion_id=ENGINE_WRAPPER)))
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("v2:speed", 37.79, units='m/s')
     ivc.add_output("v2:angle", 8.49, units='deg')
 
@@ -118,9 +125,6 @@ def test_vr():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(_vr_from_v2(propulsion_id=ENGINE_WRAPPER)))
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("vloff:speed", 36.88, units='m/s')
     ivc.add_output("vloff:angle", 8.49, units='deg')
 
@@ -136,9 +140,6 @@ def test_simulate_takeoff():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(_simulate_takeoff(propulsion_id=ENGINE_WRAPPER)))
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("vr:speed", 28.51, units='m/s')
     ivc.add_output("v2:angle", 8.49, units='deg')
 
@@ -161,16 +162,13 @@ def test_simulate_takeoff():
     assert fuel2 == pytest.approx(0.07, abs=1e-2)
 
 
-def test_takeoffphase_connections():
+def test_takeoff_phase_connections():
     """ Tests complete take-off phase connection with speeds """
 
     # load all inputs
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     ivc = reader.read().to_ivc()
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     register_wrappers()
     # noinspection PyTypeChecker
     problem = run_system(TakeOffPhase(propulsion_id=ENGINE_WRAPPER), ivc)
@@ -195,9 +193,6 @@ def test_compute_taxi():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=True)))
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
@@ -207,9 +202,6 @@ def test_compute_taxi():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=False)))
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=False), ivc)
@@ -222,9 +214,6 @@ def test_compute_climb():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(_compute_climb(propulsion_id=ENGINE_WRAPPER)))
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("data:mission:sizing:taxi_out:fuel", 0.50, units="kg")
     ivc.add_output("data:mission:sizing:takeoff:fuel", 0.29, units="kg")
     ivc.add_output("data:mission:sizing:initial_climb:fuel", 0.07, units="kg")
@@ -247,9 +236,6 @@ def test_compute_cruise():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(_compute_cruise(propulsion_id=ENGINE_WRAPPER)))
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("data:mission:sizing:taxi_out:fuel", 0.50, units="kg")
     ivc.add_output("data:mission:sizing:takeoff:fuel", 0.29, units="kg")
     ivc.add_output("data:mission:sizing:initial_climb:fuel", 0.07, units="kg")
@@ -271,9 +257,6 @@ def test_compute_descent():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(_compute_descent(propulsion_id=ENGINE_WRAPPER)))
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
     ivc.add_output("data:mission:sizing:taxi_out:fuel", 0.98, units="kg")
     ivc.add_output("data:mission:sizing:takeoff:fuel", 0.29, units="kg")
     ivc.add_output("data:mission:sizing:initial_climb:fuel", 0.07, units="kg")
@@ -298,9 +281,6 @@ def test_loop_cruise_distance():
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     ivc = reader.read().to_ivc()
-    ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")  # correct value to fit old version def.
-    ivc.add_output("data:propulsion:IC_engine:fuel_type", 1.0)
-    ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4.0)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
