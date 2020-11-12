@@ -4,7 +4,7 @@ title = "OAD Process"
 
 module_folders = ["../../../../"]
 
-input_file = "../data/beechcraft_76.xml"
+input_file = "../results/oad_process_inputs.xml"
 output_file = "../results/oad_process_outputs.xml"
 
 [model]
