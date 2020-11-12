@@ -70,7 +70,7 @@ class ComputeOSWALDvlm(VLM):
             cdp_clean = inputs["data:aerodynamics:wing:cruise:CDp"]
         
         super()._run(inputs)
-        cl, _, oswald, _ = super().compute_wing(inputs, _INPUT_AOAList, v_inf, flaps_angle=0.0, use_airfoil=False)
+        cl, _, oswald, _ = super().compute_wing(inputs, _INPUT_AOAList, v_inf, flaps_angle=0.0, use_airfoil=True)
         k_fus = 1 - 2*(b_f/span)**2
         oswald = oswald[0] * k_fus  # Fuselage correction
         if mach > 0.4:

@@ -298,7 +298,7 @@ def test_vlm_comp_high_speed():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeOSWALDvlm(), ivc)
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0531, abs=1e-4)
+    assert coef_k == pytest.approx(0.0537, abs=1e-4)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(ComputeWingCLALPHAvlm()))
@@ -307,7 +307,7 @@ def test_vlm_comp_high_speed():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingCLALPHAvlm(), ivc)
     cl0 = problem["data:aerodynamics:aircraft:cruise:CL0_clean"]
-    assert cl0 == pytest.approx(0.1511, abs=1e-4)
+    assert cl0 == pytest.approx(0.1531, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:cruise:CL_alpha", units="rad**-1")
     assert cl_alpha_wing == pytest.approx(4.819, abs=1e-3)
 
@@ -338,7 +338,7 @@ def test_vlm_comp_low_speed():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeOSWALDvlm(low_speed_aero=True), ivc)
     coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0528, abs=1e-4)
+    assert coef_k == pytest.approx(0.0531, abs=1e-4)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(ComputeWingCLALPHAvlm(low_speed_aero=True)))
@@ -347,14 +347,14 @@ def test_vlm_comp_low_speed():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingCLALPHAvlm(low_speed_aero=True), ivc)
     cl0 = problem["data:aerodynamics:aircraft:low_speed:CL0_clean"]
-    assert cl0 == pytest.approx(0.1475, abs=1e-4)
+    assert cl0 == pytest.approx(0.1494, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
     assert cl_alpha_wing == pytest.approx(4.703, abs=1e-3)
     y_interp = problem.get_val("data:aerodynamics:wing:low_speed:Y_vector", units="m")
     cl_interp = problem["data:aerodynamics:wing:low_speed:CL_vector"]
     y_interp, cl_interp = reshape_curve(y_interp, cl_interp)
     cl_med = np.interp((y_interp[0] + y_interp[-1]) / 2.0, y_interp, cl_interp)
-    assert cl_med == pytest.approx(0.1683, abs=1e-4)
+    assert cl_med == pytest.approx(0.1704, abs=1e-4)
 
 
 def test_openvsp_comp_high_speed():
@@ -606,7 +606,7 @@ def test_high_speed_connection():
     assert cd0 == pytest.approx(0.0198, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
     if HS_OSWALD_BY_VLM:
-        assert coef_k == pytest.approx(0.0522, abs=1e-4)
+        assert coef_k == pytest.approx(0.0526, abs=1e-4)
     else:
         assert coef_k == pytest.approx(0.0480, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:cruise:CL_alpha", units="rad**-1")
@@ -634,7 +634,7 @@ def test_low_speed_connection():
     assert cd0 == pytest.approx(0.0452, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
     if LS_OSWALD_BY_VLM:
-        assert coef_k == pytest.approx(0.0528, abs=1e-4)
+        assert coef_k == pytest.approx(0.0532, abs=1e-4)
     else:
         assert coef_k == pytest.approx(0.0480, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")

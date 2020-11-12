@@ -289,7 +289,7 @@ class VLM(om.ExplicitComponent):
         panelchord = self.WING['panel_chord']
         panelsurf = self.WING['panel_surf']
         if use_airfoil:
-            self.naca230()
+            self.read_af_file()
         panelangle_vect = self.WING['panel_angle_vect']
         AIC = self.WING['AIC']
         AIC_inv = np.linalg.inv(AIC)
@@ -395,39 +395,62 @@ class VLM(om.ExplicitComponent):
 
         return y_position, cl_curve
 
-    def naca230(self):
-        """Generates the geometry for the NACA 230xx airfoil"""
+
+    def read_af_file(self):
+        """Generates curvature corresponding to the airfoil contained in .af file"""
 
         x_panel = self.WING['x_panel']
         panelangle_vect = self.WING['panel_angle_vect']
         panelangle = self.WING['panel_angle']
 
-        # Constant for NACA230XX
-        p = 0.15
-        m = 0.2025
-        k1 = 15.957
+        with open("D://a.reysset//Documents//Github//FAST-GA2-MODELS//models//aerodynamics//resources//naca23012.af", 'r') as lf:
+            data = lf.readlines()
+            # Extract data
+            x_data = []
+            z_data = []
+            for i in range(len(data)):
+                line = data[i].split()
+                if len(line) == 2:
+                    # noinspection PyBroadException
+                    try:
+                        float(line[0])
+                        float(line[1])
+                        x_data.append(float(line[0]))
+                        z_data.append(float(line[1]))
+                    except:
+                        pass
+
+        # Differentiate upper and lower curves
+        x_data = np.array(x_data)
+        z_data = np.array(z_data)
+        idx = int(np.where(x_data[0:len(x_data)-2] > x_data[1:len(x_data)-1])[0])
+        x_1 = x_data[0:idx+1]
+        z_1 = z_data[0:idx+1]
+        x_2 = x_data[idx+1:len(x_data)]
+        z_2 = z_data[idx+1:len(x_data)]
+
         # Initialization
-        z = np.zeros(self.nx+1)
+        z = np.zeros(self.nx + 1)
         rootchord = x_panel[self.nx, 0] - x_panel[0, 0]
         # Calculation of panelangle_vect
-        for i in range(self.nx+1):
-            xred = (x_panel[i, 0] - x_panel[0, 0])/rootchord
-            if xred < p:
-                z[i] = k1/6. * (xred**3 - 3*m*xred**2 + m**2*(3-m)*xred)
-            else:
-                z[i] = k1 * m**3 / 6.0 * (1 - xred)
-
-        z = z*rootchord
+        for i in range(self.nx + 1):
+            xred = (x_panel[i, 0] - x_panel[0, 0]) / rootchord
+            z_1_interp = np.interp(xred, x_1, z_1)
+            z_2_interp = np.interp(xred, x_2, z_2)
+            z[i] = (z_1_interp + z_2_interp) / 2.0
+        z = z * rootchord
         for i in range(self.nx):
             panelangle[i] = (z[i] - z[i+1]) / (x_panel[i+1, 0] - x_panel[i, 0])
 
         for i in range(self.nx):
             for j in range(self.ny):
                 panelangle_vect[i*self.ny+j] = panelangle[i]
+
         # Save results
         self.WING['panel_angle_vect'] = panelangle_vect
         self.WING['panel_angle'] = panelangle
         self.WING['z'] = z
+
 
     def flapped_airfoil(self, inputs, deflection_angle):
 
