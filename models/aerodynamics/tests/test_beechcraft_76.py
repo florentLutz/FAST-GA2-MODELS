@@ -601,7 +601,7 @@ def test_high_speed_connection():
     input_vars = reader.read().to_ivc()
     register_wrappers()
     # noinspection PyTypeChecker
-    problem = run_system(AerodynamicsHighSpeed(propulsion_id=ENGINE_WRAPPER), input_vars)
+    problem = run_system(AerodynamicsHighSpeed(propulsion_id=ENGINE_WRAPPER), input_vars, check=True)
     cd0 = problem["data:aerodynamics:aircraft:cruise:CD0"]
     assert cd0 == pytest.approx(0.0198, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
@@ -629,7 +629,7 @@ def test_low_speed_connection():
     input_vars = reader.read().to_ivc()
     register_wrappers()
     # noinspection PyTypeChecker
-    problem = run_system(AerodynamicsLowSpeed(propulsion_id=ENGINE_WRAPPER), input_vars)
+    problem = run_system(AerodynamicsLowSpeed(propulsion_id=ENGINE_WRAPPER), input_vars, check=True)
     cd0 = problem["data:aerodynamics:aircraft:low_speed:CD0"]
     assert cd0 == pytest.approx(0.0452, abs=1e-4)
     coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
