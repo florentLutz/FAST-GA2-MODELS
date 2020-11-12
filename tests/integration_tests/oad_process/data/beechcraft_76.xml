@@ -51,6 +51,7 @@
 						</x>
 					</at25percent>
 				</MAC>
+				<area units="m**2">4.422<!--horizontal tail area--></area>
 				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
 				<taper_ratio>1.0<!--taper ratio of horizontal tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>
@@ -64,6 +65,7 @@
 				<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
 			</propulsion>
 			<vertical_tail>
+				<area units="m**2">2.507<!--vertical tail area--></area>
 				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>
 				<sweep_25 units="deg">10.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
 				<taper_ratio>0.62<!--taper ratio of vertical tail--></taper_ratio>
@@ -75,6 +77,7 @@
 						<x units="m">3.449<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
 					</at25percent>
 				</MAC>
+				<area units="m**2">19.151<!--wing reference area--></area>
 				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
 				<kink>
 					<span_ratio>0.0<!--ratio (Y-position of kink)/(semi-span)--></span_ratio>
@@ -96,6 +99,7 @@
 				<cs23>
 					<sizing_factor_ultimate>5.7<!--over-sizing coefficient--></sizing_factor_ultimate>
 				</cs23>
+				<fuel units="kg">0.0</fuel>
 				<landing>
 					<elevator_angle units="deg">-25.0<!--elevator maximum angle during landing phase in sizing mission--></elevator_angle>
 				</landing>

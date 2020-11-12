@@ -52,17 +52,16 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("comp_re", ComputeReynolds(), promotes=["*"])
         self.add_subsystem("xfoil_in", Connection(), promotes=["data:geometry:wing:MAC:length"])
         self.add_subsystem("comp_polar", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio"])
+        self.connect("comp_polar.xfoil:CL", "data:aerodynamics:wing:cruise:CL")
+        self.connect("comp_polar.xfoil:CDp", "data:aerodynamics:wing:cruise:CDp")
         if _OSWALD_BY_VLM:
             self.add_subsystem("oswald", ComputeOSWALDvlm(), promotes=["*"])
-            self.connect("comp_polar.xfoil:CL", "data:aerodynamics:wing:cruise:CL")
-            self.connect("comp_polar.xfoil:CDp", "data:aerodynamics:wing:cruise:CDp")
         else:
             self.add_subsystem("oswald", ComputeOSWALDopenvsp(), promotes=["*"])
         if _CLALPHA_BY_VLM:
             self.add_subsystem("cl_alpha", ComputeWingCLALPHAvlm(), promotes=["*"])
         else:
             self.add_subsystem("cl_alpha", ComputeWingCLALPHAopenvsp(), promotes=["*"])
-
         self.add_subsystem("cd0_wing", Cd0Wing(), promotes=["*"])
         self.add_subsystem("cd0_fuselage", Cd0Fuselage(), promotes=["*"])
         self.add_subsystem("cd0_ht", Cd0HorizontalTail(), promotes=["*"])

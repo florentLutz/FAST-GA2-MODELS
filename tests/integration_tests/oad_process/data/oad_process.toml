@@ -16,21 +16,5 @@ output_file = "../results/oad_process_outputs.xml"
     [model.weight]
         id = "fastga.weight.legacy"
         propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-    [model.aerodynamics_highspeed]
-        id = "fastga.aerodynamics.highspeed.legacy"
-        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-    [model.aerodynamics_lowspeed]
-        id = "fastga.aerodynamics.lowspeed.legacy"
-        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-    [model.performance]
-        id = "fastga.performances.sizing"
-        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-    [model.hq.tail_sizing]
-        id = "fastga.handling_qualities.tail_sizing"
-        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-    [model.hq.static_margin]
-        id = "fastga.handling_qualities.static_margin"
-    [model.loop1]
-        id = "fastga.loop.wing_area"
     [model.loop2]
         id = "fastga.loop.mtow"

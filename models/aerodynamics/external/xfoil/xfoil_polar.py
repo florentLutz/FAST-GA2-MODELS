@@ -89,6 +89,10 @@ class XfoilPolar(ExternalCodeComp):
 
         self.declare_partials("*", "*", method="fd")
 
+    def check_config(self, logger):
+        # let void
+        pass
+
     def compute(self, inputs, outputs):
 
         # Create result folder first (if it must fail, let it fail as soon as possible)
