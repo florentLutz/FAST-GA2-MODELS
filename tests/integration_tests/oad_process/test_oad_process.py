@@ -21,6 +21,8 @@ from shutil import rmtree
 import openmdao.api as om
 import pytest
 from fastoad.io.configuration.configuration import FASTOADProblemConfigurator
+from fastoad.io.xml import VariableXmlStandardFormatter
+from fastoad.openmdao.utils import get_problem_after_setup
 from numpy.testing import assert_allclose
 
 
@@ -42,6 +44,9 @@ def test_oad_process(cleanup):
         pth.join(DATA_FOLDER_PATH, "oad_process.toml")
     ).get_problem()
 
+    ref_inputs = pth.join(DATA_FOLDER_PATH, "beechcraft_76.xml")
+    get_problem_after_setup(problem).write_needed_inputs(ref_inputs, VariableXmlStandardFormatter())
+
     recorder = om.SqliteRecorder("track_solving_process")
     problem.driver.add_recorder(recorder)
     problem.recording_options["record_inputs"] = True
@@ -62,7 +67,7 @@ def test_oad_process(cleanup):
         problem, outfile=pth.join(RESULTS_FOLDER_PATH, "connections.html"), show_browser=False
     )
     om.n2(problem, outfile=pth.join(RESULTS_FOLDER_PATH, "n2.html"), show_browser=False)
-    """
+
     # Check that weight-performances loop correctly converged
     assert_allclose(
         problem["data:weight:aircraft:OWE"],
@@ -84,4 +89,3 @@ def test_oad_process(cleanup):
         + problem["data:mission:sizing:fuel"],
         atol=1,
     )
-    """
