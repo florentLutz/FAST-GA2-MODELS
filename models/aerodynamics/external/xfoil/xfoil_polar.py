@@ -90,7 +90,7 @@ class XfoilPolar(ExternalCodeComp):
         self.declare_partials("*", "*", method="fd")
 
     def check_config(self, logger):
-        # let void
+        # let void to avoid logger error on "The command cannot be empty"
         pass
 
     def compute(self, inputs, outputs):

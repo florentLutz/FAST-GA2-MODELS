@@ -83,7 +83,11 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
             self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units='ft')
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
         
-        self.declare_partials("*", "*", method="fd")        
+        self.declare_partials("*", "*", method="fd")
+
+    def check_config(self, logger):
+        # let void to avoid logger error on "The command cannot be empty"
+        pass
     
     def compute(self, inputs, outputs):
 

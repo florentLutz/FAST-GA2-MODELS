@@ -79,6 +79,10 @@ class ComputeOSWALDopenvsp(ExternalCodeComp):
 
         self.declare_partials("*", "*", method="fd")
 
+    def check_config(self, logger):
+        # let void to avoid logger error on "The command cannot be empty"
+        pass
+
     def compute(self, inputs, outputs):
 
         # Create result folder first (if it must fail, let it fail as soon as possible)

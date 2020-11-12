@@ -85,7 +85,11 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         self.add_output("data:aerodynamics:wing:low_speed:alpha", shape=len(_INPUT_AOAList), units="deg")
         self.add_output("data:aerodynamics:wing:low_speed:CM", shape=len(_INPUT_AOAList))
 
-        self.declare_partials("*", "*", method="fd")        
+        self.declare_partials("*", "*", method="fd")
+
+    def check_config(self, logger):
+        # let void to avoid logger error on "The command cannot be empty"
+        pass
     
     def compute(self, inputs, outputs):
 
