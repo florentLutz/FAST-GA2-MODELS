@@ -392,7 +392,7 @@ def test_openvsp_comp_high_speed():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeHTPCLALPHAopenvsp(result_folder_path=results_folder.name), ivc)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.7027, abs=1e-4)
+    assert cl_alpha_htp == pytest.approx(0.6997, abs=1e-4)
     assert pth.exists(pth.join(results_folder.name, 'ClAlphaHT'))
 
     # Remove existing result files
@@ -437,7 +437,7 @@ def test_openvsp_comp_low_speed():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeHTPCLALPHAopenvsp(low_speed_aero=True), ivc)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.696, abs=1e-3)
+    assert cl_alpha_htp == pytest.approx(0.693, abs=1e-3)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(ComputeHTPCLCMopenvsp()))
@@ -615,7 +615,7 @@ def test_high_speed_connection():
     else:
         assert cl_alpha_wing == pytest.approx(4.650, abs=1e-3)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.7030, abs=1e-4)
+    assert cl_alpha_htp == pytest.approx(0.6998, abs=1e-4)
     cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
     assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
 
@@ -652,4 +652,4 @@ def test_low_speed_connection():
         assert cl_max_takeoff == pytest.approx(1.6391, abs=1e-4)
         assert cl_max_landing == pytest.approx(2.0961, abs=1e-4)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.6967, abs=1e-4)
+    assert cl_alpha_htp == pytest.approx(0.6933, abs=1e-4)

@@ -67,6 +67,9 @@ void main()
    
    string hid = AddGeom("WING", "");
    xsec_surf = GetXSecSurf( hid, 0 );
+   
+   //===== Define htp globale dimensions =====//
+   
    SetParmVal(hid, "Tess_W", "Shape", 31);
    SetParmVal( GetParm(hid, "LECluster", "WingGeom"), 0.7 );
    SetParmVal( GetParm(hid, "TECluster", "WingGeom"), 0.9 );
@@ -84,10 +87,18 @@ void main()
    SetParmVal( GetParm(hid, "SectTess_U", "XSec_1"), 25);
    Update();
    
-   //==== Change Airfoils shape (symmetrical)  ====//
+   //==== Change Airfoils 0 shape  ====//
    
-   ChangeXSecShape( xsec_surf, 0, XS_FOUR_SERIES );
-   ChangeXSecShape( xsec_surf, 1, XS_FOUR_SERIES );
+   ChangeXSecShape( xsec_surf, 0, XS_FILE_AIRFOIL );
+   xsec = GetXSec( xsec_surf, 0 );
+   ReadFileAirfoil( xsec, airfoil_3_file );
+   Update();
+   
+   //==== Change Airfoils 1 shape  ====//
+   
+   ChangeXSecShape( xsec_surf, 1, XS_FILE_AIRFOIL );
+   xsec = GetXSec( xsec_surf, 1 );
+   ReadFileAirfoil( xsec, airfoil_4_file );
    Update();
    
    //==== Check For API Errors ====//

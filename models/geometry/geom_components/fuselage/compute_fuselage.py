@@ -119,7 +119,7 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         vt_lp = inputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"]
         ht_length = inputs["data:geometry:horizontal_tail:MAC:length"]
         vt_length = inputs["data:geometry:vertical_tail:MAC:length"]
-        
+
         # Length of instrument panel
         l_instr = 0.7
         # Length of pax cabin

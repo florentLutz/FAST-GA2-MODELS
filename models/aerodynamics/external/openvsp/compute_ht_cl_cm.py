@@ -28,7 +28,8 @@ from importlib_resources import path
 from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
 
-from . import resources
+from ... import resources
+from . import resources as local_resources
 from . import openvsp3201
 from ...constants import HT_POINT_COUNT
 
@@ -37,10 +38,6 @@ OPTION_RESULT_FOLDER_PATH = "result_folder_path"
 
 _INPUT_SCRIPT_FILE_NAME = "wing_ht_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_ht_openvsp_DegenGeom"
-_LIFT_EFFECIVESS_FILE_NAME = "lift_effectiveness.txt"
-_AIRFOIL_0_FILE_NAME = "naca23012.af"
-_AIRFOIL_1_FILE_NAME = "naca23012.af"
-_AIRFOIL_2_FILE_NAME = "naca23012.af"
 _STDERR_FILE_NAME = "vspaero_calc.err"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
@@ -54,6 +51,8 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
     def initialize(self):
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_OPENVSP_EXE_PATH, default="", types=str, allow_none=True)
+        self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
+        self.options.declare('htp_airfoil_file', default="n0012.af", types=str, allow_none=True)
         
     def setup(self):
         
@@ -145,9 +144,8 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         else:
             target_directory = tmp_directory.name
         input_file_list = [pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME),
-                           pth.join(target_directory, _AIRFOIL_0_FILE_NAME),
-                           pth.join(target_directory, _AIRFOIL_1_FILE_NAME),
-                           pth.join(target_directory, _AIRFOIL_2_FILE_NAME)]
+                           pth.join(target_directory, self.options['wing_airfoil_file']),
+                           pth.join(target_directory, self.options['htp_airfoil_file'])]
         tmp_result_file_path = pth.join(target_directory, _INPUT_AERO_FILE_NAME + '0.csv')
         output_file_list = [tmp_result_file_path]
         self.options["external_input_files"] = input_file_list
@@ -159,11 +157,9 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
             # noinspection PyTypeChecker
             copy_resource_folder(openvsp3201, target_directory)
             # noinspection PyTypeChecker
-            copy_resource(resources, _AIRFOIL_0_FILE_NAME, target_directory)
+            copy_resource(resources, self.options['wing_airfoil_file'], target_directory)
             # noinspection PyTypeChecker
-            copy_resource(resources, _AIRFOIL_1_FILE_NAME, target_directory)
-            # noinspection PyTypeChecker
-            copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
+            copy_resource(resources, self.options['htp_airfoil_file'], target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
         command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' \
@@ -175,7 +171,7 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         
         # standard SCRIPT input file ----------------------------------------------------------------
         parser = InputFileGenerator()
-        with path(resources, _INPUT_SCRIPT_FILE_NAME) as input_template_path:
+        with path(local_resources, _INPUT_SCRIPT_FILE_NAME) as input_template_path:
             parser.set_template_file(str(input_template_path))
             parser.set_generated_file(input_file_list[0])
             parser.mark_anchor("x_wing")
@@ -197,9 +193,9 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
             parser.mark_anchor("airfoil_0_file")
             parser.transfer_var(self._rewrite_path(input_file_list[1]), 0, 3)
             parser.mark_anchor("airfoil_1_file")
-            parser.transfer_var(self._rewrite_path(input_file_list[2]), 0, 3)
+            parser.transfer_var(self._rewrite_path(input_file_list[1]), 0, 3)
             parser.mark_anchor("airfoil_2_file")
-            parser.transfer_var(self._rewrite_path(input_file_list[3]), 0, 3)
+            parser.transfer_var(self._rewrite_path(input_file_list[1]), 0, 3)
             parser.mark_anchor("distance_htp")
             parser.transfer_var(float(distance_htp), 0, 5)
             parser.mark_anchor("height_htp")
@@ -212,6 +208,10 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
             parser.transfer_var(float(tip_chord_htp), 0, 5)
             parser.mark_anchor("sweep_25_htp")
             parser.transfer_var(float(sweep_25_htp), 0, 5)
+            parser.mark_anchor("airfoil_3_file")
+            parser.transfer_var(self._rewrite_path(input_file_list[2]), 0, 3)
+            parser.mark_anchor("airfoil_4_file")
+            parser.transfer_var(self._rewrite_path(input_file_list[2]), 0, 3)
             parser.mark_anchor("csv_file")
             parser.transfer_var(self._rewrite_path(tmp_result_file_path), 0, 3)
             parser.generate()
@@ -258,7 +258,7 @@ class ComputeHTPCLCMopenvsp(ExternalCodeComp):
         # standard AERO input file -----------------------------------------------------------------
         parser = InputFileGenerator()
         for idx in range(len(_INPUT_AOAList)):
-            with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
+            with path(local_resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
                 parser.set_template_file(str(input_template_path))
                 parser.set_generated_file(input_file_list[len(_INPUT_AOAList) + idx])
                 parser.reset_anchor()

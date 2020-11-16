@@ -31,7 +31,8 @@ from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
 from ...constants import SPAN_MESH_POINT_OPENVSP
 
-from . import resources
+from ... import resources
+from . import resources as local_resources
 from . import openvsp3201
 
 OPTION_OPENVSP_EXE_PATH = "openvsp_exe_path"
@@ -40,9 +41,6 @@ OPTION_RESULT_FOLDER_PATH = "result_folder_path"
 _INPUT_SCRIPT_FILE_NAME = "wing_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_openvsp_DegenGeom"
 _INPUT_AOAList = [0.0, 7.0]
-_AIRFOIL_0_FILE_NAME = "naca23012.af"
-_AIRFOIL_1_FILE_NAME = "naca23012.af"
-_AIRFOIL_2_FILE_NAME = "naca23012.af"
 _STDERR_FILE_NAME = "vspaero_calc.err"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"
@@ -54,6 +52,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         self.options.declare("low_speed_aero", default=False, types=bool)
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_OPENVSP_EXE_PATH, default="", types=str, allow_none=True)
+        self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
         
     def setup(self):
         
@@ -138,9 +137,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         else:
             target_directory = tmp_directory.name
         input_file_list = [pth.join(target_directory, _INPUT_SCRIPT_FILE_NAME),
-                           pth.join(target_directory, _AIRFOIL_0_FILE_NAME),
-                           pth.join(target_directory, _AIRFOIL_1_FILE_NAME),
-                           pth.join(target_directory, _AIRFOIL_2_FILE_NAME)]
+                           pth.join(target_directory, self.options['wing_airfoil_file'])]
         tmp_result_file_path = pth.join(target_directory, _INPUT_AERO_FILE_NAME + '0.csv')
         output_file_list = [tmp_result_file_path]
         self.options["external_input_files"] = input_file_list
@@ -152,11 +149,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
             # noinspection PyTypeChecker
             copy_resource_folder(openvsp3201, target_directory)
             # noinspection PyTypeChecker
-            copy_resource(resources, _AIRFOIL_0_FILE_NAME, target_directory)
-            # noinspection PyTypeChecker
-            copy_resource(resources, _AIRFOIL_1_FILE_NAME, target_directory)
-            # noinspection PyTypeChecker
-            copy_resource(resources, _AIRFOIL_2_FILE_NAME, target_directory)
+            copy_resource(resources, self.options['wing_airfoil_file'], target_directory)
         # Create corresponding .bat file
         self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
         command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' \
@@ -168,7 +161,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         
         # standard SCRIPT input file ---------------------------------------------------------------
         parser = InputFileGenerator()
-        with path(resources, _INPUT_SCRIPT_FILE_NAME) as input_template_path:
+        with path(local_resources, _INPUT_SCRIPT_FILE_NAME) as input_template_path:
             parser.set_template_file(str(input_template_path))
             parser.set_generated_file(input_file_list[0])
             parser.mark_anchor("x_wing")
@@ -190,9 +183,9 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
             parser.mark_anchor("airfoil_0_file")
             parser.transfer_var(self._rewrite_path(input_file_list[1]), 0, 3)
             parser.mark_anchor("airfoil_1_file")
-            parser.transfer_var(self._rewrite_path(input_file_list[2]), 0, 3)
+            parser.transfer_var(self._rewrite_path(input_file_list[1]), 0, 3)
             parser.mark_anchor("airfoil_2_file")
-            parser.transfer_var(self._rewrite_path(input_file_list[3]), 0, 3)
+            parser.transfer_var(self._rewrite_path(input_file_list[1]), 0, 3)
             parser.mark_anchor("csv_file")
             parser.transfer_var(self._rewrite_path(tmp_result_file_path), 0, 3)
             parser.generate()
@@ -240,7 +233,7 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         # standard AERO input file -----------------------------------------------------------------
         parser = InputFileGenerator()
         for idx in range(len(_INPUT_AOAList)):
-            with path(resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
+            with path(local_resources, _INPUT_AERO_FILE_NAME + '.vspaero') as input_template_path:
                 parser.set_template_file(str(input_template_path))
                 parser.set_generated_file(input_file_list[len(_INPUT_AOAList)+idx])
                 parser.reset_anchor()
@@ -275,9 +268,9 @@ class ComputeWingCLALPHAopenvsp(ExternalCodeComp):
         # Fuselage correction
         k_fus = 1 + 0.025*width_max/span_wing - 0.025*(width_max/span_wing)**2
         cl_0 = float(result_cl[0] * k_fus)
-        cl_7 = float(result_cl[1] * k_fus)
+        cl_1 = float(result_cl[1] * k_fus)
         # Calculate derivative
-        cl_alpha = (cl_7 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)
+        cl_alpha = (cl_1 - cl_0) / ((_INPUT_AOAList[1]-_INPUT_AOAList[0])*math.pi/180)
         # Get lift curve
         y_vector, cl_vector = self._read_lod_file(output_file_list[-1])
         real_length = min(SPAN_MESH_POINT_OPENVSP, len(y_vector))

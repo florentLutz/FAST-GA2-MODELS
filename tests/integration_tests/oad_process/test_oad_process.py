@@ -57,6 +57,7 @@ def test_oad_process(cleanup):
     problem.setup(check=True)
     problem.set_solver_print(level=2)
     problem.run_model()
+    problem.check_partials()
     problem.write_outputs()
 
     cr = om.CaseReader("track_solving_process")

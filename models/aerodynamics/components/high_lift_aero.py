@@ -169,13 +169,13 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         :return: increment of moment coefficient
         """
         
-        wing_taper_ratio = inputs['data:geometry:wing:taper_ratio']
+        wing_taper_ratio = float(inputs['data:geometry:wing:taper_ratio'])
         
         # Method from Roskam (sweep=0, flaps 60%, simple slotted and not extensible, at 25% MAC, cf/c+0.25)
         k_p = interpolate.interp1d([0., 0.2, 0.33, 0.5, 1.], [0.65, 0.75, 0.7, 0.63, 0.5])
         # k_p: Figure 8.105, interpolated function of taper ratio (span ratio fixed)
         delta_cl_flap = self._get_flaps_delta_cl(inputs, flap_angle, mach)[0]
-        delta_cm_flap = k_p(wing_taper_ratio) * (-0.27) * delta_cl_flap  # -0.27: Figure 8.106
+        delta_cm_flap = k_p(min(max(0.0, wing_taper_ratio), 1.0)) * (-0.27) * delta_cl_flap  # -0.27: Figure 8.106
 
         return delta_cm_flap
 

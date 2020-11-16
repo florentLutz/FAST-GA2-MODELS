@@ -36,7 +36,7 @@ class ComputeVTMAC(ExplicitComponent):
         self.add_output("data:geometry:vertical_tail:MAC:length", units="m")
         self.add_output("data:geometry:vertical_tail:MAC:at25percent:x:local", units="m")
         self.add_output("data:geometry:vertical_tail:MAC:z", units="m")
-        self.add_output("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
+        self.add_output("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", units="m")
 
         self.declare_partials(
             "data:geometry:vertical_tail:MAC:length",

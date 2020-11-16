@@ -37,6 +37,10 @@
 				</low_speed>
 			</aircraft>
 			<flaps>
+				<landing>
+					<CD>0.0196</CD>
+					<CL>0.7321</CL>
+				</landing>
 				<takeoff>
 					<CD>0.0034</CD>
 					<CL>0.2805</CL>

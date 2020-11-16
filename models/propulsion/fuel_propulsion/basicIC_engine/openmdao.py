@@ -94,7 +94,6 @@ class OMBasicICEngineWrapper(IOMPropulsionWrapper):
         "data:propulsion:IC_engine:max_power": (50000, 250000),  # power range validity
         "data:propulsion:IC_engine:fuel_type": [1.0, 2.0],  # fuel list
         "data:propulsion:IC_engine:strokes_nb": [2.0, 4.0],  # architecture list
-        "data:propulsion:thrust_rate": (0.0, 1.0),  # limitation of SFC ratio model
     }
 )
 class OMBasicICEngineComponent(BaseOMPropulsionComponent):
