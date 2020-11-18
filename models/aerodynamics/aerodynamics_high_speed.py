@@ -28,16 +28,13 @@ from .components.compute_reynolds import ComputeReynolds
 from .components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
 from .components.clalpha_vt import ComputeClalphaVT
 
-from .external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm
+from .external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm, ComputeHTPCLALPHAvlm
 from .external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp
 from .external.xfoil import XfoilPolar
 
 from openmdao.core.group import Group
 from openmdao.core.explicitcomponent import ExplicitComponent
 import numpy as np
-
-_OSWALD_BY_VLM = True
-_CLALPHA_BY_VLM = True
 
 
 class AerodynamicsHighSpeed(Group):
@@ -47,21 +44,37 @@ class AerodynamicsHighSpeed(Group):
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
+        self.options.declare("use_openvsp", default=False, types=bool)
+        self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
+        self.options.declare('htp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
 
     def setup(self):
         self.add_subsystem("comp_re", ComputeReynolds(), promotes=["*"])
         self.add_subsystem("xfoil_in", Connection(), promotes=["data:geometry:wing:MAC:length"])
-        self.add_subsystem("comp_polar", XfoilPolar(), promotes=["data:geometry:wing:thickness_ratio"])
+        self.add_subsystem(
+            "comp_polar",
+            XfoilPolar(wing_airfoil_file=self.options["wing_airfoil_file"]),
+            promotes=["data:geometry:wing:thickness_ratio"])
         self.connect("comp_polar.xfoil:CL", "data:aerodynamics:wing:cruise:CL")
         self.connect("comp_polar.xfoil:CDp", "data:aerodynamics:wing:cruise:CDp")
-        if _OSWALD_BY_VLM:
-            self.add_subsystem("oswald", ComputeOSWALDvlm(), promotes=["*"])
+        if not(self.options["use_openvsp"]):
+            self.add_subsystem(
+                "oswald",
+                ComputeOSWALDvlm(wing_airfoil_file=self.options["wing_airfoil_file"]),
+                promotes=["*"])
+            self.add_subsystem(
+                "cl_alpha",
+                ComputeWingCLALPHAvlm(wing_airfoil_file=self.options["wing_airfoil_file"]),
+                promotes=["*"])
         else:
-            self.add_subsystem("oswald", ComputeOSWALDopenvsp(), promotes=["*"])
-        if _CLALPHA_BY_VLM:
-            self.add_subsystem("cl_alpha", ComputeWingCLALPHAvlm(), promotes=["*"])
-        else:
-            self.add_subsystem("cl_alpha", ComputeWingCLALPHAopenvsp(), promotes=["*"])
+            self.add_subsystem(
+                "oswald",
+                ComputeOSWALDopenvsp(wing_airfoil_file=self.options["wing_airfoil_file"]),
+                promotes=["*"])
+            self.add_subsystem(
+                "cl_alpha",
+                ComputeWingCLALPHAopenvsp(wing_airfoil_file=self.options["wing_airfoil_file"]),
+                promotes=["*"])
         self.add_subsystem("cd0_wing", Cd0Wing(), promotes=["*"])
         self.add_subsystem("cd0_fuselage", Cd0Fuselage(), promotes=["*"])
         self.add_subsystem("cd0_ht", Cd0HorizontalTail(), promotes=["*"])
@@ -70,7 +83,20 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("cd0_l_gear", Cd0LandingGear(), promotes=["*"])
         self.add_subsystem("cd0_other", Cd0Other(), promotes=["*"])
         self.add_subsystem("cd0_total", Cd0Total(), promotes=["*"])
-        self.add_subsystem("cl_alpha_ht", ComputeHTPCLALPHAopenvsp(), promotes=["*"])
+        if not (self.options["use_openvsp"]):
+            self.add_subsystem(
+                "cl_alpha_ht",
+                ComputeHTPCLALPHAvlm(
+                    wing_airfoil_file=self.options["wing_airfoil_file"],
+                    htp_airfoil_file=self.options["htp_airfoil_file"],
+                ), promotes=["*"])
+        else:
+            self.add_subsystem(
+                "cl_alpha_ht",
+                ComputeHTPCLALPHAopenvsp(
+                    wing_airfoil_file=self.options["wing_airfoil_file"],
+                    htp_airfoil_file=self.options["htp_airfoil_file"],
+                ), promotes=["*"])
         self.add_subsystem("L_D_max", ComputeLDMax(), promotes=["*"])
         self.add_subsystem("cnBeta_fuse", ComputeCnBetaFuselage(), promotes=["*"])
         self.add_subsystem("clAlpha_vt", ComputeClalphaVT(), promotes=["*"])

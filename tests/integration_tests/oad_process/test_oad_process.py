@@ -44,23 +44,14 @@ def test_oad_process(cleanup):
         pth.join(DATA_FOLDER_PATH, "oad_process.toml")
     ).get_problem()
 
-    ref_inputs = pth.join(DATA_FOLDER_PATH, "oad_process_outputs.xml")
+    ref_inputs = pth.join(DATA_FOLDER_PATH, "beechcraft_76.xml")
     get_problem_after_setup(problem).write_needed_inputs(ref_inputs, VariableXmlStandardFormatter())
-
-    recorder = om.SqliteRecorder("track_solving_process")
-    problem.driver.add_recorder(recorder)
-    problem.recording_options["record_inputs"] = True
-    problem.recording_options["record_residuals"] = True
-    problem.recording_options["record_responses"] = True
     problem.read_inputs()
     print('\n')
     problem.setup(check=True)
     problem.set_solver_print(level=2)
     problem.run_model()
-    problem.check_partials()
     problem.write_outputs()
-
-    cr = om.CaseReader("track_solving_process")
 
     if not pth.exists(RESULTS_FOLDER_PATH):
         os.mkdir(RESULTS_FOLDER_PATH)
@@ -70,25 +61,24 @@ def test_oad_process(cleanup):
     om.n2(problem, outfile=pth.join(RESULTS_FOLDER_PATH, "n2.html"), show_browser=False)
 
 
-    """    # Check that weight-performances loop correctly converged
+    # Check that weight-performances loop correctly converged
     assert_allclose(
         problem["data:weight:aircraft:OWE"],
         problem["data:weight:airframe:mass"]
         + problem["data:weight:propulsion:mass"]
         + problem["data:weight:systems:mass"]
         + problem["data:weight:furniture:mass"],
-        atol=1,
+        rtol=5e-2,
     )
     assert_allclose(
         problem["data:weight:aircraft:MZFW"],
         problem["data:weight:aircraft:OWE"] + problem["data:weight:aircraft:max_payload"],
-        atol=1,
+        rtol=5e-2,
     )
     assert_allclose(
         problem["data:weight:aircraft:MTOW"],
         problem["data:weight:aircraft:OWE"]
         + problem["data:weight:aircraft:max_payload"]
         + problem["data:mission:sizing:fuel"],
-        atol=1,
+        rtol=5e-2,
     )
-    """

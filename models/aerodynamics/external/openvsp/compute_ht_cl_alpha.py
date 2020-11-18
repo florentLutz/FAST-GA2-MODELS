@@ -51,7 +51,7 @@ class ComputeHTPCLALPHAopenvsp(ExternalCodeComp):
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_OPENVSP_EXE_PATH, default="", types=str, allow_none=True)
         self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
-        self.options.declare('htp_airfoil_file', default="naca23012.af", types=str, allow_none=True)
+        self.options.declare('htp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
         
     def setup(self):
         

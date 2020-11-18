@@ -19,7 +19,9 @@ import math
 import numpy as np
 import copy
 import openmdao.api as om
-from typing import Tuple
+from typing import Tuple, List, Union, Optional
+
+from ....geometry.profiles.get_profile import get_profile
 
 DEFAULT_NX = 19
 DEFAULT_NY1 = 3
@@ -27,6 +29,10 @@ DEFAULT_NY2 = 14
 
 
 class VLM(om.ExplicitComponent):
+
+    def initialize(self):
+        self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
+        self.options.declare('htp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
 
     def setup(self):
 
@@ -39,6 +45,7 @@ class VLM(om.ExplicitComponent):
         self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:flap:span_ratio", val=np.nan)
         self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
@@ -264,16 +271,21 @@ class VLM(om.ExplicitComponent):
         dictionary['AIC'] = AIC
         dictionary['AIC_wake'] = AIC_wake
 
-    def compute_wing(self, inputs, aoalist, vinf, flaps_angle=0.0,
-                     use_airfoil=True) -> Tuple[list, list, list, list]:
+    def compute_wing(
+            self,
+            inputs,
+            aoalist: Union[float, List],
+            vinf: float,
+            flaps_angle: Optional[float] = 0.0,
+            use_airfoil: Optional[bool] = True) -> Tuple[list, list, list, list]:
         """
         VLM computations for the wing alone.
 
         :param inputs: inputs parameters for the explicit component
         :param aoalist: list of angle of attack to be computed (in Deg)
         :param vinf: air speed (in m/s)
-        :param flaps_angle: (in Deg)
-        :param use_airfoil: adds the camberline coordinates of the selected airfoil (NACA 230) (default=True)
+        :param flaps_angle: flaps angle in Deg (default=0.0: i.e. no deflection)
+        :param use_airfoil: adds the camberline coordinates of the selected airfoil (default=True)
         :return: [Cl, Cdi, Oswald, Cm] aerodynamic parameters
         """
 
@@ -289,12 +301,12 @@ class VLM(om.ExplicitComponent):
         panelchord = self.WING['panel_chord']
         panelsurf = self.WING['panel_surf']
         if use_airfoil:
-            self.read_af_file()
+            self.generate_curvature(self.WING, self.options['wing_airfoil_file'])
         panelangle_vect = self.WING['panel_angle_vect']
         AIC = self.WING['AIC']
         AIC_inv = np.linalg.inv(AIC)
         AIC_wake = self.WING['AIC_wake']
-        self.flapped_airfoil(inputs, flaps_angle)
+        self.apply_deflection(inputs, flaps_angle)
 
         # Calculate all the aerodynamic parameters 
         for AoA in aoalist:
@@ -319,49 +331,52 @@ class VLM(om.ExplicitComponent):
 
         return Cl, Cdi, Oswald, Cm
 
-    def compute_htp(self, aoalist: list, vinf: float) -> list:
-        """VLM computation for the horizontal tail."""
+    def compute_htp(
+            self,
+            inputs,
+            aoalist: Union[float, List],
+            vinf: float,
+            use_airfoil: Optional[bool] = True) -> Tuple[list, list]:
+        """VLM computation for the horizontal tail alone.
+
+        :param inputs: inputs parameters for the explicit component
+        :param aoalist: list of angle of attack to be computed (in Deg)
+        :param vinf: air speed (in m/s)
+        :param use_airfoil: adds the camberline coordinates of the selected airfoil (NACA 230) (default=True)
+        :return: [Cl, Cm] aerodynamic parameters
+        """
+
+        meanchord = inputs['data:geometry:horizontal_tail:MAC:length']
 
         # Initialization 
         Cl = []
+        Cm = []
+        xc = self.HTP['xc']
         panelchord = self.HTP['panel_chord']
-        panelsurf = self.HTP['panelsurf']
+        panelsurf = self.HTP['panel_surf']
+        if use_airfoil:
+            self.generate_curvature(self.HTP, self.options['htp_airfoil_file'])
+        panelangle_vect = self.HTP['panel_angle_vect']
         AIC = self.HTP['AIC']
         AIC_inv = np.linalg.inv(AIC)
-        if 'w_farfield' in self.WING.keys():
-            w_farfield = self.WING['w_farfield']
-            # Calculate aerodynamic parameters
-            for i in range(len(aoalist)):
-                wi_ht_vect = self.interpolate_w_ht(w_farfield[i])
-                alpha = np.ones(self.nx*self.ny) * aoalist[i] * math.pi / 180 + wi_ht_vect / vinf
-                gamma = -np.dot(AIC_inv, alpha) * vinf
-                cp = -2 / vinf * np.divide(gamma, panelchord)
-                cl = -np.sum(cp*panelsurf)/np.sum(panelsurf)
-                Cl.append(cl)
 
-        return Cl
+        # Calculate all the aerodynamic parameters
+        for AoA in aoalist:
+            AoA = AoA * math.pi / 180
+            alpha = np.add(panelangle_vect, AoA)
+            gamma = -np.dot(AIC_inv, alpha) * vinf
+            cp = -2 / vinf * np.divide(gamma, panelchord)
+            for i in range(self.nx):
+                cp[i * self.ny] = cp[i * self.ny] * 1
+            cl = -np.sum(cp * panelsurf) / np.sum(panelsurf)
+            cmpanel = np.multiply(cp, (xc[:self.nx * self.ny] - meanchord / 4))
+            cm = np.sum(cmpanel * panelsurf) / np.sum(panelsurf)
+            # Save data
+            Cl.append(cl)
+            Cm.append(cm)
 
-    def interpolate_w_ht(self, wi_wing: np.array) -> np.array:
-        """Interpolates the down-wash velocity to the HT control points."""
+        return Cl, Cm
 
-        yc_ht = self.HTP['yc']
-        yc_wing = self.WING['yc']
-
-        wi_ht = np.zeros(self.ny)
-        wi_ht_vect = np.zeros(self.nx*self.ny)
-        for htpanel in range(self.ny):
-            for wingpanel in range(self.ny):
-                if yc_ht[htpanel] > yc_wing[wingpanel]:
-                    wi_ht[htpanel] = wi_wing[wingpanel-1] \
-                                     + (wi_wing[wingpanel] - wi_wing[wingpanel-1]) \
-                                     / (yc_wing[wingpanel] - yc_wing[wingpanel-1]) \
-                                     * (yc_ht[htpanel] - yc_wing[wingpanel-1])
-                    break
-        for i in range(self.nx):
-            for j in range(self.ny):
-                wi_ht_vect[i*self.nx+j] = wi_ht[j]
-
-        return wi_ht_vect
 
     def get_cl_curve(self, aoa: float, vinf: float) -> Tuple[list, list]:
         """
@@ -396,48 +411,22 @@ class VLM(om.ExplicitComponent):
         return y_position, cl_curve
 
 
-    def read_af_file(self):
+    def generate_curvature(self, dictionary, file_name):
         """Generates curvature corresponding to the airfoil contained in .af file"""
 
-        x_panel = self.WING['x_panel']
-        panelangle_vect = self.WING['panel_angle_vect']
-        panelangle = self.WING['panel_angle']
-
-        with open("D://a.reysset//Documents//Github//FAST-GA2-MODELS//models//aerodynamics//resources//naca23012.af", 'r') as lf:
-            data = lf.readlines()
-            # Extract data
-            x_data = []
-            z_data = []
-            for i in range(len(data)):
-                line = data[i].split()
-                if len(line) == 2:
-                    # noinspection PyBroadException
-                    try:
-                        float(line[0])
-                        float(line[1])
-                        x_data.append(float(line[0]))
-                        z_data.append(float(line[1]))
-                    except:
-                        pass
-
-        # Differentiate upper and lower curves
-        x_data = np.array(x_data)
-        z_data = np.array(z_data)
-        idx = int(np.where(x_data[0:len(x_data)-2] > x_data[1:len(x_data)-1])[0])
-        x_1 = x_data[0:idx+1]
-        z_1 = z_data[0:idx+1]
-        x_2 = x_data[idx+1:len(x_data)]
-        z_2 = z_data[idx+1:len(x_data)]
+        x_panel = dictionary['x_panel']
+        panelangle_vect = dictionary['panel_angle_vect']
+        panelangle = dictionary['panel_angle']
 
         # Initialization
         z = np.zeros(self.nx + 1)
         rootchord = x_panel[self.nx, 0] - x_panel[0, 0]
         # Calculation of panelangle_vect
+        profile = get_profile(file_name=file_name)
+        mean_line = profile.get_mean_line()
         for i in range(self.nx + 1):
             xred = (x_panel[i, 0] - x_panel[0, 0]) / rootchord
-            z_1_interp = np.interp(xred, x_1, z_1)
-            z_2_interp = np.interp(xred, x_2, z_2)
-            z[i] = (z_1_interp + z_2_interp) / 2.0
+            z[i] = np.interp(min(max(xred, min(mean_line['x'])), max(mean_line['x'])), mean_line['x'], mean_line['z'])
         z = z * rootchord
         for i in range(self.nx):
             panelangle[i] = (z[i] - z[i+1]) / (x_panel[i+1, 0] - x_panel[i, 0])
@@ -447,12 +436,13 @@ class VLM(om.ExplicitComponent):
                 panelangle_vect[i*self.ny+j] = panelangle[i]
 
         # Save results
-        self.WING['panel_angle_vect'] = panelangle_vect
-        self.WING['panel_angle'] = panelangle
-        self.WING['z'] = z
+        dictionary['panel_angle_vect'] = panelangle_vect
+        dictionary['panel_angle'] = panelangle
+        dictionary['z'] = z
 
 
-    def flapped_airfoil(self, inputs, deflection_angle):
+    def apply_deflection(self, inputs, deflection_angle):
+        """Apply panel angle deflection due to flaps angle [UNUSED: deflection_angle=0.0]"""
 
         root_chord = inputs['data:geometry:wing:root:chord']
         x_start = (1.0 - inputs['data:geometry:flap:span_ratio'])*root_chord

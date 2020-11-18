@@ -25,18 +25,17 @@ import warnings
 
 import numpy as np
 from fastoad.models.aerodynamics.external.xfoil import xfoil699
-from fastoad.models.geometry.profiles.get_profile import get_profile
 from fastoad.utils.resource_management.copy import copy_resource
 from importlib_resources import path
 from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
 from ...constants import POLAR_POINT_COUNT
+from ....geometry.profiles.get_profile import get_profile
 
-from . import resources
+from . import resources as local_resources
 
 OPTION_RESULT_POLAR_FILENAME = "result_polar_filename"
 OPTION_RESULT_FOLDER_PATH = "result_folder_path"
-OPTION_PROFILE_NAME = "profile_name"
 OPTION_XFOIL_EXE_PATH = "xfoil_exe_path"
 OPTION_ALPHA_START = "alpha_start"
 OPTION_ALPHA_END = "alpha_end"
@@ -46,10 +45,10 @@ DEFAULT_2D_CL_MAX = 1.9
 _INPUT_FILE_NAME = "polar_session.txt"
 _STDOUT_FILE_NAME = "polar_calc.log"
 _STDERR_FILE_NAME = "polar_calc.err"
+_DEFAULT_AIRFOIL_FILE = "naca23012.af"
 _TMP_PROFILE_FILE_NAME = "in"  # as short as possible to avoid problems of path length
 _TMP_RESULT_FILE_NAME = "out"  # as short as possible to avoid problems of path length
 XFOIL_EXE_NAME = "xfoil.exe"  # name of embedded XFoil executable
-DEFAULT_PROFILE_FILENAME = "BACJ.txt"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,7 +66,7 @@ class XfoilPolar(ExternalCodeComp):
     def initialize(self):
         
         self.options.declare(OPTION_XFOIL_EXE_PATH, default="", types=str, allow_none=True)
-        self.options.declare(OPTION_PROFILE_NAME, default="BACJ.txt", types=str)
+        self.options.declare("wing_airfoil_file", default=_DEFAULT_AIRFOIL_FILE, types=str)
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_RESULT_POLAR_FILENAME, default="polar_result.txt", types=str)
         self.options.declare(OPTION_ALPHA_START, default=0.0, types=float)
@@ -126,8 +125,9 @@ class XfoilPolar(ExternalCodeComp):
         # profile file
         tmp_profile_file_path = pth.join(tmp_directory.name, _TMP_PROFILE_FILE_NAME)
         profile = get_profile(
-            file_name=self.options[OPTION_PROFILE_NAME], thickness_ratio=thickness_ratio
-        )
+            file_name=self.options["wing_airfoil_file"],
+            thickness_ratio=thickness_ratio,
+        ).get_sides()
         # noinspection PyTypeChecker
         np.savetxt(
             tmp_profile_file_path,
@@ -141,7 +141,7 @@ class XfoilPolar(ExternalCodeComp):
         # standard input file
         tmp_result_file_path = pth.join(tmp_directory.name, _TMP_RESULT_FILE_NAME)
         parser = InputFileGenerator()
-        with path(resources, _INPUT_FILE_NAME) as input_template_path:
+        with path(local_resources, _INPUT_FILE_NAME) as input_template_path:
             parser.set_template_file(str(input_template_path))
             parser.set_generated_file(self.stdin)
             parser.mark_anchor("RE")
@@ -154,9 +154,9 @@ class XfoilPolar(ExternalCodeComp):
             parser.transfer_var(self.options[OPTION_ALPHA_START], 1, 1)
             parser.transfer_var(self.options[OPTION_ALPHA_END], 2, 1)
             parser.reset_anchor()
-            parser.mark_anchor("/profile.txt")
+            parser.mark_anchor("/profile")
             parser.transfer_var(tmp_profile_file_path, 0, 1)
-            parser.mark_anchor("/polar_result.txt")
+            parser.mark_anchor("/polar_result")
             parser.transfer_var(tmp_result_file_path, 0, 1)
             parser.generate()
 
@@ -234,6 +234,7 @@ class XfoilPolar(ExternalCodeComp):
 
         _LOGGER.warning("2D CL max not found. Using default value (%s)", DEFAULT_2D_CL_MAX)
         return DEFAULT_2D_CL_MAX
+
 
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:

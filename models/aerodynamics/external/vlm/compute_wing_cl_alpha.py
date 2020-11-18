@@ -14,8 +14,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import logging
-
 import numpy as np
 import math
 import warnings
@@ -25,14 +23,13 @@ from .vlm import VLM
 from ...constants import SPAN_MESH_POINT_OPENVSP
 
 _INPUT_AOAList = [0.0, 7.0]
-DEFAULT_ALPHA = 0.0
-_LOGGER = logging.getLogger(__name__)
 
 
 class ComputeWingCLALPHAvlm(VLM):
     """ Computes lift coefficient """
     
     def initialize(self):
+        super().initialize()
         self.options.declare("low_speed_aero", default=False, types=bool)
         
     def setup(self):
