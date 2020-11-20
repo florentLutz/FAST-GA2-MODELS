@@ -249,7 +249,7 @@ class _ComputeArea(om.ExplicitComponent):
         # Evaluate aircraft overall angle (aoa)
         cl0_landing = cl0_clean + cl_flaps_landing
         # Calculation of correction coefficient n_h and n_q            
-        n_h = (x_ht - x_lg) / lp_ht * 0.9  # 0.9=(v_h/v_r)²: dynamic pressure reduction at tail (typical value)
+        n_h = (x_ht - x_lg) / lp_ht * 0.9  # 0.9=(v_htp/v_r)²: dynamic pressure reduction at tail (typical value)
         n_q = 1 + cl_alpha_ht / cl_ht_landing * _ANG_VEL * (x_ht - x_lg) / v_r
         # Calculation of volume coefficient based on Torenbeek formula
         coef_vol = (

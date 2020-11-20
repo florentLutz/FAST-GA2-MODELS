@@ -18,6 +18,7 @@ import os
 import os.path as pth
 from shutil import rmtree
 
+from fastoad import api
 import openmdao.api as om
 import pytest
 from fastoad.io.configuration.configuration import FASTOADProblemConfigurator
@@ -28,6 +29,11 @@ from numpy.testing import assert_allclose
 
 DATA_FOLDER_PATH = pth.join(pth.dirname(__file__), "data")
 RESULTS_FOLDER_PATH = pth.join(pth.dirname(__file__), "results")
+PATH = pth.dirname(__file__).split(os.path.sep)
+NOTEBOOKS_PATH = PATH[0] + os.path.sep
+for folder in PATH[1:len(PATH)-3]:
+    NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, folder)
+NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, "notebooks")
 
 
 @pytest.fixture(scope="module")
@@ -82,3 +88,84 @@ def test_oad_process(cleanup):
         + problem["data:mission:sizing:fuel"],
         rtol=5e-2,
     )
+
+
+def test_api(cleanup):
+
+    # Generation of inputs ----------------------------------------------------
+    # We get the same inputs as in tutorial notebook
+    configuration_file_path = pth.join(
+        NOTEBOOKS_PATH, "tutorial", "data", "oad_process.toml")
+    source_xml = pth.join(
+        NOTEBOOKS_PATH, "tutorial", "data", "beechcraft_76.xml"
+    )
+    api.generate_inputs(configuration_file_path, source_xml, overwrite=True)
+
+    # Run model ---------------------------------------------------------------
+    problem = api.evaluate_problem(configuration_file_path, True)
+
+    # Check that weight-performances loop correctly converged
+    assert_allclose(
+        problem["data:weight:aircraft:OWE"],
+        problem["data:weight:airframe:mass"]
+        + problem["data:weight:propulsion:mass"]
+        + problem["data:weight:systems:mass"]
+        + problem["data:weight:furniture:mass"],
+        rtol=5e-2,
+    )
+    assert_allclose(
+        problem["data:weight:aircraft:MZFW"],
+        problem["data:weight:aircraft:OWE"] + problem["data:weight:aircraft:max_payload"],
+        rtol=5e-2,
+    )
+    assert_allclose(
+        problem["data:weight:aircraft:MTOW"],
+        problem["data:weight:aircraft:OWE"]
+        + problem["data:weight:aircraft:payload"]
+        + problem["data:mission:sizing:fuel"],
+        rtol=5e-2,
+    )
+
+    assert_allclose(problem["data:handling_qualities:static_margin"], -0.005519, atol=1e-3)
+    assert_allclose(problem["data:geometry:wing:MAC:at25percent:x"], 16.5, atol=1e-2)
+    assert_allclose(problem["data:weight:aircraft:MTOW"], 77065, atol=1)
+    assert_allclose(problem["data:geometry:wing:area"], 130.29, atol=1e-2)
+    assert_allclose(problem["data:geometry:vertical_tail:area"], 27.65, atol=1e-2)
+    assert_allclose(problem["data:geometry:horizontal_tail:area"], 35.25, atol=1e-2)
+    assert_allclose(problem["data:mission:sizing:fuel"], 20494, atol=1)
+
+    # Run optim ---------------------------------------------------------------
+    problem = api.optimize_problem(configuration_file_path, True)
+    assert not problem.optim_failed
+
+    # Check that weight-performances loop correctly converged
+    assert_allclose(
+        problem["data:weight:aircraft:OWE"],
+        problem["data:weight:airframe:mass"]
+        + problem["data:weight:propulsion:mass"]
+        + problem["data:weight:systems:mass"]
+        + problem["data:weight:furniture:mass"]
+        + problem["data:weight:crew:mass"],
+        atol=1,
+    )
+    assert_allclose(
+        problem["data:weight:aircraft:MZFW"],
+        problem["data:weight:aircraft:OWE"] + problem["data:weight:aircraft:max_payload"],
+        atol=1,
+    )
+    assert_allclose(
+        problem["data:weight:aircraft:MTOW"],
+        problem["data:weight:aircraft:OWE"]
+        + problem["data:weight:aircraft:payload"]
+        + problem["data:mission:sizing:fuel"],
+        atol=1,
+    )
+
+    # Design Variable
+    assert_allclose(problem["data:geometry:wing:MAC:at25percent:x"], 17.06, atol=1e-1)
+
+    # Constraint
+    assert_allclose(problem["data:handling_qualities:static_margin"], 0.05, atol=1e-2)
+
+    # Objective
+    assert_allclose(problem["data:mission:sizing:fuel"], 20565, atol=50)

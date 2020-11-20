@@ -38,7 +38,7 @@ OPTION_RESULT_FOLDER_PATH = "result_folder_path"
 
 _INPUT_SCRIPT_FILE_NAME = "wing_openvsp.vspscript"
 _INPUT_AERO_FILE_NAME = "wing_openvsp_DegenGeom"
-_INPUT_AOAList = [7.0]
+_INPUT_AOAList = [7.5]
 _STDERR_FILE_NAME = "vspaero_calc.err"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
 VSPAERO_EXE_NAME = "vspaero.exe"

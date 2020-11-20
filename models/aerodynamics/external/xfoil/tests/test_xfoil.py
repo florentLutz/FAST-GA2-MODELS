@@ -52,7 +52,7 @@ def test_compute():
         alpha_start=15.0, alpha_end=25.0, iter_limit=20, xfoil_exe_path=xfoil_path
     )
     problem = run_system(xfoil_comp, ivc)
-    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.98, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.9, 1e-2)
     assert not pth.exists(XFOIL_RESULTS)
 
     # Deactivate warnings for wished crash of xfoil
@@ -110,4 +110,4 @@ def test_compute_with_provided_path():
         else pth.join(pth.dirname(__file__), pth.pardir, "xfoil699", "xfoil.exe")
     )
     problem = run_system(xfoil_comp, ivc)
-    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.94, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.85, 1e-2)

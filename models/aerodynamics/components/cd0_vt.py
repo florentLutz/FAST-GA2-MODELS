@@ -34,7 +34,7 @@ class Cd0VerticalTail(ExplicitComponent):
         self.add_input("data:geometry:vertical_tail:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:vertical_tail:thickness_ratio", val=np.nan)
-        self.add_input("data:geometry:vertical_tail:max_thickness:x_c", val=0.3)
+        self.add_input("data:geometry:vertical_tail:max_thickness:x_ratio", val=0.3)
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan)
@@ -54,7 +54,7 @@ class Cd0VerticalTail(ExplicitComponent):
         wet_area_vt = inputs["data:geometry:vertical_tail:wet_area"]
         wing_area = inputs["data:geometry:wing:area"]
         thickness = inputs["data:geometry:vertical_tail:thickness_ratio"]
-        x_tmax = inputs["data:geometry:vertical_tail:max_thickness:x_c"]
+        x_tmax = inputs["data:geometry:vertical_tail:max_thickness:x_ratio"]
         if self.options["low_speed_aero"]:
             mach = inputs["data:aerodynamics:low_speed:mach"]
             unit_reynolds = inputs["data:aerodynamics:low_speed:unit_reynolds"]

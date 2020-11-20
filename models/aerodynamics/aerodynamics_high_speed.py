@@ -50,14 +50,12 @@ class AerodynamicsHighSpeed(Group):
 
     def setup(self):
         self.add_subsystem("comp_re", ComputeReynolds(), promotes=["*"])
-        self.add_subsystem("xfoil_in", Connection(), promotes=["data:geometry:wing:MAC:length"])
-        self.add_subsystem(
-            "comp_polar",
-            XfoilPolar(wing_airfoil_file=self.options["wing_airfoil_file"]),
-            promotes=["data:geometry:wing:thickness_ratio"])
-        self.connect("comp_polar.xfoil:CL", "data:aerodynamics:wing:cruise:CL")
-        self.connect("comp_polar.xfoil:CDp", "data:aerodynamics:wing:cruise:CDp")
         if not(self.options["use_openvsp"]):
+            self.add_subsystem("xfoil_in", Connection(), promotes=["data:geometry:wing:MAC:length"])
+            self.add_subsystem(
+                "comp_polar",
+                XfoilPolar(wing_airfoil_file=self.options["wing_airfoil_file"]),
+                promotes=["data:geometry:wing:thickness_ratio"])
             self.add_subsystem(
                 "oswald",
                 ComputeOSWALDvlm(wing_airfoil_file=self.options["wing_airfoil_file"]),
@@ -75,9 +73,10 @@ class AerodynamicsHighSpeed(Group):
                 "cl_alpha",
                 ComputeWingCLALPHAopenvsp(wing_airfoil_file=self.options["wing_airfoil_file"]),
                 promotes=["*"])
-        self.add_subsystem("cd0_wing", Cd0Wing(), promotes=["*"])
+        self.add_subsystem("cd0_wing", Cd0Wing(wing_airfoil_file=self.options["wing_airfoil_file"]), promotes=["*"])
         self.add_subsystem("cd0_fuselage", Cd0Fuselage(), promotes=["*"])
-        self.add_subsystem("cd0_ht", Cd0HorizontalTail(), promotes=["*"])
+        self.add_subsystem("cd0_ht", Cd0HorizontalTail(htp_airfoil_file=self.options["htp_airfoil_file"]),
+                           promotes=["*"])
         self.add_subsystem("cd0_vt", Cd0VerticalTail(), promotes=["*"])
         self.add_subsystem("cd0_nacelle", Cd0Nacelle(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
         self.add_subsystem("cd0_l_gear", Cd0LandingGear(), promotes=["*"])
@@ -101,9 +100,12 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("cnBeta_fuse", ComputeCnBetaFuselage(), promotes=["*"])
         self.add_subsystem("clAlpha_vt", ComputeClalphaVT(), promotes=["*"])
 
-        self.connect("data:aerodynamics:cruise:mach", "comp_polar.xfoil:mach")
-        self.connect("data:aerodynamics:cruise:unit_reynolds", "comp_polar.xfoil:unit_reynolds")
-        self.connect("xfoil_in.xfoil:length", "comp_polar.xfoil:length")
+        if not(self.options["use_openvsp"]):
+            self.connect("data:aerodynamics:cruise:mach", "comp_polar.xfoil:mach")
+            self.connect("data:aerodynamics:cruise:unit_reynolds", "comp_polar.xfoil:unit_reynolds")
+            self.connect("xfoil_in.xfoil:length", "comp_polar.xfoil:length")
+            self.connect("comp_polar.xfoil:CL", "data:aerodynamics:wing:cruise:CL")
+            self.connect("comp_polar.xfoil:CDp", "data:aerodynamics:wing:cruise:CDp")
 
 
 class Connection(ExplicitComponent):

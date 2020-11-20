@@ -16,14 +16,17 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
+
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
+from ...geometry.profiles.get_profile import get_profile
 
 
 class Cd0Wing(ExplicitComponent):
     
     def initialize(self):
         self.options.declare("low_speed_aero", default=False, types=bool)
+        self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
 
     def setup(self):
 
@@ -36,7 +39,6 @@ class Cd0Wing(ExplicitComponent):
         self.add_input("data:geometry:wing:wet_area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:thickness_ratio", val=np.nan)
-        self.add_input("data:geometry:wing:max_thickness:x_c", val=0.3)
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan)
@@ -59,7 +61,6 @@ class Cd0Wing(ExplicitComponent):
         wet_area_wing = inputs["data:geometry:wing:wet_area"]
         wing_area = inputs["data:geometry:wing:area"]
         thickness = inputs["data:geometry:wing:thickness_ratio"]
-        x_tmax = inputs["data:geometry:wing:max_thickness:x_c"]
         if self.options["low_speed_aero"]:
             mach = inputs["data:aerodynamics:low_speed:mach"]
             unit_reynolds = inputs["data:aerodynamics:low_speed:unit_reynolds"]
@@ -67,6 +68,11 @@ class Cd0Wing(ExplicitComponent):
             mach = inputs["data:aerodynamics:cruise:mach"]
             unit_reynolds = inputs["data:aerodynamics:cruise:unit_reynolds"]
 
+        # Sear max thickness position ratio
+        profile = get_profile(file_name=self.options['wing_airfoil_file'])
+        relative_thickness = profile.get_relative_thickness()
+        index = int(np.where(relative_thickness['thickness'] == np.max(relative_thickness['thickness']))[0])
+        x_tmax = relative_thickness['x'][index]
         # Root: 45% NLF
         x_trans = 0.45
         x0_turb = 36.9 * x_trans**0.625 * (1/(unit_reynolds*l2_wing))**0.375

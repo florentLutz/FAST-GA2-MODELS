@@ -60,14 +60,15 @@ class ComputeHTPCLALPHAvlm(VLM):
         v_inf = max(atm.speed_of_sound * mach, 0.01)  # avoid V=0 m/s crashes
 
         super()._run(inputs)
-        cl_wing, _, _, result_cm2 = super().compute_wing(inputs, _INPUT_AOAList, v_inf, flaps_angle=0.0,
+        beta = math.sqrt(1 - mach ** 2)  # Prandtl-Glauert
+        cl_wing, _, _, _ = super().compute_wing(inputs, _INPUT_AOAList, v_inf, flaps_angle=0.0,
                                                          use_airfoil=True)
         # Calculate downwash angle based on Gudmundsson model (p.467)
-        downwash_angle = 2.0 * np.array(cl_wing) * 180.0 / (aspect_ratio * np.pi**2)
+        downwash_angle = 2.0 * np.array(cl_wing)/beta * 180.0 / (aspect_ratio * np.pi**2)
         HTP_AOAList = list(np.array(_INPUT_AOAList) - downwash_angle)
         result_cl, _ = super().compute_htp(inputs, HTP_AOAList, v_inf, use_airfoil=True)
         # Write value with wing Sref
-        result_cl *= htp_area/wing_area
+        result_cl = np.array(result_cl)/beta * htp_area/wing_area
         # Calculate derivative
         cl_alpha = float((result_cl[1] - result_cl[0]) / ((_INPUT_AOAList[1] - _INPUT_AOAList[0]) * math.pi / 180))
 

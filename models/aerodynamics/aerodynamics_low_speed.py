@@ -83,9 +83,13 @@ class AerodynamicsLowSpeed(Group):
                 "cl_alpha",
                 ComputeWingCLALPHAopenvsp(low_speed_aero=True, wing_airfoil_file=self.options["wing_airfoil_file"]),
                 promotes=["*"])
-        self.add_subsystem("cd0_wing", Cd0Wing(low_speed_aero=True), promotes=["*"])
+        self.add_subsystem("cd0_wing",
+                           Cd0Wing(low_speed_aero=True,wing_airfoil_file=self.options["wing_airfoil_file"]),
+                           promotes=["*"])
         self.add_subsystem("cd0_fuselage", Cd0Fuselage(low_speed_aero=True), promotes=["*"])
-        self.add_subsystem("cd0_ht", Cd0HorizontalTail(low_speed_aero=True), promotes=["*"])
+        self.add_subsystem("cd0_ht",
+                           Cd0HorizontalTail(low_speed_aero=True,htp_airfoil_file=self.options["htp_airfoil_file"]),
+                           promotes=["*"])
         self.add_subsystem("cd0_vt", Cd0VerticalTail(low_speed_aero=True), promotes=["*"])
         self.add_subsystem("cd0_nacelle", Cd0Nacelle(propulsion_id=self.options["propulsion_id"],
                                                      low_speed_aero=True), promotes=["*"])

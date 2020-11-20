@@ -14,6 +14,8 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+
 import numpy as np
 import math
 from ...constants import POLAR_POINT_COUNT
@@ -21,6 +23,7 @@ from fastoad.utils.physics import Atmosphere
 from .vlm import VLM
 
 _INPUT_AOAList = [14.0]
+_LOGGER = logging.getLogger(__name__)
 
 
 class ComputeOSWALDvlm(VLM):
