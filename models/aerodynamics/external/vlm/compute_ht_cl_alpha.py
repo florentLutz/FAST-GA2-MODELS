@@ -31,8 +31,8 @@ class ComputeHTPCLALPHAvlm(VLM):
     def setup(self):
         
         super().setup()
-        self.add_input("data:geometry:wing:area", val=np.nan)
-        self.add_input("data:geometry:horizontal_tail:area", val=np.nan)
+        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="m**2")
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")

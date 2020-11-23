@@ -18,6 +18,7 @@ import os
 import os.path as pth
 from shutil import rmtree
 
+from command import api as _api
 from fastoad import api
 import openmdao.api as om
 import pytest
@@ -94,15 +95,17 @@ def test_api(cleanup):
 
     # Generation of inputs ----------------------------------------------------
     # We get the same inputs as in tutorial notebook
-    configuration_file_path = pth.join(
-        NOTEBOOKS_PATH, "tutorial", "data", "oad_process.toml")
-    source_xml = pth.join(
+    configuration_file = pth.join(
+        NOTEBOOKS_PATH, "tutorial", "workdir", "oad_process.toml")
+    source_file = pth.join(
         NOTEBOOKS_PATH, "tutorial", "data", "beechcraft_76.xml"
     )
-    api.generate_inputs(configuration_file_path, source_xml, overwrite=True)
+    _api.generate_configuration_file(configuration_file, overwrite=True)
+
+    api.generate_inputs(configuration_file, source_file, overwrite=True)
 
     # Run model ---------------------------------------------------------------
-    problem = api.evaluate_problem(configuration_file_path, True)
+    problem = api.evaluate_problem(configuration_file, True)
 
     # Check that weight-performances loop correctly converged
     assert_allclose(
@@ -135,7 +138,7 @@ def test_api(cleanup):
     assert_allclose(problem["data:mission:sizing:fuel"], 20494, atol=1)
 
     # Run optim ---------------------------------------------------------------
-    problem = api.optimize_problem(configuration_file_path, True)
+    problem = api.optimize_problem(configuration_file, True)
     assert not problem.optim_failed
 
     # Check that weight-performances loop correctly converged
