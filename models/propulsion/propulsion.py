@@ -18,10 +18,10 @@ from typing import Union
 import numpy as np
 import openmdao.api as om
 import pandas as pd
-from openmdao.core.component import Component
 
 from fastoad.base.dict import AddKeyAttributes
 from fastoad.base.flight_point import FlightPoint
+from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
 
 class IPropulsion(ABC):
@@ -81,7 +81,7 @@ class IPropulsion(ABC):
               will be used according to :code:`thrust_is_regulated`.
 
 
-        :param flight_points: FlightPoint or DataFram instance
+        :param flight_points: FlightPoint or DataFrame instance
         :return: None (inputs are updated in-place)
         """
 
@@ -128,42 +128,6 @@ class IPropulsion(ABC):
         :param flight_point:
         :param time_step:
         :return: the consumed mass in kg
-        """
-
-
-
-
-class IOMPropulsionWrapper:
-    """
-    Interface for wrapping a :class:`IPropulsion` subclass in OpenMDAO.
-
-    The implementation class defines the needed input variables for instantiating the
-    :class:`IPropulsion` subclass in :meth:`setup` and use them for instantiation in
-    :meth:`get_model`
-
-    see :class:`~fastoad.models.propulsion.fuel_propulsion.rubber_engine.OMRubberEngineWrapper` for
-    an example of implementation.
-    """
-
-    @abstractmethod
-    def setup(self, component: Component):
-        """
-        Defines the needed OpenMDAO inputs for propulsion instantiation as done in :meth:`get_model`
-
-        Use `add_inputs` and `declare_partials` methods of the provided `component`
-
-        :param component:
-        """
-
-    @staticmethod
-    @abstractmethod
-    def get_model(inputs) -> IPropulsion:
-        """
-        This method defines the used :class:`IPropulsion` subclass instance.
-
-        :param inputs: OpenMDAO input vector where the parameters that define the
-                       propulsion model are
-        :return: the propulsion model instance
         """
 
 

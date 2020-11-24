@@ -14,16 +14,18 @@ Test module for geometry functions of cg components
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# pylint: disable=redefined-outer-name  # needed for pytest fixtures
-import os.path as pth
 import openmdao.api as om
-
+import pandas as pd
+from openmdao.core.component import Component
 import pytest
-from fastoad.io import VariableIO
 from typing import Union
-from fastoad.module_management import OpenMDAOSystemRegistry
 
-from ...tests.testing_utilities import run_system
+from fastoad.module_management.service_registry import RegisterPropulsion
+from fastoad import BundleLoader
+from fastoad.base.flight_point import FlightPoint
+from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
+
+from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 
 from ..geom_components.fuselage import (
     ComputeFuselageGeometryBasic,
@@ -57,72 +59,57 @@ from ..geom_components.vt.components import (
 from ..geom_components.nacelle.compute_nacelle import ComputeNacelleGeometry
 from ..geom_components import ComputeTotalArea
 from ..geometry import Geometry
+from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from ...propulsion.propulsion import IPropulsion
 
 XML_FILE = "beechcraft_76.xml"
-ENGINE_WRAPPER = "fastga.wrapper.propulsion.basicIC_engine"
+ENGINE_WRAPPER = "test.wrapper.geometry.beechcraft.dummy_engine"
 
 
-def get_indep_var_comp(var_names):
-    """ Reads required input data and returns an IndepVarcomp() instance"""
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
-    reader.path_separator = ":"
-    ivc = reader.read(only=var_names).to_ivc()
-    return ivc
+class DummyEngine(AbstractFuelPropulsion):
+
+    def __init__(self):
+        """
+        Dummy engine model returning nacelle dimensions height-width-length-wet_area.
+
+        """
+        super().__init__()
+
+    def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
+        flight_points.thrust = 0.0
+        flight_points['sfc'] = 0.0
+
+    def compute_weight(self) -> float:
+        return 0.0
+
+    def compute_dimensions(self) -> (float, float, float, float):
+        return [0.62306289, 0.92912887, 1.23718229, 3.84068832]
+
+    def compute_drag(self, mach, unit_reynolds, l0_wing):
+        return 0.0
+
+    def get_consumed_mass(self, flight_point: FlightPoint, time_step: float) -> float:
+        return 0.0
 
 
-def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
-    """ Reads input variables from a component/problem and return as a list """
+@RegisterPropulsion(ENGINE_WRAPPER)
+class DummyEngineWrapper(IOMPropulsionWrapper):
+    def setup(self, component: Component):
+        pass
 
-    register_wrappers()
-    if isinstance(component, om.ExplicitComponent):
-        prob = om.Problem(model=component)
-        prob.setup()
-        data = prob.model.list_inputs(out_stream=None)
-        list_names = []
-        for idx in range(len(data)):
-            variable_name = data[idx][0]
-            list_names.append(variable_name)
-    else:
-        data = []
-        component.setup()
-        subcomponents = component.static_subsystems_allprocs
-        idx = 0
-        while idx < (len(subcomponents)-1):
-            if isinstance(subcomponents[idx], om.ExplicitComponent):
-                idx += 1
-            else:
-                add_subcomponents = subcomponents[idx]
-                add_subcomponents.setup()
-                add_subcomponents = add_subcomponents.static_subsystems_allprocs
-                del subcomponents[idx]
-                subcomponents.extend(add_subcomponents)
-        for subcomponent in subcomponents:
-            subprob = om.Problem(model=subcomponent)
-            subprob.setup()
-            data.extend(subprob.model.list_inputs(out_stream=None))
-        list_names = []
-        for idx in range(len(data)):
-            variable_name = data[idx][0].split('.')[-1]
-            list_names.append(variable_name)
-
-    return list(dict.fromkeys(list_names))
+    @staticmethod
+    def get_model(inputs) -> IPropulsion:
+        return DummyEngine()
 
 
-def register_wrappers():
-    path_split = pth.dirname(__file__).split('\\')
-    drive = path_split[0]
-    del path_split[0]
-    while not(path_split[-1] == "models"):
-        del path_split[-1]
-    path = drive + "\\" + pth.join(*path_split)
-    OpenMDAOSystemRegistry.explore_folder(path)
+BundleLoader().context.install_bundle(__name__).start()
 
 
 def test_compute_vt_chords():
     """ Tests computation of the vertical tail chords """
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeVTChords()))
+    ivc = get_indep_var_comp(list_inputs(ComputeVTChords()), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeVTChords(), ivc)
@@ -138,7 +125,7 @@ def test_compute_vt_mac():
     """ Tests computation of the vertical tail mac """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeVTMAC()))
+    ivc = get_indep_var_comp(list_inputs(ComputeVTMAC()), __file__, XML_FILE)
     ivc.add_output("data:geometry:vertical_tail:span", 1.734, units="m")
     ivc.add_output("data:geometry:vertical_tail:root:chord", 1.785, units="m")
     ivc.add_output("data:geometry:vertical_tail:tip:chord", 1.106, units="m")
@@ -159,7 +146,7 @@ def test_compute_vt_sweep():
     """ Tests computation of the vertical tail sweep """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeVTSweep()))
+    ivc = get_indep_var_comp(list_inputs(ComputeVTSweep()), __file__, XML_FILE)
     ivc.add_output("data:geometry:vertical_tail:span", 1.734, units="m")
     ivc.add_output("data:geometry:vertical_tail:root:chord", 1.785, units="m")
     ivc.add_output("data:geometry:vertical_tail:tip:chord", 1.106, units="m")
@@ -176,7 +163,7 @@ def test_compute_vt_wet_area():
     """ Tests computation of the vertical wet area """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeVTWetArea()))
+    ivc = get_indep_var_comp(list_inputs(ComputeVTWetArea()), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeVTWetArea(), ivc)
@@ -188,7 +175,7 @@ def test_compute_ht_distance():
     """ Tests computation of the horizontal tail distance """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeHTDistance()))
+    ivc = get_indep_var_comp(list_inputs(ComputeHTDistance()), __file__, XML_FILE)
     ivc.add_output("data:geometry:vertical_tail:span", 1.734, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
@@ -201,7 +188,7 @@ def test_compute_ht_chord():
     """ Tests computation of the horizontal tail chords """
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeHTChord()))
+    ivc = get_indep_var_comp(list_inputs(ComputeHTChord()), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeHTChord(), ivc)
@@ -219,7 +206,7 @@ def test_compute_ht_mac():
     """ Tests computation of the horizontal tail mac """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeHTMAC()))
+    ivc = get_indep_var_comp(list_inputs(ComputeHTMAC()), __file__, XML_FILE)
     ivc.add_output("data:geometry:horizontal_tail:span", 5.095, units="m")
     ivc.add_output("data:geometry:horizontal_tail:root:chord", 0.868, units="m")
     ivc.add_output("data:geometry:horizontal_tail:tip:chord", 0.868, units="m")
@@ -238,7 +225,7 @@ def test_compute_ht_sweep():
     """ Tests computation of the horizontal tail sweep """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeHTSweep()))
+    ivc = get_indep_var_comp(list_inputs(ComputeHTSweep()), __file__, XML_FILE)
     ivc.add_output("data:geometry:horizontal_tail:span", 5.095, units="m")
     ivc.add_output("data:geometry:horizontal_tail:root:chord", 0.868, units="m")
     ivc.add_output("data:geometry:horizontal_tail:tip:chord", 0.868, units="m")
@@ -255,7 +242,7 @@ def test_compute_ht_wet_area():
     """ Tests computation of the horizontal tail wet area """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeHTWetArea()))
+    ivc = get_indep_var_comp(list_inputs(ComputeHTWetArea()), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
@@ -268,7 +255,8 @@ def test_compute_fuselage_cabin_sizing():
     """ Tests computation of the fuselage with cabin sizing """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeFuselageGeometryCabinSizing(propulsion_id=ENGINE_WRAPPER)))
+    ivc = get_indep_var_comp(list_inputs(ComputeFuselageGeometryCabinSizing(propulsion_id=ENGINE_WRAPPER)),
+                             __file__, XML_FILE)
     ivc.add_output("data:geometry:horizontal_tail:MAC:length", 0.868, units="m")
     ivc.add_output("data:geometry:vertical_tail:MAC:length", 1.472, units="m")
     ivc.add_output("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", 4.334, units="m")
@@ -320,7 +308,7 @@ def test_geometry_wing_toc():
     """ Tests computation of the wing ToC (Thickness of Chord) """
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeWingToc()))
+    ivc = get_indep_var_comp(list_inputs(ComputeWingToc()), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingToc(), ivc)
@@ -336,7 +324,7 @@ def test_geometry_wing_y():
     """ Tests computation of the wing Ys """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeWingY()))
+    ivc = get_indep_var_comp(list_inputs(ComputeWingY()), __file__, XML_FILE)
     ivc.add_output("data:geometry:fuselage:maximum_width", 1.198, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
@@ -355,7 +343,7 @@ def test_geometry_wing_l1_l4():
     """ Tests computation of the wing chords (l1 and l4) """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeWingL1AndL4()))
+    ivc = get_indep_var_comp(list_inputs(ComputeWingL1AndL4()), __file__, XML_FILE)
     ivc.add_output("data:geometry:wing:root:y", 0.6, units="m")
     ivc.add_output("data:geometry:wing:tip:y", 6.181, units="m")
 
@@ -371,7 +359,7 @@ def test_geometry_wing_l2_l3():
     """ Tests computation of the wing chords (l2 and l3) """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeWingL2AndL3()))
+    ivc = get_indep_var_comp(list_inputs(ComputeWingL2AndL3()), __file__, XML_FILE)
     ivc.add_output("data:geometry:wing:root:y", 0.6, units="m")
     ivc.add_output("data:geometry:wing:tip:y", 6.181, units="m")
 
@@ -387,7 +375,7 @@ def test_geometry_wing_x():
     """ Tests computation of the wing Xs """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeWingX()))
+    ivc = get_indep_var_comp(list_inputs(ComputeWingX()), __file__, XML_FILE)
     ivc.add_output("data:geometry:wing:root:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:tip:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:kink:chord", 1.549, units="m")
@@ -426,7 +414,7 @@ def test_geometry_wing_mac():
     """ Tests computation of the wing mean aerodynamic chord """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeWingMAC()))
+    ivc = get_indep_var_comp(list_inputs(ComputeWingMAC()), __file__, XML_FILE)
     ivc.add_output("data:geometry:wing:root:y", 0.6, units="m")
     ivc.add_output("data:geometry:wing:tip:y", 6.181, units="m")
     ivc.add_output("data:geometry:wing:root:chord", 1.549, units="m")
@@ -468,7 +456,7 @@ def test_geometry_wing_wet_area():
     """ Tests computation of the wing wet area """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeWingWetArea()))
+    ivc = get_indep_var_comp(list_inputs(ComputeWingWetArea()), __file__, XML_FILE)
     ivc.add_output("data:geometry:wing:root:virtual_chord", 1.549, units="m")
     ivc.add_output("data:geometry:fuselage:maximum_width", 1.198, units="m")
 
@@ -484,7 +472,7 @@ def test_geometry_wing_mfw():
     """ Tests computation of the wing max fuel weight """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeMFW()))
+    ivc = get_indep_var_comp(list_inputs(ComputeMFW()), __file__, XML_FILE)
     ivc.add_output("data:geometry:wing:root:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:tip:chord", 1.549, units="m")
     ivc.add_output("data:geometry:wing:root:thickness_ratio", 0.149)
@@ -500,7 +488,7 @@ def test_geometry_nacelle():
     """ Tests computation of the nacelle and pylons component """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeNacelleGeometry(propulsion_id=ENGINE_WRAPPER)))
+    ivc = get_indep_var_comp(list_inputs(ComputeNacelleGeometry(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
     ivc.add_output("data:geometry:fuselage:maximum_width", 1.198, units="m")
     ivc.add_output("data:geometry:wing:span", 12.363, units="m")
 
@@ -524,7 +512,7 @@ def test_geometry_total_area():
     """ Tests computation of the total area """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeTotalArea()))
+    ivc = get_indep_var_comp(list_inputs(ComputeTotalArea()), __file__, XML_FILE)
     ivc.add_output("data:geometry:vertical_tail:wet_area", 5.265, units="m**2")
     ivc.add_output("data:geometry:horizontal_tail:wet_area", 7.428, units="m**2")
     ivc.add_output("data:geometry:fuselage:wet_area", 33.354, units="m**2")
@@ -542,7 +530,7 @@ def test_complete_geometry():
 
     # Research independent input value in .xml file and add values calculated from other modules
     # noinspection PyTypeChecker
-    ivc = get_indep_var_comp(list_inputs(Geometry(propulsion_id=ENGINE_WRAPPER)))
+    ivc = get_indep_var_comp(list_inputs(Geometry(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
     # noinspection PyTypeChecker

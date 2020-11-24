@@ -12,84 +12,82 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os.path as pth
+import pandas as pd
 import numpy as np
-import openmdao.api as om
-
+from openmdao.core.component import Component
 import pytest
-from fastoad.io import VariableIO
-from fastoad.module_management import OpenMDAOSystemRegistry
 from typing import Union
 
-from ...tests.testing_utilities import run_system
+from fastoad.io import VariableIO
+from fastoad.module_management.service_registry import RegisterPropulsion
+from fastoad import BundleLoader
+from fastoad.base.flight_point import FlightPoint
+from fastoad.constants import EngineSetting
+from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
+
+from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 from ..compute_static_margin import ComputeStaticMargin
 from ..tail_sizing.compute_ht_area import ComputeHTArea
 from ..tail_sizing.compute_vt_area import ComputeVTArea
+from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from ...propulsion.propulsion import IPropulsion
 
 XML_FILE = "beechcraft_76.xml"
-ENGINE_WRAPPER = "fastga.wrapper.propulsion.basicIC_engine"
+ENGINE_WRAPPER = "test.wrapper.handling_qualities.beechcraft.dummy_engine"
 
 
-def get_indep_var_comp(var_names):
-    """ Reads required input data and returns an IndepVarcomp() instance"""
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
-    reader.path_separator = ":"
-    ivc = reader.read(only=var_names).to_ivc()
-    return ivc
+class DummyEngine(AbstractFuelPropulsion):
+
+    def __init__(self):
+        """
+        Dummy engine model returning thrust in particular conditions defined for htp/vtp areas.
+
+        """
+        super().__init__()
+
+    def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
+        if flight_points.engine_setting == EngineSetting.TAKEOFF:
+            flight_points.thrust = 5800.0 / 2.0
+        elif flight_points.engine_setting == EngineSetting.CLIMB:
+            flight_points.thrust = 3110.0 / 2.0
+        elif flight_points.engine_setting == EngineSetting.IDLE:
+            flight_points.thrust = 605.0 / 2.0
+        else:
+            flight_points.thrust = 0.0
+        flight_points['sfc'] = 0.0
+
+    def compute_weight(self) -> float:
+        return 0.0
+
+    def compute_dimensions(self) -> (float, float, float, float):
+        return [0.0, 0.0, 0.0, 0.0]
+
+    def compute_drag(self, mach, unit_reynolds, l0_wing):
+        return 0.0
+
+    def get_consumed_mass(self, flight_point: FlightPoint, time_step: float) -> float:
+        return 0.0
 
 
-def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
-    """ Reads input variables from a component/problem and return as a list """
+@RegisterPropulsion(ENGINE_WRAPPER)
+class DummyEngineWrapper(IOMPropulsionWrapper):
+    def setup(self, component: Component):
+        component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
+        component.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
 
-    register_wrappers()
-    if isinstance(component, om.ExplicitComponent):
-        prob = om.Problem(model=component)
-        prob.setup()
-        data = prob.model.list_inputs(out_stream=None)
-        list_names = []
-        for idx in range(len(data)):
-            variable_name = data[idx][0]
-            list_names.append(variable_name)
-    else:
-        data = []
-        component.setup()
-        subcomponents = component.static_subsystems_allprocs
-        idx = 0
-        while idx < (len(subcomponents) - 1):
-            if isinstance(subcomponents[idx], om.ExplicitComponent):
-                idx += 1
-            else:
-                add_subcomponents = subcomponents[idx]
-                add_subcomponents.setup()
-                add_subcomponents = add_subcomponents.static_subsystems_allprocs
-                del subcomponents[idx]
-                subcomponents.extend(add_subcomponents)
-        for subcomponent in subcomponents:
-            subprob = om.Problem(model=subcomponent)
-            subprob.setup()
-            data.extend(subprob.model.list_inputs(out_stream=None))
-        list_names = []
-        for idx in range(len(data)):
-            variable_name = data[idx][0].split('.')[-1]
-            list_names.append(variable_name)
-
-    return list(dict.fromkeys(list_names))
+    @staticmethod
+    def get_model(inputs) -> IPropulsion:
+        return DummyEngine()
 
 
-def register_wrappers():
-    path_split = pth.dirname(__file__).split('\\')
-    drive = path_split[0]
-    del path_split[0]
-    while not(path_split[-1] == "models"):
-        del path_split[-1]
-    path = drive + "\\" + pth.join(*path_split)
-    OpenMDAOSystemRegistry.explore_folder(path)
+BundleLoader().context.install_bundle(__name__).start()
 
 
 def test_compute_vt_area():
     """ Tests computation of the vertical tail area """
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeVTArea(propulsion_id=ENGINE_WRAPPER)))
+    ivc = get_indep_var_comp(list_inputs(ComputeVTArea(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
     ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.364924)
     ivc.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.0599)
 
@@ -105,7 +103,7 @@ def test_compute_ht_area():
 
     # Research independent input value in .xml file
     # noinspection PyTypeChecker
-    ivc = get_indep_var_comp(list_inputs(ComputeHTArea(propulsion_id=ENGINE_WRAPPER)))
+    ivc = get_indep_var_comp(list_inputs(ComputeHTArea(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
     ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:alpha",
                    np.array([0.0, 7.5, 15.0, 22.5, 30.0]), units="deg")
     ivc.add_output("data:aerodynamics:horizontal_tail:low_speed:CL",

@@ -15,12 +15,16 @@ Convenience functions for helping tests
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-
+import os.path as pth
 import openmdao.api as om
+from typing import Union, List
+
+from fastoad.io import VariableIO
 from fastoad.openmdao.types import SystemSubclass
 from fastoad.openmdao.utils import get_unconnected_input_names
+from fastoad.module_management import OpenMDAOSystemRegistry
+from fastoad.openmdao.variables import VariableList
 
-# Logger for this module
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -46,3 +50,31 @@ def run_system(
     problem.run_model()
 
     return problem
+
+
+def register_wrappers():
+    """ Register all the wrappers from models """
+    path, folder_name = pth.dirname(__file__), None
+    unsplit_path = path
+    while folder_name != "models":
+        unsplit_path = path
+        path, folder_name = pth.split(path)
+    OpenMDAOSystemRegistry.explore_folder(unsplit_path)
+
+
+def get_indep_var_comp(var_names: List[str], test_file: str, xml_file_name: str) -> om.IndepVarComp:
+    """ Reads required input data from xml file and returns an IndepVarcomp() instance"""
+    reader = VariableIO(pth.join(pth.dirname(test_file), "data", xml_file_name))
+    reader.path_separator = ":"
+    ivc = reader.read(only=var_names).to_ivc()
+
+    return ivc
+
+
+def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
+    """ Reads input variables from a component/problem and return as a list """
+    register_wrappers()
+    variables = VariableList.from_system(component)
+    input_names = [var.name for var in variables if var.is_input]
+
+    return input_names

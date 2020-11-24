@@ -15,10 +15,11 @@
 import numpy as np
 from openmdao.core.component import Component
 
-from ...propulsion import IPropulsion, BaseOMPropulsionComponent
 from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad.openmdao.validity_checker import ValidityDomainChecker
+
+from ...propulsion import IPropulsion, BaseOMPropulsionComponent
 from .basicIC_engine import BasicICEngine
 
 
