@@ -15,10 +15,19 @@ Test module for mass breakdown functions
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os.path as pth
-
+import pandas as pd
 import openmdao.api as om
+import numpy as np
+from openmdao.core.component import Component
 import pytest
+from typing import Union
+
 from fastoad.io import VariableIO
+from fastoad.module_management.service_registry import RegisterPropulsion
+from fastoad import BundleLoader
+from fastoad.base.flight_point import FlightPoint
+from fastoad.constants import EngineSetting
+from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
 from ....tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 from ..a_airframe import (
@@ -43,9 +52,51 @@ from ..d_furniture import (
 
 from ..mass_breakdown import MassBreakdown, ComputeOperatingWeightEmpty
 from ..payload import ComputePayload
+from ....propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from ....propulsion.propulsion import IPropulsion
 
 XML_FILE = "beechcraft_76.xml"
-ENGINE_WRAPPER = "fastga.wrapper.propulsion.basicIC_engine"
+ENGINE_WRAPPER = "test.wrapper.mass_breakdown.beechcraft.dummy_engine"
+
+
+class DummyEngine(AbstractFuelPropulsion):
+
+    def __init__(self):
+        """
+        Dummy engine model returning thrust in particular conditions defined for htp/vtp areas.
+
+        """
+        super().__init__()
+
+    def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
+        flight_points.thrust = 0.0
+        flight_points['sfc'] = 0.0
+
+    def compute_weight(self) -> float:
+        return 562.83 / 2.0
+
+    def compute_dimensions(self) -> (float, float, float, float):
+        return [0.0, 0.0, 0.0, 0.0]
+
+    def compute_drag(self, mach, unit_reynolds, l0_wing):
+        return 0.0
+
+    def get_consumed_mass(self, flight_point: FlightPoint, time_step: float) -> float:
+        return 0.0
+
+
+@RegisterPropulsion(ENGINE_WRAPPER)
+class DummyEngineWrapper(IOMPropulsionWrapper):
+    def setup(self, component: Component):
+        component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
+        component.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
+
+    @staticmethod
+    def get_model(inputs) -> IPropulsion:
+        return DummyEngine()
+
+
+BundleLoader().context.install_bundle(__name__).start()
 
 
 def test_compute_payload():
