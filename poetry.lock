@@ -250,27 +250,34 @@ python-versions = ">=2.7"
 
 [[package]]
 name = "fast-oad"
-version = "0.5.3b0"
-description = "FAST-OAD is a framework for performing rapid Overall Aircraft Design"
+version = "0.0.0"
+    description = "FAST-OAD is a framework for performing rapid Overall Aircraft Design"
 category = "main"
 optional = false
-python-versions = ">=3.6.1,<4.0.0"
+    python-versions = "^3.6.1"
+develop = false
 
 [package.dependencies]
 importlib_resources = "*"
-ipopo = ">=1,<2"
+ipopo = "^1"
 ipysheet = "*"
 ipywidgets = "*"
 jupyterlab = "*"
 lxml = "*"
 matplotlib = "*"
 numpy = "*"
-openmdao = ">=3.4,<4.0"
-pandas = ">=1,<2"
+openmdao = "^3.4"
+pandas = "^1"
 plotly = "*"
-scipy = ">=1.2,<2.0"
+scipy = "^1.2"
 tomlkit = "*"
-wop = ">=1.12.0,<2.0.0"
+wop = "^1.12.0"
+
+[package.source]
+type = "git"
+url = "https://github.com/fast-aircraft-design/FAST-OAD.git"
+reference = "fix-infinite-setup"
+resolved_reference = "b519a334f20e0567dde3e0fde93036cdcfc58f1d"
 
 [[package]]
 name = "filelock"
@@ -1624,7 +1631,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "98329769a8acc0c90260ef51e747a924153d0898ec6926c25e503efaf1123f0c"
+content-hash = "471789127250c40c882f2ef9511cffbe735219920b80f267fe9ff9635a136f7d"
 
 [metadata.files]
 alabaster = [
@@ -1809,10 +1816,7 @@ entrypoints = [
     {file = "entrypoints-0.3-py2.py3-none-any.whl", hash = "sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19"},
     {file = "entrypoints-0.3.tar.gz", hash = "sha256:c70dd71abe5a8c85e55e12c19bd91ccfeec11a6e99044204511f9ed547d48451"},
 ]
-fast-oad = [
-    {file = "FAST-OAD-0.5.3b0.tar.gz", hash = "sha256:122f8ca0de82aae2845992890c513f4b3ae2c93ccce7f313f775b5723291397c"},
-    {file = "FAST_OAD-0.5.3b0-py3-none-any.whl", hash = "sha256:1faa997976e08ae088a3bd331c0a3c19bb3d3b378ddb153d770fb33b75be8b85"},
-]
+fast-oad = []
 filelock = [
     {file = "filelock-3.0.12-py3-none-any.whl", hash = "sha256:929b7d63ec5b7d6b71b0fa5ac14e030b3f70b75747cef1b10da9b879fef15836"},
     {file = "filelock-3.0.12.tar.gz", hash = "sha256:18d82244ee114f543149c66a6e0c14e9c4f8a1044b5cdaadd0f82159d6a6ff59"},

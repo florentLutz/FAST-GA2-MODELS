@@ -68,6 +68,9 @@ class MassBreakdown(om.Group):
         self.add_subsystem("update_mzfw_and_mlw", UpdateMLWandMZFW(), promotes=["*"])
         self.add_subsystem("update_mtow", UpdateMTOW(), promotes=["*"])
 
+        # Fix openmdao compatibility issues with FAST-OAD
+        self.set_input_defaults('data:TLAR:v_limit', units="kn")
+
         # Solvers setup
         self.nonlinear_solver = om.NonlinearBlockGS()
         self.nonlinear_solver.options["debug_print"] = True
@@ -136,6 +139,7 @@ class ComputeOperatingWeightEmpty(om.Group):
             [
                 "data:weight:propulsion:engine:mass",
                 "data:weight:propulsion:fuel_lines:mass",
+                "data:weight:propulsion:tank:mass",
             ],
             units="kg",
             desc="Mass of the propulsion system",

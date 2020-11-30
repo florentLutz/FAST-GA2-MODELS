@@ -142,6 +142,9 @@ class AerodynamicsLowSpeed(Group):
         self.connect("xfoil_in.xfoil:length3", "comp_polar3.xfoil:length")
         self.connect("comp_polar3.xfoil:CL_max_2D", "data:aerodynamics:wing:low_speed:tip:CL_max_2D")
 
+        # Fix openmdao compatibility issues with FAST-OAD
+        self.set_input_defaults('data:TLAR:v_cruise', units="kn")
+
 
 class Connection(ExplicitComponent):
     def setup(self):

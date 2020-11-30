@@ -17,7 +17,7 @@
 	<data>
 		<TLAR>
 			<NPAX>2.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
-			<range units="NM">780.0</range>
+			<range units="NM">800.0</range>
 			<v_approach units="kn">78.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">179.0<!--top-level requirement: limit speed--></v_limit>

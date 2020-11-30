@@ -107,6 +107,10 @@ class AerodynamicsHighSpeed(Group):
             self.connect("comp_polar.xfoil:CL", "data:aerodynamics:wing:cruise:CL")
             self.connect("comp_polar.xfoil:CDp", "data:aerodynamics:wing:cruise:CDp")
 
+        # Fix openmdao compatibility issues with FAST-OAD
+        self.set_input_defaults('data:TLAR:v_cruise', units="kn")
+        self.set_input_defaults('data:mission:sizing:main_route:cruise:altitude', units="ft")
+
 
 class Connection(ExplicitComponent):
     def setup(self):
