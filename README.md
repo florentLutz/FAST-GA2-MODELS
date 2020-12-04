@@ -21,9 +21,9 @@ Install
 **Prerequisite**:FAST-OAD-GA needs at least **Python 3.6.1**.
 
 It is recommended (but not required) to install FAST-OAD-GA in a virtual
-environment ([conda](https://docs.conda.io/en/latest/),
+environment with provided .lock file ([conda](https://docs.conda.io/en/latest/),
 [venv](https://docs.python.org/3.7/library/venv.html), ...)
 
 Yet, for now the FAST-OAD-GA is not registered for a pip install.
-Therefore you can copy directely the models folder to:
+Therefore you can copy directly the folder from ./master to:
 ../Anaconda3/Lib/site/packages/fastga

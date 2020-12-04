@@ -41,7 +41,7 @@ classifiers = [
 # the commit fail because "files were modified by this hook". In that case,
 # doing again the commit including changes in docs/requirements.txt will succeed.
 python = "^3.7"
-fast-oad = {git = "https://github.com/fast-aircraft-design/FAST-OAD.git", rev = "fix-infinite-setup"}
+fast-oad = "^0.5.4-beta.0"
 
 
 [tool.poetry.dev-dependencies]

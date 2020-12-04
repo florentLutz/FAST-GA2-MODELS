@@ -50,6 +50,7 @@
 				</root>
 				<span units="m">5.095<!--horizontal tail span--></span>
 				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
+				<taper_ratio>1.0<!--taper ratio of horizontal tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>
 				<tip>
 					<chord units="m">0.868<!--chord length at tip of horizontal tail--></chord>

@@ -16,3 +16,4 @@ from .compute_ht_cl_alpha import ComputeHTPCLALPHAopenvsp
 from .compute_ht_cl_cm import ComputeHTPCLCMopenvsp
 from .compute_oswald import ComputeOSWALDopenvsp
 from .compute_wing_cl_alpha import ComputeWingCLALPHAopenvsp
+from .compute_aero import ComputeAEROopenvsp

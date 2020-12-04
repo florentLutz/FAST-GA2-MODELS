@@ -34,12 +34,12 @@ from fastoad import BundleLoader
 from fastoad.base.flight_point import FlightPoint
 from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
+from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs, Timer
 from ..components.cd0 import CD0
 from ..external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm, ComputeHTPCLALPHAvlm, ComputeHTPCLCMvlm
 from ..external.xfoil import XfoilPolar
 from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp, \
-    ComputeHTPCLCMopenvsp
+    ComputeHTPCLCMopenvsp, ComputeAEROopenvsp
 from ..components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
 from ..components.compute_cl_max import ComputeMaxCL
 from ..components.high_lift_aero import ComputeDeltaHighLift
@@ -135,7 +135,7 @@ def reshape_polar(cl, cdp):
     return cl, cdp
 
 
-def test_compute_reynolds():
+def est_compute_reynolds():
     """ Tests high and low speed reynolds calculation """
 
     # Research independent input value in .xml file
@@ -159,7 +159,7 @@ def test_compute_reynolds():
     assert reynolds == pytest.approx(2746999, abs=1)
 
 
-def test_cd0_high_speed():
+def est_cd0_high_speed():
     """ Tests drag coefficient @ high speed """
 
     # Research independent input value in .xml file
@@ -190,7 +190,7 @@ def test_cd0_high_speed():
     assert cd0_total == pytest.approx(0.01977, abs=1e-5)
 
 
-def test_cd0_low_speed():
+def est_cd0_low_speed():
     """ Tests drag coefficient @ low speed """
 
     # Research independent input value in .xml file
@@ -221,7 +221,7 @@ def test_cd0_low_speed():
     assert cd0_total == pytest.approx(0.04532, abs=1e-5)
 
 
-def test_polar():
+def est_polar():
     """ Tests polar execution (XFOIL) @ high and low speed """
 
     # Define high-speed parameters (with .xml file and additional inputs)
@@ -261,7 +261,7 @@ def test_polar():
     assert cdp_1 == pytest.approx(0.0048, abs=1e-4)
 
 
-def test_vlm_comp_high_speed():
+def est_vlm_comp_high_speed():
     """ Tests vlm components @ high speed """
 
     # Research independent input value in .xml file
@@ -310,7 +310,7 @@ def test_vlm_comp_high_speed():
     assert cl_alpha_htp == pytest.approx(0.6259, abs=1e-4)
 
 
-def test_vlm_comp_low_speed():
+def est_vlm_comp_low_speed():
     """ Tests vlm components @ high speed """
 
     # Research independent input value in .xml file
@@ -381,7 +381,7 @@ def test_vlm_comp_low_speed():
     assert cm2 == pytest.approx(-0.0667, abs=1e-4)
 
 
-def test_openvsp_comp_high_speed():
+def est_openvsp_comp_high_speed():
     """ Tests openvsp components @ high speed """
 
     # Create result temporary directory
@@ -423,69 +423,91 @@ def test_openvsp_comp_high_speed():
     results_folder.cleanup()
 
 
-def test_openvsp_comp_low_speed():
+def est_openvsp_comp_low_speed():
     """ Tests openvsp components @ low speed """
 
     # Create result temporary directory
     results_folder = _create_tmp_directory()
 
-    # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeOSWALDopenvsp()), __file__, XML_FILE)
-    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
+    with Timer(name="Openvsp low-speed"):
+        # Research independent input value in .xml file
+        ivc = get_indep_var_comp(list_inputs(ComputeOSWALDopenvsp()), __file__, XML_FILE)
+        ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # compensate old version conversion error
 
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeOSWALDopenvsp(low_speed_aero=True), ivc)
-    coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0487, abs=1e-4)
+        # Run problem and check obtained value(s) is/(are) correct
+        problem = run_system(ComputeOSWALDopenvsp(low_speed_aero=True), ivc)
+        coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
+        assert coef_k == pytest.approx(0.0487, abs=1e-4)
 
-    # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeWingCLALPHAopenvsp(low_speed_aero=True)), __file__, XML_FILE)
-    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
+        # Research independent input value in .xml file
+        ivc = get_indep_var_comp(list_inputs(ComputeWingCLALPHAopenvsp(low_speed_aero=True)), __file__, XML_FILE)
+        ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # compensate old version conversion error
 
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeWingCLALPHAopenvsp(low_speed_aero=True), ivc)
-    cl0 = problem["data:aerodynamics:aircraft:low_speed:CL0_clean"]
-    assert cl0 == pytest.approx(0.1147, abs=1e-4)
-    cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.457, abs=1e-3)
-    y_interp = problem.get_val("data:aerodynamics:wing:low_speed:Y_vector", units="m")
-    cl_interp = problem["data:aerodynamics:wing:low_speed:CL_vector"]
-    y_interp, cl_interp = reshape_curve(y_interp, cl_interp)
-    cl_med = np.interp((y_interp[0]+y_interp[-1])/2.0, y_interp, cl_interp)
-    assert cl_med == pytest.approx(0.1216, abs=1e-4)
+        # Run problem and check obtained value(s) is/(are) correct
+        problem = run_system(ComputeWingCLALPHAopenvsp(low_speed_aero=True), ivc)
+        cl0 = problem["data:aerodynamics:aircraft:low_speed:CL0_clean"]
+        assert cl0 == pytest.approx(0.1147, abs=1e-4)
+        cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
+        assert cl_alpha_wing == pytest.approx(4.457, abs=1e-3)
+        y_interp = problem.get_val("data:aerodynamics:wing:low_speed:Y_vector", units="m")
+        cl_interp = problem["data:aerodynamics:wing:low_speed:CL_vector"]
+        y_interp, cl_interp = reshape_curve(y_interp, cl_interp)
+        cl_med = np.interp((y_interp[0]+y_interp[-1])/2.0, y_interp, cl_interp)
+        assert cl_med == pytest.approx(0.1216, abs=1e-4)
 
-    # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeHTPCLALPHAopenvsp(low_speed_aero=True)), __file__, XML_FILE)
-    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
+        # Research independent input value in .xml file
+        ivc = get_indep_var_comp(list_inputs(ComputeHTPCLALPHAopenvsp(low_speed_aero=True)), __file__, XML_FILE)
+        ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # compensate old version conversion error
 
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeHTPCLALPHAopenvsp(low_speed_aero=True), ivc)
-    cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.6967, abs=1e-4)
+        # Run problem and check obtained value(s) is/(are) correct
+        problem = run_system(ComputeHTPCLALPHAopenvsp(low_speed_aero=True), ivc)
+        cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
+        assert cl_alpha_htp == pytest.approx(0.6967, abs=1e-4)
 
-    # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeHTPCLCMopenvsp()), __file__, XML_FILE)
-    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
+        # Research independent input value in .xml file
+        ivc = get_indep_var_comp(list_inputs(ComputeHTPCLCMopenvsp()), __file__, XML_FILE)
+        ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # compensate old version conversion error
 
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeHTPCLCMopenvsp(result_folder_path=results_folder.name), ivc)
-    alpha_interp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:alpha", units="deg")
-    cl_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CL"]
-    cm1_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CM"]
-    cm2_interp = problem["data:aerodynamics:wing:low_speed:CM"]
-    cl = np.interp(5.0, alpha_interp, cl_interp)
-    cm1 = np.interp(5.0, alpha_interp, cm1_interp)
-    cm2 = np.interp(5.0, alpha_interp, cm2_interp)
-    assert cl == pytest.approx(0.0541, abs=1e-4)
-    assert cm1 == pytest.approx(-0.1559, abs=1e-4)
-    assert cm2 == pytest.approx(-0.0037, abs=1e-4)
-    assert pth.exists(pth.join(results_folder.name, 'ClCmHT'))
+        # Run problem and check obtained value(s) is/(are) correct
+        problem = run_system(ComputeHTPCLCMopenvsp(result_folder_path=results_folder.name), ivc)
+        alpha_interp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:alpha", units="deg")
+        cl_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CL"]
+        cm1_interp = problem["data:aerodynamics:horizontal_tail:low_speed:CM"]
+        cm2_interp = problem["data:aerodynamics:wing:low_speed:CM"]
+        cl = np.interp(5.0, alpha_interp, cl_interp)
+        cm1 = np.interp(5.0, alpha_interp, cm1_interp)
+        cm2 = np.interp(5.0, alpha_interp, cm2_interp)
+        assert cl == pytest.approx(0.0541, abs=1e-4)
+        assert cm1 == pytest.approx(-0.1559, abs=1e-4)
+        assert cm2 == pytest.approx(-0.0037, abs=1e-4)
+        assert pth.exists(pth.join(results_folder.name, 'ClCmHT'))
 
     # Remove existing result files
     results_folder.cleanup()
 
 
-def test_high_lift():
+def test_openvsp_comp_low_speed_new():
+    """ Tests openvsp components @ low speed """
+
+    # Create result temporary directory
+    results_folder = _create_tmp_directory()
+
+    with Timer(name="Openvsp low-speed [NEW]: 1st run"):
+        # Research independent input value in .xml file
+        ivc = get_indep_var_comp(list_inputs(ComputeAEROopenvsp()), __file__, XML_FILE)
+        ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # compensate old version conversion error
+
+        # Run problem and check obtained value(s) is/(are) correct
+        problem = run_system(ComputeAEROopenvsp(low_speed_aero=True, result_folder_path=results_folder.name), ivc)
+        cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
+        assert cl_alpha_htp == pytest.approx(0.6967, abs=1e-4)
+
+    with Timer(name="Openvsp low-speed [NEW]: 2nd run"):
+        # Run problem 2nd time
+        run_system(ComputeAEROopenvsp(low_speed_aero=True, result_folder_path=results_folder.name), ivc)
+
+
+def est_high_lift():
     """ Tests high-lift contribution """
 
     # Research independent input value in .xml file
@@ -515,7 +537,7 @@ def test_high_lift():
     assert cl_alpha_elev == pytest.approx(0.6167, abs=1e-4)
 
 
-def test_max_cl():
+def est_max_cl():
     """ Tests maximum cl component with Openvsp and VLM results"""
 
     # Research independent input value in .xml file for Openvsp test
@@ -581,7 +603,7 @@ def test_max_cl():
     assert cl_max_landing == pytest.approx(2.0268, abs=1e-4)
 
 
-def test_l_d_max():
+def est_l_d_max():
     """ Tests best lift/drag component """
 
     # Define independent input value (openVSP)
@@ -603,7 +625,7 @@ def test_l_d_max():
     assert optimal_alpha == pytest.approx(6.00, abs=1e-2)
 
 
-def test_cnbeta():
+def est_cnbeta():
     """ Tests cn beta fuselage """
 
     # Research independent input value in .xml file
@@ -616,7 +638,7 @@ def test_cnbeta():
     assert cn_beta_fus == pytest.approx(-0.0599, abs=1e-4)
 
 
-def test_high_speed_connection():
+def est_high_speed_connection():
     """ Tests high speed components connection """
 
     # load all inputs
@@ -652,7 +674,7 @@ def test_high_speed_connection():
     assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
 
 
-def test_low_speed_connection():
+def est_low_speed_connection():
     """ Tests low speed components connection """
 
     # load all inputs

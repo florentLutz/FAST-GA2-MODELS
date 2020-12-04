@@ -26,10 +26,9 @@ from fastoad.io import VariableIO
 from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad import BundleLoader
 from fastoad.base.flight_point import FlightPoint
-from fastoad.constants import EngineSetting
 from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
-from ....tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
+from ....tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs, Timer
 from ..a_airframe import (
     ComputeTailWeight,
     ComputeFlightControlsWeight,
@@ -271,7 +270,7 @@ def test_evaluate_owe():
     mass_computation = run_system(ComputeOperatingWeightEmpty(propulsion_id=ENGINE_WRAPPER), input_vars)
 
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1098.66, abs=1e-2)
+    assert oew == pytest.approx(1099.66, abs=1e-2)
 
 
 def test_loop_compute_owe():
@@ -283,26 +282,27 @@ def test_loop_compute_owe():
     input_vars = reader.read(
         ignore=[
             "data:weight:aircraft:max_payload",
-            "data:weight:aircraft:MTOW",
+            #  "data:weight:aircraft:MTOW",
         ]
     ).to_ivc()
     input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
 
-    # noinspection PyTypeChecker
-    mass_computation_1 = run_system(
-        MassBreakdown(propulsion_id=ENGINE_WRAPPER, payload_from_npax=True),
-        input_vars,
-        check=True,
-    )
-    oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1026.20, abs=1e-2)  # 1098.66 (without MTOW local loop)
+    with Timer(name="Mass-breakdown loop"):
+        # noinspection PyTypeChecker
+        mass_computation_1 = run_system(
+            MassBreakdown(propulsion_id=ENGINE_WRAPPER, payload_from_npax=True),
+            input_vars,
+            check=True,
+        )
+        oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
+        assert oew == pytest.approx(1099.66, abs=1e-2)  # 1026.20 (with MTOW local loop)
 
     # with payload as input
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read(
         ignore=[
-            "data:weight:aircraft:MTOW",
+            #  "data:weight:aircraft:MTOW",
         ]
     ).to_ivc()
     input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
@@ -313,4 +313,4 @@ def test_loop_compute_owe():
         check=False,
     )
     oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1009.19, abs=1e-2)  # 1098.66 (without MTOW local loop)
+    assert oew == pytest.approx(1099.66, abs=1e-2)  # 1009.19 (with MTOW local loop)
