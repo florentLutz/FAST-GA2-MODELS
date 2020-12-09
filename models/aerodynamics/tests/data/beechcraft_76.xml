@@ -45,6 +45,7 @@
 					<length units="m">0.868<!--mean aerodynamic chord length of horizontal tail--></length>
 				</MAC>
 				<area units="m**2">4.422<!--horizontal_tail area--></area>
+				<aspect_ratio>5.871<!--aspect ratio of horizontal tail--></aspect_ratio>
 				<root>
 					<chord units="m">0.868<!--chord length at root of horizontal tail--></chord>
 				</root>

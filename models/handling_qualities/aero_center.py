@@ -34,7 +34,7 @@ class ComputeAeroCenter(ExplicitComponent):
         self.add_input(
             "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m"
         )
-        self.add_input("data:aerodynamics:aircraft:cruise:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:cruise:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:horizontal_tail:cruise:CL_alpha", val=np.nan, units="rad**-1")
 
         self.add_output("data:aerodynamics:cruise:neutral_point:x")
@@ -51,7 +51,7 @@ class ComputeAeroCenter(ExplicitComponent):
         fus_length = inputs["data:geometry:fuselage:length"]
         wing_area = inputs["data:geometry:wing:area"]
         lp_ht = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
-        cl_alpha_wing = inputs["data:aerodynamics:aircraft:cruise:CL_alpha"]
+        cl_alpha_wing = inputs["data:aerodynamics:wing:cruise:CL_alpha"]
         cl_alpha_ht = inputs["data:aerodynamics:horizontal_tail:cruise:CL_alpha"]
         
         # TODO: make variable name is computation sequence more english

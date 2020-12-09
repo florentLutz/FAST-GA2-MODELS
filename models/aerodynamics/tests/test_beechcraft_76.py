@@ -35,16 +35,19 @@ from fastoad.base.flight_point import FlightPoint
 from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
 from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs, Timer
-from ..components.cd0 import CD0
-from ..external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm, ComputeHTPCLALPHAvlm, ComputeHTPCLCMvlm
+from ..components.cd0 import Cd0
+from ..external.vlm import ComputeOSWALDvlm, ComputeWingCLALPHAvlm, ComputeHTPCLALPHAvlm, ComputeHTPCLCMvlm, \
+    ComputeAEROvlm
+from ..external.vlm.compute_aero import DEFAULT_WING_AIRFOIL, DEFAULT_HTP_AIRFOIL
 from ..external.xfoil import XfoilPolar
+from ..external.xfoil import resources
 from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp, \
     ComputeHTPCLCMopenvsp, ComputeAEROopenvsp
 from ..components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
 from ..components.compute_cl_max import ComputeMaxCL
 from ..components.high_lift_aero import ComputeDeltaHighLift
 from ..components.compute_L_D_max import ComputeLDMax
-from ..components.compute_reynolds import ComputeReynolds
+from ..components.compute_reynolds import ComputeUnitReynolds
 from ..constants import SPAN_MESH_POINT_OPENVSP
 from ..aerodynamics_high_speed import AerodynamicsHighSpeed
 from ..aerodynamics_low_speed import AerodynamicsLowSpeed
@@ -135,43 +138,43 @@ def reshape_polar(cl, cdp):
     return cl, cdp
 
 
-def est_compute_reynolds():
+def test_compute_reynolds():
     """ Tests high and low speed reynolds calculation """
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeReynolds()), __file__, XML_FILE)
+    ivc = get_indep_var_comp(list_inputs(ComputeUnitReynolds()), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeReynolds(), ivc)
+    problem = run_system(ComputeUnitReynolds(), ivc)
     mach = problem["data:aerodynamics:cruise:mach"]
     assert mach == pytest.approx(0.2457, abs=1e-4)
-    reynolds = problem["data:aerodynamics:cruise:unit_reynolds"]
+    reynolds = problem.get_val("data:aerodynamics:cruise:unit_reynolds", units="m**-1")
     assert reynolds == pytest.approx(4571770, abs=1)
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeReynolds(low_speed_aero=True)), __file__, XML_FILE)
+    ivc = get_indep_var_comp(list_inputs(ComputeUnitReynolds(low_speed_aero=True)), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeReynolds(low_speed_aero=True), ivc)
+    problem = run_system(ComputeUnitReynolds(low_speed_aero=True), ivc)
     mach = problem["data:aerodynamics:low_speed:mach"]
     assert mach == pytest.approx(0.1179, abs=1e-4)
-    reynolds = problem["data:aerodynamics:low_speed:unit_reynolds"]
+    reynolds = problem.get_val("data:aerodynamics:low_speed:unit_reynolds", units="m**-1")
     assert reynolds == pytest.approx(2746999, abs=1)
 
 
-def est_cd0_high_speed():
+def test_cd0_high_speed():
     """ Tests drag coefficient @ high speed """
 
     # Research independent input value in .xml file
     # noinspection PyTypeChecker
-    ivc = get_indep_var_comp(list_inputs(CD0(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
+    ivc = get_indep_var_comp(list_inputs(Cd0(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
     ivc.add_output("data:aerodynamics:cruise:mach", 0.2457)
-    ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 4571770)
+    ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 4571770, units="m**-1")
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
     # noinspection PyTypeChecker
-    problem = run_system(CD0(propulsion_id=ENGINE_WRAPPER), ivc)
+    problem = run_system(Cd0(propulsion_id=ENGINE_WRAPPER), ivc)
     cd0_wing = problem["data:aerodynamics:wing:cruise:CD0"]
     assert cd0_wing == pytest.approx(0.00503, abs=1e-5)
     cd0_fus = problem["data:aerodynamics:fuselage:cruise:CD0"]
@@ -190,19 +193,19 @@ def est_cd0_high_speed():
     assert cd0_total == pytest.approx(0.01977, abs=1e-5)
 
 
-def est_cd0_low_speed():
+def test_cd0_low_speed():
     """ Tests drag coefficient @ low speed """
 
     # Research independent input value in .xml file
     # noinspection PyTypeChecker
-    ivc = get_indep_var_comp(list_inputs(CD0(propulsion_id=ENGINE_WRAPPER, low_speed_aero=True)), __file__, XML_FILE)
+    ivc = get_indep_var_comp(list_inputs(Cd0(propulsion_id=ENGINE_WRAPPER, low_speed_aero=True)), __file__, XML_FILE)
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
-    ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822)  # correction to ...
+    ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822, units="m**-1")  # correction to ...
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
     # noinspection PyTypeChecker
-    problem = run_system(CD0(propulsion_id=ENGINE_WRAPPER, low_speed_aero=True), ivc)
+    problem = run_system(Cd0(propulsion_id=ENGINE_WRAPPER, low_speed_aero=True), ivc)
     cd0_wing = problem["data:aerodynamics:wing:low_speed:CD0"]
     assert cd0_wing == pytest.approx(0.00552, abs=1e-5)
     cd0_fus = problem["data:aerodynamics:fuselage:low_speed:CD0"]
@@ -221,14 +224,19 @@ def est_cd0_low_speed():
     assert cd0_total == pytest.approx(0.04532, abs=1e-5)
 
 
-def est_polar():
+def test_polar():
     """ Tests polar execution (XFOIL) @ high and low speed """
+
+    # Clear saved polar results (for wing and htp airfoils)
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv')))
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv')))
 
     # Define high-speed parameters (with .xml file and additional inputs)
     ivc = get_indep_var_comp(list_inputs(XfoilPolar()), __file__, XML_FILE)
     ivc.add_output("xfoil:mach", 0.245)
-    ivc.add_output("xfoil:unit_reynolds", 4571770)
-    ivc.add_output("xfoil:length", 1.549, units="m")  # group connection data:geometry:wing:MAC:length -> xfoil:length
+    ivc.add_output("xfoil:reynolds", 4571770*1.549)
 
     # Run problem and check obtained value(s) is/(are) correct
     xfoil_comp = XfoilPolar(
@@ -244,8 +252,7 @@ def est_polar():
     # Define low-speed parameters (with .xml file and additional inputs)
     ivc = get_indep_var_comp(list_inputs(XfoilPolar()), __file__, XML_FILE)
     ivc.add_output("xfoil:mach", 0.1179)
-    ivc.add_output("xfoil:unit_reynolds", 2746999)
-    ivc.add_output("xfoil:length", 1.549, units="m")  # group connection data:geometry:wing:MAC:length -> xfoil:length
+    ivc.add_output("xfoil:reynolds", 2746999*1.549)
 
     # Run problem and check obtained value(s) is/(are) correct
     xfoil_comp = XfoilPolar(
@@ -255,13 +262,13 @@ def est_polar():
     cl = problem["xfoil:CL"]
     cdp = problem["xfoil:CDp"]
     cl_max_2d = problem["xfoil:CL_max_2D"]
-    assert cl_max_2d == pytest.approx(1.6966, abs=1e-4)
+    assert cl_max_2d == pytest.approx(1.6965, abs=1e-4)
     cl, cdp = reshape_polar(cl, cdp)
     cdp_1 = np.interp(1.0, cl, cdp)
-    assert cdp_1 == pytest.approx(0.0048, abs=1e-4)
+    assert cdp_1 == pytest.approx(0.0049, abs=1e-4)
 
 
-def est_vlm_comp_high_speed():
+def _test_vlm_comp_high_speed():
     """ Tests vlm components @ high speed """
 
     # Research independent input value in .xml file
@@ -310,7 +317,7 @@ def est_vlm_comp_high_speed():
     assert cl_alpha_htp == pytest.approx(0.6259, abs=1e-4)
 
 
-def est_vlm_comp_low_speed():
+def _test_vlm_comp_low_speed():
     """ Tests vlm components @ high speed """
 
     # Research independent input value in .xml file
@@ -381,7 +388,37 @@ def est_vlm_comp_low_speed():
     assert cm2 == pytest.approx(-0.0667, abs=1e-4)
 
 
-def est_openvsp_comp_high_speed():
+def test_vlm_comp_low_speed_new():
+    """ Tests vlm components @ high speed """
+
+    # Create result temporary directory
+    results_folder = _create_tmp_directory()
+
+    # Clear saved polar results (for wing and htp airfoils)
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv')))
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv')))
+
+    with Timer(name="VLM low-speed [NEW]: 1st run"):
+        # Research independent input value in .xml file
+        # noinspection PyTypeChecker
+        ivc = get_indep_var_comp(list_inputs(ComputeAEROvlm(low_speed_aero=True)), __file__, XML_FILE)
+
+        # Run problem and check obtained value(s) is/(are) correct
+        # noinspection PyTypeChecker
+        problem = run_system(ComputeAEROvlm(low_speed_aero=True, result_folder_path=results_folder.name), ivc)
+        cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
+        assert cl_alpha_htp == pytest.approx(0.6201, abs=1e-4)
+
+    with Timer(name="VLM low-speed [NEW]: 2nd run"):
+        # Run problem 2nd time
+        # noinspection PyTypeChecker
+        run_system(ComputeAEROvlm(low_speed_aero=True, result_folder_path=results_folder.name), ivc)
+
+
+
+def _test_openvsp_comp_high_speed():
     """ Tests openvsp components @ high speed """
 
     # Create result temporary directory
@@ -423,7 +460,7 @@ def est_openvsp_comp_high_speed():
     results_folder.cleanup()
 
 
-def est_openvsp_comp_low_speed():
+def _test_openvsp_comp_low_speed():
     """ Tests openvsp components @ low speed """
 
     # Create result temporary directory
@@ -494,26 +531,28 @@ def test_openvsp_comp_low_speed_new():
 
     with Timer(name="Openvsp low-speed [NEW]: 1st run"):
         # Research independent input value in .xml file
-        ivc = get_indep_var_comp(list_inputs(ComputeAEROopenvsp()), __file__, XML_FILE)
-        ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # compensate old version conversion error
+        # noinspection PyTypeChecker
+        ivc = get_indep_var_comp(list_inputs(ComputeAEROopenvsp(low_speed_aero=True)), __file__, XML_FILE)
 
         # Run problem and check obtained value(s) is/(are) correct
+        # noinspection PyTypeChecker
         problem = run_system(ComputeAEROopenvsp(low_speed_aero=True, result_folder_path=results_folder.name), ivc)
         cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
-        assert cl_alpha_htp == pytest.approx(0.6967, abs=1e-4)
+        assert cl_alpha_htp == pytest.approx(0.6760, abs=1e-4)
 
     with Timer(name="Openvsp low-speed [NEW]: 2nd run"):
         # Run problem 2nd time
+        # noinspection PyTypeChecker
         run_system(ComputeAEROopenvsp(low_speed_aero=True, result_folder_path=results_folder.name), ivc)
 
 
-def est_high_lift():
+def test_high_lift():
     """ Tests high-lift contribution """
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(ComputeDeltaHighLift()), __file__, XML_FILE)
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
-    ivc.add_output("data:aerodynamics:aircraft:low_speed:CL_alpha", 4.569, units="rad**-1")
+    ivc.add_output("data:aerodynamics:wing:low_speed:CL_alpha", 4.569, units="rad**-1")
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeDeltaHighLift(), ivc)
@@ -537,41 +576,48 @@ def est_high_lift():
     assert cl_alpha_elev == pytest.approx(0.6167, abs=1e-4)
 
 
-def est_max_cl():
+def test_max_cl():
     """ Tests maximum cl component with Openvsp and VLM results"""
 
-    # Research independent input value in .xml file for Openvsp test
-    ivc = get_indep_var_comp(list_inputs(ComputeMaxCL()), __file__, XML_FILE)
-    y_openvsp = np.zeros(SPAN_MESH_POINT_OPENVSP)
-    cl_openvsp = np.zeros(SPAN_MESH_POINT_OPENVSP)
-    y_openvsp[0:39] = [0.04279, 0.12836, 0.21393, 0.2995, 0.38507, 0.47064, 0.55621,
-                       0.68649, 0.862, 1.0385, 1.21588, 1.39404, 1.57287, 1.75226,
-                       1.93212, 2.11231, 2.29274, 2.47328, 2.65384, 2.83429, 3.01452,
-                       3.19443, 3.37389, 3.5528, 3.73106, 3.90855, 4.08517, 4.26082,
-                       4.43539, 4.60879, 4.78093, 4.9517, 5.12103, 5.28882, 5.45499,
-                       5.61947, 5.78218, 5.94305, 6.10201]
-    cl_openvsp[0:39] = [0.0989, 0.09908, 0.09901, 0.09898, 0.09892, 0.09888, 0.09887,
-                        0.09871, 0.09823, 0.09859, 0.09894, 0.09888, 0.09837, 0.098,
-                        0.0979, 0.09763, 0.09716, 0.09671, 0.0961, 0.09545, 0.09454,
-                        0.09377, 0.09295, 0.09209, 0.09087, 0.08965, 0.08812, 0.0866,
-                        0.08465, 0.08284, 0.08059, 0.07817, 0.07494, 0.07178, 0.06773,
-                        0.06279, 0.05602, 0.04639, 0.03265]
-    ivc.add_output("data:aerodynamics:flaps:landing:CL_max", 0.5788)
-    ivc.add_output("data:aerodynamics:flaps:takeoff:CL_max", 0.1218)
-    ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_openvsp, units="m")
-    ivc.add_output("data:aerodynamics:wing:low_speed:CL_vector", cl_openvsp)
-    ivc.add_output("data:aerodynamics:wing:low_speed:root:CL_max_2D", 1.6999)
-    ivc.add_output("data:aerodynamics:wing:low_speed:tip:CL_max_2D", 1.6999)
-    ivc.add_output("data:aerodynamics:aircraft:low_speed:CL0_clean", 0.0877)
+    # Clear saved polar results (for wing and htp airfoils)
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv')))
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv')))
 
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeMaxCL(), ivc)
-    cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-    assert cl_max_clean == pytest.approx(1.5070, abs=1e-4)
-    cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-    assert cl_max_takeoff == pytest.approx(1.6288, abs=1e-4)
-    cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-    assert cl_max_landing == pytest.approx(2.0858, abs=1e-2)
+    with Timer(name="Maximum CL: run"):
+        # Research independent input value in .xml file for Openvsp test
+        ivc = get_indep_var_comp(list_inputs(ComputeMaxCL()), __file__, XML_FILE)
+        y_openvsp = np.zeros(SPAN_MESH_POINT_OPENVSP)
+        cl_openvsp = np.zeros(SPAN_MESH_POINT_OPENVSP)
+        y_openvsp[0:39] = [0.04279, 0.12836, 0.21393, 0.2995, 0.38507, 0.47064, 0.55621,
+                           0.68649, 0.862, 1.0385, 1.21588, 1.39404, 1.57287, 1.75226,
+                           1.93212, 2.11231, 2.29274, 2.47328, 2.65384, 2.83429, 3.01452,
+                           3.19443, 3.37389, 3.5528, 3.73106, 3.90855, 4.08517, 4.26082,
+                           4.43539, 4.60879, 4.78093, 4.9517, 5.12103, 5.28882, 5.45499,
+                           5.61947, 5.78218, 5.94305, 6.10201]
+        cl_openvsp[0:39] = [0.0989, 0.09908, 0.09901, 0.09898, 0.09892, 0.09888, 0.09887,
+                            0.09871, 0.09823, 0.09859, 0.09894, 0.09888, 0.09837, 0.098,
+                            0.0979, 0.09763, 0.09716, 0.09671, 0.0961, 0.09545, 0.09454,
+                            0.09377, 0.09295, 0.09209, 0.09087, 0.08965, 0.08812, 0.0866,
+                            0.08465, 0.08284, 0.08059, 0.07817, 0.07494, 0.07178, 0.06773,
+                            0.06279, 0.05602, 0.04639, 0.03265]
+        ivc.add_output("data:aerodynamics:flaps:landing:CL_max", 0.5788)
+        ivc.add_output("data:aerodynamics:flaps:takeoff:CL_max", 0.1218)
+        ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_openvsp, units="m")
+        ivc.add_output("data:aerodynamics:wing:low_speed:CL_vector", cl_openvsp)
+        ivc.add_output("data:aerodynamics:wing:low_speed:CL0_clean", 0.0877)
+        ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version ...
+        ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822, units="m**-1")  # correction to ...
+
+        # Run problem and check obtained value(s) is/(are) correct
+        problem = run_system(ComputeMaxCL(), ivc)
+        cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
+        assert cl_max_clean == pytest.approx(1.4992, abs=1e-4)
+        cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
+        assert cl_max_takeoff == pytest.approx(1.6211, abs=1e-4)
+        cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
+        assert cl_max_landing == pytest.approx(2.0780, abs=1e-2)
 
     # Research independent input value in .xml file for VLM test
     ivc = get_indep_var_comp(list_inputs(ComputeMaxCL()), __file__, XML_FILE)
@@ -589,29 +635,29 @@ def est_max_cl():
     ivc.add_output("data:aerodynamics:flaps:takeoff:CL_max", 0.1218)
     ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_vlm, units="m")
     ivc.add_output("data:aerodynamics:wing:low_speed:CL_vector", cl_vlm)
-    ivc.add_output("data:aerodynamics:wing:low_speed:root:CL_max_2D", 1.6999)
-    ivc.add_output("data:aerodynamics:wing:low_speed:tip:CL_max_2D", 1.6999)
-    ivc.add_output("data:aerodynamics:aircraft:low_speed:CL0_clean", 0.1475)
+    ivc.add_output("data:aerodynamics:wing:low_speed:CL0_clean", 0.1475)
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
+    ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822, units="m**-1")  # correction to ...
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeMaxCL(), ivc)
     cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-    assert cl_max_clean == pytest.approx(1.4480, abs=1e-4)
+    assert cl_max_clean == pytest.approx(1.4405, abs=1e-4)
     cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-    assert cl_max_takeoff == pytest.approx(1.5698, abs=1e-4)
+    assert cl_max_takeoff == pytest.approx(1.5623, abs=1e-4)
     cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-    assert cl_max_landing == pytest.approx(2.0268, abs=1e-4)
+    assert cl_max_landing == pytest.approx(2.0193, abs=1e-4)
 
 
-def est_l_d_max():
+def test_l_d_max():
     """ Tests best lift/drag component """
 
     # Define independent input value (openVSP)
     ivc = om.IndepVarComp()
-    ivc.add_output("data:aerodynamics:aircraft:cruise:CL0_clean", 0.0906)
-    ivc.add_output("data:aerodynamics:aircraft:cruise:CL_alpha", 4.650, units="rad**-1")
+    ivc.add_output("data:aerodynamics:wing:cruise:CL0_clean", 0.0906)
+    ivc.add_output("data:aerodynamics:wing:cruise:CL_alpha", 4.650, units="rad**-1")
     ivc.add_output("data:aerodynamics:aircraft:cruise:CD0", 0.01603)
-    ivc.add_output("data:aerodynamics:aircraft:cruise:induced_drag_coefficient", 0.0480)
+    ivc.add_output("data:aerodynamics:wing:cruise:induced_drag_coefficient", 0.0480)
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeLDMax(), ivc)
@@ -625,7 +671,7 @@ def est_l_d_max():
     assert optimal_alpha == pytest.approx(6.00, abs=1e-2)
 
 
-def est_cnbeta():
+def test_cnbeta():
     """ Tests cn beta fuselage """
 
     # Research independent input value in .xml file
@@ -638,7 +684,7 @@ def est_cnbeta():
     assert cn_beta_fus == pytest.approx(-0.0599, abs=1e-4)
 
 
-def est_high_speed_connection():
+def test_high_speed_connection():
     """ Tests high speed components connection """
 
     # load all inputs
@@ -647,35 +693,45 @@ def est_high_speed_connection():
     input_vars = reader.read().to_ivc()
     register_wrappers()
 
-    # Run problem with VLM and check obtained value(s) is/(are) correct
-    # noinspection PyTypeChecker
-    problem = run_system(AerodynamicsHighSpeed(propulsion_id=ENGINE_WRAPPER), input_vars, check=True)
-    cd0 = problem["data:aerodynamics:aircraft:cruise:CD0"]
-    assert cd0 == pytest.approx(0.0198, abs=1e-4)
-    coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0528, abs=1e-4)
-    cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.820, abs=1e-3)
-    cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.6260, abs=1e-4)
-    cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
+    with Timer(name="High-speed complete [NEW]: apply VLM"):
+        # Run problem with VLM and check obtained value(s) is/(are) correct
+        # noinspection PyTypeChecker
+        problem = run_system(AerodynamicsHighSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=False), input_vars,
+                             check=True)
+        cd0 = problem["data:aerodynamics:aircraft:cruise:CD0"]
+        assert cd0 == pytest.approx(0.0198, abs=1e-4)
+        coef_k = problem["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
+        assert coef_k == pytest.approx(0.0530, abs=1e-4)
+        cl_alpha_wing = problem.get_val("data:aerodynamics:wing:cruise:CL_alpha", units="rad**-1")
+        assert cl_alpha_wing == pytest.approx(4.719, abs=1e-3)
+        cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
+        assert cl_alpha_htp == pytest.approx(0.6260, abs=1e-4)
+        cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
+        assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
 
-    # Run problem with OPENVSP and check change(s) is/(are) correct
-    # noinspection PyTypeChecker
-    problem = run_system(AerodynamicsHighSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=True), input_vars, check=True)
-    coef_k = problem["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0487, abs=1e-4)
-    cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.536, abs=1e-3)
-    cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.7030, abs=1e-4)
-    cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
+    with Timer(name="High-speed complete [NEW]: apply OPENVSP"):
+        # Run problem with OPENVSP and check change(s) is/(are) correct
+        # noinspection PyTypeChecker
+        problem = run_system(AerodynamicsHighSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=True), input_vars,
+                             check=True)
+        coef_k = problem["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
+        assert coef_k == pytest.approx(0.04822, abs=1e-4)
+        cl_alpha_wing = problem.get_val("data:aerodynamics:wing:cruise:CL_alpha", units="rad**-1")
+        assert cl_alpha_wing == pytest.approx(4.587, abs=1e-3)
+        cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
+        assert cl_alpha_htp == pytest.approx(0.6820, abs=1e-4)
+        cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
+        assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
 
 
-def est_low_speed_connection():
+def test_low_speed_connection():
     """ Tests low speed components connection """
+
+    # Clear saved polar results (for wing and htp airfoils)
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv')))
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv')))
 
     # load all inputs
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
@@ -683,36 +739,40 @@ def est_low_speed_connection():
     input_vars = reader.read().to_ivc()
     register_wrappers()
 
-    # Run problem with VLM and check obtained value(s) is/(are) correct
-    # noinspection PyTypeChecker
-    problem = run_system(AerodynamicsLowSpeed(propulsion_id=ENGINE_WRAPPER), input_vars, check=True)
-    cd0 = problem["data:aerodynamics:aircraft:low_speed:CD0"]
-    assert cd0 == pytest.approx(0.0452, abs=1e-4)
-    coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0530, abs=1e-4)
-    cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.705, abs=1e-3)
-    cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-    assert cl_max_clean == pytest.approx(1.4456, abs=1e-4)
-    cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-    assert cl_max_takeoff == pytest.approx(1.5675, abs=1e-4)
-    cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-    assert cl_max_landing == pytest.approx(2.0245, abs=1e-4)
-    cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.6202, abs=1e-4)
+    with Timer(name="Low-speed complete [NEW]: apply VLM"):
+        # Run problem with VLM and check obtained value(s) is/(are) correct
+        # noinspection PyTypeChecker
+        problem = run_system(AerodynamicsLowSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=False), input_vars,
+                             check=True)
+        cd0 = problem["data:aerodynamics:aircraft:low_speed:CD0"]
+        assert cd0 == pytest.approx(0.0452, abs=1e-4)
+        coef_k = problem["data:aerodynamics:wing:low_speed:induced_drag_coefficient"]
+        assert coef_k == pytest.approx(0.0534, abs=1e-4)
+        cl_alpha_wing = problem.get_val("data:aerodynamics:wing:low_speed:CL_alpha", units="rad**-1")
+        assert cl_alpha_wing == pytest.approx(4.607, abs=1e-3)
+        cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
+        assert cl_max_clean == pytest.approx(1.4557, abs=1e-4)
+        cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
+        assert cl_max_takeoff == pytest.approx(1.5775, abs=1e-4)
+        cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
+        assert cl_max_landing == pytest.approx(2.0345, abs=1e-4)
+        cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
+        assert cl_alpha_htp == pytest.approx(0.6202, abs=1e-4)
 
-    # Run problem with OPENVSP and check change(s) is/(are) correct
-    # noinspection PyTypeChecker
-    problem = run_system(AerodynamicsLowSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=True), input_vars, check=True)
-    coef_k = problem["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
-    assert coef_k == pytest.approx(0.0487, abs=1e-4)
-    cl_alpha_wing = problem.get_val("data:aerodynamics:aircraft:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.459, abs=1e-3)
-    cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-    assert cl_max_clean == pytest.approx(1.5352, abs=1e-4)
-    cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-    assert cl_max_takeoff == pytest.approx(1.6571, abs=1e-4)
-    cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-    assert cl_max_landing == pytest.approx(2.1141, abs=1e-4)
-    cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.6967, abs=1e-4)
+    with Timer(name="Low-speed complete [NEW]: apply OPENVSP"):
+        # Run problem with OPENVSP and check change(s) is/(are) correct
+        # noinspection PyTypeChecker
+        problem = run_system(AerodynamicsLowSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=True), input_vars,
+                             check=True)
+        coef_k = problem["data:aerodynamics:wing:low_speed:induced_drag_coefficient"]
+        assert coef_k == pytest.approx(0.04821, abs=1e-4)
+        cl_alpha_wing = problem.get_val("data:aerodynamics:wing:low_speed:CL_alpha", units="rad**-1")
+        assert cl_alpha_wing == pytest.approx(4.5091, abs=1e-3)
+        cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
+        assert cl_max_clean == pytest.approx(1.5319, abs=1e-4)
+        cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
+        assert cl_max_takeoff == pytest.approx(1.6537, abs=1e-4)
+        cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
+        assert cl_max_landing == pytest.approx(2.1108, abs=1e-4)
+        cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
+        assert cl_alpha_htp == pytest.approx(0.6760, abs=1e-4)

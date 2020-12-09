@@ -28,7 +28,7 @@ from typing import Union, List, Optional, Tuple
 ALPHA_LIMIT = 13.5 * math.pi / 180.0  # Limit angle to touch tail on ground in rad
 ALPHA_RATE = 3.0 * math.pi / 180.0  # Angular rotation speed in rad/s
 SAFETY_HEIGHT = 50 * 0.3048  # Height in meters to reach V2 speed
-TIME_STEP = 0.05  # For time dependent simulation
+TIME_STEP = 0.1  # For time dependent simulation
 
 
 class TakeOffPhase(om.Group):
@@ -133,12 +133,12 @@ class _v2(om.ExplicitComponent):
 
         self.add_input("data:geometry:propulsion:count", np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL0_clean", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CL", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", np.nan, units="m")
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
@@ -155,10 +155,10 @@ class _v2(om.ExplicitComponent):
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
         )
         cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
-        cl0 = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
-        cl_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
+        cl0 = inputs["data:aerodynamics:wing:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
+        cl_alpha = inputs["data:aerodynamics:wing:low_speed:CL_alpha"]
         cd0 = inputs["data:aerodynamics:aircraft:low_speed:CD0"] + inputs["data:aerodynamics:flaps:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
+        coef_k = inputs["data:aerodynamics:wing:low_speed:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         wing_span = inputs["data:geometry:wing:span"]
         lg_height = inputs["data:geometry:landing_gear:height"]
@@ -216,12 +216,12 @@ class _vloff_from_v2(om.ExplicitComponent):
         self._engine_wrapper.setup(self)
 
         self.add_input("data:geometry:propulsion:count", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL0_clean", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CL", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", np.nan, units="m")
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
@@ -240,10 +240,10 @@ class _vloff_from_v2(om.ExplicitComponent):
         propulsion_model = FuelEngineSet(
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
         )
-        cl0 = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
-        cl_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
+        cl0 = inputs["data:aerodynamics:wing:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
+        cl_alpha = inputs["data:aerodynamics:wing:low_speed:CL_alpha"]
         cd0 = inputs["data:aerodynamics:aircraft:low_speed:CD0"] + inputs["data:aerodynamics:flaps:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
+        coef_k = inputs["data:aerodynamics:wing:low_speed:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         wing_span = inputs["data:geometry:wing:span"]
         lg_height = inputs["data:geometry:landing_gear:height"]
@@ -343,7 +343,7 @@ class _vr_from_v2(om.ExplicitComponent):
     """
     Search VR for given lift-off conditions by doing reverted simulation.
     The error introduced comes from acceleration acc(t)~acc(t+dt) => v(t-dt)~V(t)-acc(t)*dt.
-    Time step has been reduced by 1/10 to limit integration error.
+    Time step has been reduced by 1/5 to limit integration error.
 
     """
 
@@ -359,12 +359,12 @@ class _vr_from_v2(om.ExplicitComponent):
         self._engine_wrapper.setup(self)
 
         self.add_input("data:geometry:propulsion:count", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL0_clean", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CL", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", np.nan, units="m")
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
@@ -382,10 +382,10 @@ class _vr_from_v2(om.ExplicitComponent):
         propulsion_model = FuelEngineSet(
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
         )
-        cl0 = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
-        cl_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
+        cl0 = inputs["data:aerodynamics:wing:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
+        cl_alpha = inputs["data:aerodynamics:wing:low_speed:CL_alpha"]
         cd0 = inputs["data:aerodynamics:aircraft:low_speed:CD0"] + inputs["data:aerodynamics:flaps:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
+        coef_k = inputs["data:aerodynamics:wing:low_speed:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         wing_span = inputs["data:geometry:wing:span"]
         lg_height = inputs["data:geometry:landing_gear:height"]
@@ -417,7 +417,7 @@ class _vr_from_v2(om.ExplicitComponent):
             # Calculate acceleration
             acc_x = (thrust * math.cos(alpha_t) - drag - friction) / mtow
             # Speed and angle update (feedback)
-            dt = min(TIME_STEP / 10, alpha_t / ALPHA_RATE, v_t / acc_x)
+            dt = min(TIME_STEP / 5, alpha_t / ALPHA_RATE, v_t / acc_x)
             v_t = v_t - acc_x * dt
             alpha_t = alpha_t - ALPHA_RATE * dt
 
@@ -443,12 +443,12 @@ class _simulate_takeoff(om.ExplicitComponent):
 
         self.add_input("data:geometry:propulsion:count", np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL0_clean", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CL", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:aircraft:low_speed:CD0", np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CD", np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:induced_drag_coefficient", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:induced_drag_coefficient", np.nan)
         self.add_input("data:geometry:wing:area", np.nan, units="m**2")
         self.add_input("data:geometry:wing:span", np.nan, units="m")
         self.add_input("data:geometry:landing_gear:height", np.nan, units="m")
@@ -474,10 +474,10 @@ class _simulate_takeoff(om.ExplicitComponent):
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
         )
         cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
-        cl0 = inputs["data:aerodynamics:aircraft:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
-        cl_alpha = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
+        cl0 = inputs["data:aerodynamics:wing:low_speed:CL0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CL"]
+        cl_alpha = inputs["data:aerodynamics:wing:low_speed:CL_alpha"]
         cd0 = inputs["data:aerodynamics:aircraft:low_speed:CD0"] + inputs["data:aerodynamics:flaps:takeoff:CD"]
-        coef_k = inputs["data:aerodynamics:aircraft:low_speed:induced_drag_coefficient"]
+        coef_k = inputs["data:aerodynamics:wing:low_speed:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         wing_span = inputs["data:geometry:wing:span"]
         lg_height = inputs["data:geometry:landing_gear:height"]

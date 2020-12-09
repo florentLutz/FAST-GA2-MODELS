@@ -21,7 +21,7 @@ from fastoad.utils.physics import Atmosphere
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
-class ComputeReynolds(ExplicitComponent):
+class ComputeUnitReynolds(ExplicitComponent):
     def initialize(self):
         self.options.declare("low_speed_aero", default=False, types=bool)
 
@@ -30,12 +30,12 @@ class ComputeReynolds(ExplicitComponent):
         if self.options["low_speed_aero"]:
             self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
             self.add_output("data:aerodynamics:low_speed:mach")
-            self.add_output("data:aerodynamics:low_speed:unit_reynolds")
+            self.add_output("data:aerodynamics:low_speed:unit_reynolds", units="m**-1")
         else:
             self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
             self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
             self.add_output("data:aerodynamics:cruise:mach")
-            self.add_output("data:aerodynamics:cruise:unit_reynolds")
+            self.add_output("data:aerodynamics:cruise:unit_reynolds", units="m**-1")
 
         self.declare_partials("*", "*", method="fd")
 

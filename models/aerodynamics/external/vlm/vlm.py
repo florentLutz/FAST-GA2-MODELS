@@ -44,6 +44,7 @@ class VLM(om.ExplicitComponent):
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
         self.add_input("data:geometry:flap:span_ratio", val=np.nan)
+        self.add_input("data:geometry:horizontal_tail:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
@@ -336,7 +337,7 @@ class VLM(om.ExplicitComponent):
             inputs,
             aoalist: Union[float, List],
             vinf: float,
-            use_airfoil: Optional[bool] = True) -> Tuple[list, list]:
+            use_airfoil: Optional[bool] = True) -> Tuple[list, list, list, list]:
         """VLM computation for the horizontal tail alone.
 
         :param inputs: inputs parameters for the explicit component
@@ -346,10 +347,13 @@ class VLM(om.ExplicitComponent):
         :return: [Cl, Cm] aerodynamic parameters
         """
 
+        aspect_ratio = inputs['data:geometry:horizontal_tail:aspect_ratio']
         meanchord = inputs['data:geometry:horizontal_tail:MAC:length']
 
         # Initialization 
         Cl = []
+        Cdi = []
+        Oswald = []
         Cm = []
         xc = self.HTP['xc']
         panelchord = self.HTP['panel_chord']
@@ -359,6 +363,7 @@ class VLM(om.ExplicitComponent):
         panelangle_vect = self.HTP['panel_angle_vect']
         AIC = self.HTP['AIC']
         AIC_inv = np.linalg.inv(AIC)
+        AIC_wake = self.HTP['AIC_wake']
 
         # Calculate all the aerodynamic parameters
         for AoA in aoalist:
@@ -369,13 +374,19 @@ class VLM(om.ExplicitComponent):
             for i in range(self.nx):
                 cp[i * self.ny] = cp[i * self.ny] * 1
             cl = -np.sum(cp * panelsurf) / np.sum(panelsurf)
+            alphaind = np.dot(AIC_wake, gamma) / vinf
+            cdind_panel = cp * alphaind
+            cdi = np.sum(cdind_panel * panelsurf) / np.sum(panelsurf)
+            oswald = cl ** 2 / (math.pi * aspect_ratio * cdi) * 0.955  # !!!: manual correction?
             cmpanel = np.multiply(cp, (xc[:self.nx * self.ny] - meanchord / 4))
             cm = np.sum(cmpanel * panelsurf) / np.sum(panelsurf)
             # Save data
             Cl.append(cl)
+            Cdi.append(cdi)
+            Oswald.append(oswald)
             Cm.append(cm)
 
-        return Cl, Cm
+        return Cl, Cdi, Oswald, Cm
 
 
     def get_cl_curve(self, aoa: float, vinf: float) -> Tuple[list, list]:

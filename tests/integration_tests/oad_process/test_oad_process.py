@@ -46,7 +46,7 @@ def cleanup():
     rmtree(RESULTS_FOLDER_PATH, ignore_errors=True)
 
 
-def est_oad_process(cleanup):
+def test_oad_process(cleanup):
     """
     Test for the overall aircraft design process.
     """
@@ -101,7 +101,7 @@ def est_oad_process(cleanup):
     assert_allclose(problem["data:mission:sizing:fuel"], 156, atol=1)
 
 
-def test_api(cleanup):
+def est_api(cleanup):
 
     # Generation of inputs ----------------------------------------------------
     # We get the same inputs as in tutorial notebook

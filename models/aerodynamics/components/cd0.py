@@ -22,7 +22,7 @@ from ..components.cd0_total import Cd0Total
 from openmdao.core.group import Group
 
 
-class CD0(Group):
+class Cd0(Group):
     def initialize(self):
         self.options.declare("low_speed_aero", default=False, types=bool)
         self.options.declare("propulsion_id", default="", types=str)
@@ -41,11 +41,11 @@ class CD0(Group):
                 Cd0HorizontalTail(low_speed_aero=True, htp_airfoil_file=self.options['htp_airfoil_file']),
                 promotes=["*"])
             self.add_subsystem("cd0_vt", Cd0VerticalTail(low_speed_aero=True), promotes=["*"])
-            self.add_subsystem("cd0_nac", Cd0Nacelle(
+            self.add_subsystem("cd0_nacelle", Cd0Nacelle(
                 propulsion_id=self.options["propulsion_id"],
                 low_speed_aero=True
             ), promotes=["*"])
-            self.add_subsystem("cd0_lg", Cd0LandingGear(low_speed_aero=True), promotes=["*"])
+            self.add_subsystem("cd0_l_gear", Cd0LandingGear(low_speed_aero=True), promotes=["*"])
             self.add_subsystem("cd0_other", Cd0Other(low_speed_aero=True), promotes=["*"])
             self.add_subsystem("cd0_total", Cd0Total(low_speed_aero=True), promotes=["*"])
         else:

@@ -15,3 +15,4 @@ from .compute_oswald import ComputeOSWALDvlm
 from .compute_wing_cl_alpha import ComputeWingCLALPHAvlm
 from .compute_ht_cl_alpha import ComputeHTPCLALPHAvlm
 from .compute_ht_cl_cm import ComputeHTPCLCMvlm
+from .compute_aero import ComputeAEROvlm

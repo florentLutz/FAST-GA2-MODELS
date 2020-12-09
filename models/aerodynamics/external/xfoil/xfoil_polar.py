@@ -22,6 +22,8 @@ import tempfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import warnings
+import pandas as pd
+from typing import Tuple
 
 import numpy as np
 from fastoad.models.aerodynamics.external.xfoil import xfoil699
@@ -66,7 +68,7 @@ class XfoilPolar(ExternalCodeComp):
     def initialize(self):
         
         self.options.declare(OPTION_XFOIL_EXE_PATH, default="", types=str, allow_none=True)
-        self.options.declare("wing_airfoil_file", default=_DEFAULT_AIRFOIL_FILE, types=str)
+        self.options.declare("airfoil_file", default=_DEFAULT_AIRFOIL_FILE, types=str)
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_RESULT_POLAR_FILENAME, default="polar_result.txt", types=str)
         self.options.declare(OPTION_ALPHA_START, default=0.0, types=float)
@@ -74,11 +76,9 @@ class XfoilPolar(ExternalCodeComp):
         self.options.declare(OPTION_ITER_LIMIT, default=500, types=int)
 
     def setup(self):
-        
-        self.add_input("data:geometry:wing:thickness_ratio", val=np.nan)
-        self.add_input("xfoil:length", val=np.nan, units="m")
+
         self.add_input("xfoil:mach", val=np.nan)
-        self.add_input("xfoil:unit_reynolds", val=np.nan)
+        self.add_input("xfoil:reynolds", val=np.nan)
         self.add_output("xfoil:alpha", shape=POLAR_POINT_COUNT, units="deg")
         self.add_output("xfoil:CL", shape=POLAR_POINT_COUNT)
         self.add_output("xfoil:CD", shape=POLAR_POINT_COUNT)
@@ -94,118 +94,188 @@ class XfoilPolar(ExternalCodeComp):
 
     def compute(self, inputs, outputs):
 
-        # Create result folder first (if it must fail, let it fail as soon as possible)
-        result_folder_path = self.options[OPTION_RESULT_FOLDER_PATH]
-        if result_folder_path != "":
-            os.makedirs(result_folder_path, exist_ok=True)
-
         # Get inputs and initialise outputs
-        thickness_ratio = inputs["data:geometry:wing:thickness_ratio"]
-        length = inputs["xfoil:length"]
-        mach = inputs["xfoil:mach"]
-        reynolds = inputs["xfoil:unit_reynolds"]*length
+        mach = round(float(inputs["xfoil:mach"])*1e4)/1e4
+        reynolds = round(float(inputs["xfoil:reynolds"]))
 
-        # Pre-processing (populating temp directory) -----------------------------------------------
-        # XFoil exe
-        tmp_directory = self._create_tmp_directory()
-        if self.options[OPTION_XFOIL_EXE_PATH]:
-            # if a path for Xfoil has been provided, simply use it
-            self.options["command"] = [self.options[OPTION_XFOIL_EXE_PATH]]
-        else:
-            # otherwise, copy the embedded resource in tmp dir
+        # Search if data already stored for this profile and mach with reynolds values bounding current value.
+        # If so, use linear interpolation with the nearest upper/lower reynolds
+        no_file = True
+        data_saved = None
+        interpolated_result = None
+        result_file = pth.join(pth.split(os.path.realpath(__file__))[0], "resources",
+                               self.options["airfoil_file"].replace('.af', '') + '.csv')
+        if pth.exists(result_file):
+            no_file = False
+            data_saved = pd.read_csv(result_file)
+            values = data_saved.to_numpy()[:, 1:len(data_saved.to_numpy()[0])]
+            labels = data_saved.to_numpy()[:, 0].tolist()
+            data_saved = pd.DataFrame(values, index=labels)
+            index_mach = np.where(data_saved.loc["mach", :].to_numpy() == str(mach))[0]
+            data_reduced = data_saved.loc[labels, index_mach]
+            # Search if this exact reynolds has been computed and save results
+            reynolds_vect = np.array([float(x) for x in list(data_reduced.loc["reynolds", :].to_numpy())])
+            index_reynolds = index_mach[np.where(reynolds_vect == reynolds)[0]]
+            if len(index_reynolds) == 1:
+                interpolated_result = data_reduced.loc[labels, index_reynolds]
+            # Else search for lower/upper Reynolds
+            else:
+                lower_reynolds = reynolds_vect[np.where(reynolds_vect < reynolds)[0]]
+                upper_reynolds = reynolds_vect[np.where(reynolds_vect > reynolds)[0]]
+                if not(len(lower_reynolds) == 0 or len(upper_reynolds) == 0):
+                    index_lower_reynolds = index_mach[np.where(reynolds_vect == max(lower_reynolds))[0]]
+                    index_upper_reynolds = index_mach[np.where(reynolds_vect == min(upper_reynolds))[0]]
+                    lower_values = data_reduced.loc[labels, index_lower_reynolds]
+                    upper_values = data_reduced.loc[labels, index_upper_reynolds]
+                    interpolated_result = lower_values
+                    # Modify saved text to numpy array
+                    x_low_ratio = (min(upper_reynolds) - reynolds)/(min(upper_reynolds) - max(lower_reynolds))
+                    x_up_ratio = (reynolds - max(lower_reynolds)) / (min(upper_reynolds) - max(lower_reynolds))
+                    for label in labels:
+                        lower_value = np.array(eval(lower_values.loc[label, index_lower_reynolds].to_numpy()[0]))
+                        upper_value = np.array(eval(upper_values.loc[label, index_upper_reynolds].to_numpy()[0]))
+                        value = (lower_value * x_low_ratio + upper_value * x_up_ratio).tolist()
+                        interpolated_result.loc[label, index_lower_reynolds] = str(value)
+
+        if interpolated_result is None:
+            # Create result folder first (if it must fail, let it fail as soon as possible)
+            result_folder_path = self.options[OPTION_RESULT_FOLDER_PATH]
+            if result_folder_path != "":
+                os.makedirs(result_folder_path, exist_ok=True)
+
+            # Pre-processing (populating temp directory) -----------------------------------------------
+            # XFoil exe
+            tmp_directory = self._create_tmp_directory()
+            if self.options[OPTION_XFOIL_EXE_PATH]:
+                # if a path for Xfoil has been provided, simply use it
+                self.options["command"] = [self.options[OPTION_XFOIL_EXE_PATH]]
+            else:
+                # otherwise, copy the embedded resource in tmp dir
+                # noinspection PyTypeChecker
+                copy_resource(xfoil699, XFOIL_EXE_NAME, tmp_directory.name)
+                self.options["command"] = [pth.join(tmp_directory.name, XFOIL_EXE_NAME)]
+
+            # I/O files
+            self.stdin = pth.join(tmp_directory.name, _INPUT_FILE_NAME)
+            self.stdout = pth.join(tmp_directory.name, _STDOUT_FILE_NAME)
+            self.stderr = pth.join(tmp_directory.name, _STDERR_FILE_NAME)
+
+            # profile file
+            tmp_profile_file_path = pth.join(tmp_directory.name, _TMP_PROFILE_FILE_NAME)
+            profile = get_profile(
+                file_name=self.options["airfoil_file"],
+            ).get_sides()
             # noinspection PyTypeChecker
-            copy_resource(xfoil699, XFOIL_EXE_NAME, tmp_directory.name)
-            self.options["command"] = [pth.join(tmp_directory.name, XFOIL_EXE_NAME)]
+            np.savetxt(
+                tmp_profile_file_path,
+                profile.to_numpy(),
+                fmt="%.15f",
+                delimiter=" ",
+                header="Wing",
+                comments="",
+            )
 
-        # I/O files
-        self.stdin = pth.join(tmp_directory.name, _INPUT_FILE_NAME)
-        self.stdout = pth.join(tmp_directory.name, _STDOUT_FILE_NAME)
-        self.stderr = pth.join(tmp_directory.name, _STDERR_FILE_NAME)
+            # standard input file
+            tmp_result_file_path = pth.join(tmp_directory.name, _TMP_RESULT_FILE_NAME)
+            parser = InputFileGenerator()
+            with path(local_resources, _INPUT_FILE_NAME) as input_template_path:
+                parser.set_template_file(str(input_template_path))
+                parser.set_generated_file(self.stdin)
+                parser.mark_anchor("RE")
+                parser.transfer_var(float(reynolds), 1, 1)
+                parser.mark_anchor("M")
+                parser.transfer_var(float(mach), 1, 1)
+                parser.mark_anchor("ITER")
+                parser.transfer_var(self.options[OPTION_ITER_LIMIT], 1, 1)
+                parser.mark_anchor("ASEQ")
+                parser.transfer_var(self.options[OPTION_ALPHA_START], 1, 1)
+                parser.transfer_var(self.options[OPTION_ALPHA_END], 2, 1)
+                parser.reset_anchor()
+                parser.mark_anchor("/profile")
+                parser.transfer_var(tmp_profile_file_path, 0, 1)
+                parser.mark_anchor("/polar_result")
+                parser.transfer_var(tmp_result_file_path, 0, 1)
+                parser.generate()
 
-        # profile file
-        tmp_profile_file_path = pth.join(tmp_directory.name, _TMP_PROFILE_FILE_NAME)
-        profile = get_profile(
-            file_name=self.options["wing_airfoil_file"],
-            thickness_ratio=thickness_ratio,
-        ).get_sides()
-        # noinspection PyTypeChecker
-        np.savetxt(
-            tmp_profile_file_path,
-            profile.to_numpy(),
-            fmt="%.15f",
-            delimiter=" ",
-            header="Wing",
-            comments="",
-        )
+            # Run XFOIL --------------------------------------------------------------------------------
+            self.options["external_input_files"] = [self.stdin, tmp_profile_file_path]
+            self.options["external_output_files"] = [tmp_result_file_path]
+            super().compute(inputs, outputs)
 
-        # standard input file
-        tmp_result_file_path = pth.join(tmp_directory.name, _TMP_RESULT_FILE_NAME)
-        parser = InputFileGenerator()
-        with path(local_resources, _INPUT_FILE_NAME) as input_template_path:
-            parser.set_template_file(str(input_template_path))
-            parser.set_generated_file(self.stdin)
-            parser.mark_anchor("RE")
-            parser.transfer_var(float(reynolds), 1, 1)
-            parser.mark_anchor("M")
-            parser.transfer_var(float(mach), 1, 1)
-            parser.mark_anchor("ITER")
-            parser.transfer_var(self.options[OPTION_ITER_LIMIT], 1, 1)
-            parser.mark_anchor("ASEQ")
-            parser.transfer_var(self.options[OPTION_ALPHA_START], 1, 1)
-            parser.transfer_var(self.options[OPTION_ALPHA_END], 2, 1)
-            parser.reset_anchor()
-            parser.mark_anchor("/profile")
-            parser.transfer_var(tmp_profile_file_path, 0, 1)
-            parser.mark_anchor("/polar_result")
-            parser.transfer_var(tmp_result_file_path, 0, 1)
-            parser.generate()
+            # Post-processing --------------------------------------------------------------------------
+            result_array = self._read_polar(tmp_result_file_path)
+            cl_max_2d, error = self._get_max_cl(result_array["alpha"], result_array["CL"])
+            if POLAR_POINT_COUNT < len(result_array["alpha"]):
+                alpha = np.linspace(result_array["alpha"][0], result_array["alpha"][-1], POLAR_POINT_COUNT)
+                cl = np.interp(alpha, result_array["alpha"], result_array["CL"])
+                cd = np.interp(alpha, result_array["alpha"], result_array["CD"])
+                cdp = np.interp(alpha, result_array["alpha"], result_array["CDp"])
+                cm = np.interp(alpha, result_array["alpha"], result_array["CM"])
+                warnings.warn("Defined polar point in fast aerodynamics\\constants.py exceeded!")
+            else:
+                additional_zeros = list(np.zeros(POLAR_POINT_COUNT - len(result_array["alpha"])))
+                alpha = result_array["alpha"].tolist()
+                alpha.extend(additional_zeros)
+                alpha = np.asarray(alpha)
+                cl = result_array["CL"].tolist()
+                cl.extend(additional_zeros)
+                cl = np.asarray(cl)
+                cd = result_array["CD"].tolist()
+                cd.extend(additional_zeros)
+                cd = np.asarray(cd)
+                cdp = result_array["CDp"].tolist()
+                cdp.extend(additional_zeros)
+                cdp = np.asarray(cdp)
+                cm = result_array["CM"].tolist()
+                cm.extend(additional_zeros)
+                cm = np.asarray(cm)
 
-        # Run XFOIL --------------------------------------------------------------------------------
-        self.options["external_input_files"] = [self.stdin, tmp_profile_file_path]
-        self.options["external_output_files"] = [tmp_result_file_path]
-        super().compute(inputs, outputs)
+            # Save results to defined path -------------------------------------------------------------
+            if not error:
+                results = [np.array(mach), np.array(reynolds), np.array(cl_max_2d), str(alpha.tolist()), str(cl.tolist()),
+                           str(cd.tolist()), str(cdp.tolist()), str(cm.tolist())]
+                labels = ["mach", "reynolds", "cl_max_2d", "alpha", "cl", "cd", "cdp", "cm"]
+                if no_file or (data_saved is None):
+                    data = pd.DataFrame(results, index=labels)
+                    data.to_csv(result_file)
+                else:
+                    data = pd.DataFrame(np.c_[data_saved, results], index=labels)
+                    data.to_csv(result_file)
 
-        # Post-processing --------------------------------------------------------------------------
-        result_array = self._read_polar(tmp_result_file_path)
-        cl_max_2d = self._get_max_cl(result_array["alpha"], result_array["CL"])
-        real_length = min(POLAR_POINT_COUNT, len(result_array["alpha"]))
-        if real_length < len(result_array["alpha"]):
-            warnings.warn("Defined maximum polar point count in constants.py exceeded!")
-            outputs["xfoil:alpha"] = np.linspace(result_array["alpha"][0], result_array["alpha"][-1], POLAR_POINT_COUNT)
-            outputs["xfoil:CL"] = np.interp(outputs["xfoil:alpha"], result_array["alpha"], result_array["CL"])
-            outputs["xfoil:CD"] = np.interp(outputs["xfoil:alpha"], result_array["alpha"], result_array["CD"])
-            outputs["xfoil:CDp"] = np.interp(outputs["xfoil:alpha"], result_array["alpha"], result_array["CDp"])
-            outputs["xfoil:CDp"] = np.interp(outputs["xfoil:alpha"], result_array["alpha"], result_array["CM"])
+            # Getting output files if needed ---------------------------------------------------------
+            if self.options[OPTION_RESULT_FOLDER_PATH] != "":
+                if pth.exists(tmp_result_file_path):
+                    polar_file_path = pth.join(
+                        result_folder_path, self.options[OPTION_RESULT_POLAR_FILENAME]
+                    )
+                    shutil.move(tmp_result_file_path, polar_file_path)
+
+                if pth.exists(self.stdout):
+                    stdout_file_path = pth.join(result_folder_path, _STDOUT_FILE_NAME)
+                    shutil.move(self.stdout, stdout_file_path)
+
+                if pth.exists(self.stderr):
+                    stderr_file_path = pth.join(result_folder_path, _STDERR_FILE_NAME)
+                    shutil.move(self.stderr, stderr_file_path)
+
+            tmp_directory.cleanup()
+
         else:
-            outputs["xfoil:alpha"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["xfoil:CL"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["xfoil:CD"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["xfoil:CDp"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["xfoil:CM"] = np.zeros(POLAR_POINT_COUNT)
-            outputs["xfoil:alpha"][0:real_length] = result_array["alpha"]
-            outputs["xfoil:CL"][0:real_length] = result_array["CL"]
-            outputs["xfoil:CD"][0:real_length] = result_array["CD"]
-            outputs["xfoil:CDp"][0:real_length] = result_array["CDp"]
-            outputs["xfoil:CM"][0:real_length] = result_array["CM"]
+            cl_max_2d = np.array(eval(interpolated_result.loc["cl_max_2d", :].to_numpy()[0]))
+            alpha = np.array(eval(interpolated_result.loc["alpha", :].to_numpy()[0]))
+            cl = np.array(eval(interpolated_result.loc["cl", :].to_numpy()[0]))
+            cd = np.array(eval(interpolated_result.loc["cd", :].to_numpy()[0]))
+            cdp = np.array(eval(interpolated_result.loc["cdp", :].to_numpy()[0]))
+            cm = np.array(eval(interpolated_result.loc["cm", :].to_numpy()[0]))
+
+        # Defining outputs -------------------------------------------------------------------------
+        outputs["xfoil:alpha"] = alpha
+        outputs["xfoil:CL"] = cl
+        outputs["xfoil:CD"] = cd
+        outputs["xfoil:CDp"] = cdp
+        outputs["xfoil:CM"] = cm
         outputs["xfoil:CL_max_2D"] = cl_max_2d
 
-        # Getting output files if needed
-        if self.options[OPTION_RESULT_FOLDER_PATH] != "":
-            if pth.exists(tmp_result_file_path):
-                polar_file_path = pth.join(
-                    result_folder_path, self.options[OPTION_RESULT_POLAR_FILENAME]
-                )
-                shutil.move(tmp_result_file_path, polar_file_path)
-
-            if pth.exists(self.stdout):
-                stdout_file_path = pth.join(result_folder_path, _STDOUT_FILE_NAME)
-                shutil.move(self.stdout, stdout_file_path)
-
-            if pth.exists(self.stderr):
-                stderr_file_path = pth.join(result_folder_path, _STDERR_FILE_NAME)
-                shutil.move(self.stderr, stderr_file_path)
-
-        tmp_directory.cleanup()
 
     @staticmethod
     def _read_polar(xfoil_result_file_path: str) -> np.ndarray:
@@ -222,7 +292,7 @@ class XfoilPolar(ExternalCodeComp):
         return np.array([])
 
     @staticmethod
-    def _get_max_cl(alpha: np.ndarray, lift_coeff: np.ndarray) -> float:
+    def _get_max_cl(alpha: np.ndarray, lift_coeff: np.ndarray) -> Tuple[float, bool]:
         """
 
         :param alpha:
@@ -230,10 +300,10 @@ class XfoilPolar(ExternalCodeComp):
         :return: max CL if enough alpha computed, or default value otherwise
         """
         if len(alpha) > 0 and max(alpha) >= 5.0:
-            return max(lift_coeff)
+            return max(lift_coeff), False
 
         _LOGGER.warning("2D CL max not found. Using default value (%s)", DEFAULT_2D_CL_MAX)
-        return DEFAULT_2D_CL_MAX
+        return DEFAULT_2D_CL_MAX, True
 
 
     @staticmethod

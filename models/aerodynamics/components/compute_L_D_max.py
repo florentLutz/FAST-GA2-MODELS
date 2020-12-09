@@ -27,10 +27,10 @@ class ComputeLDMax(ExplicitComponent):
     
     def setup(self):
         
-        self.add_input("data:aerodynamics:aircraft:cruise:CL0_clean", val=np.nan)
-        self.add_input("data:aerodynamics:aircraft:cruise:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:cruise:CL0_clean", val=np.nan)
+        self.add_input("data:aerodynamics:wing:cruise:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", val=np.nan)
-        self.add_input("data:aerodynamics:aircraft:cruise:induced_drag_coefficient", val=np.nan)
+        self.add_input("data:aerodynamics:wing:cruise:induced_drag_coefficient", val=np.nan)
 
         self.add_output("data:aerodynamics:aircraft:cruise:L_D_max")
         self.add_output("data:aerodynamics:aircraft:cruise:optimal_CL")
@@ -40,11 +40,12 @@ class ComputeLDMax(ExplicitComponent):
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        cl0_clean = inputs["data:aerodynamics:aircraft:cruise:CL0_clean"]
-        cl_alpha = inputs["data:aerodynamics:aircraft:cruise:CL_alpha"]
+
+        # TODO: to be written with momentum equilibrium formula to consider htp drag
+        cl0_clean = inputs["data:aerodynamics:wing:cruise:CL0_clean"]
+        cl_alpha = inputs["data:aerodynamics:wing:cruise:CL_alpha"]
         cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
-        coef_k = inputs["data:aerodynamics:aircraft:cruise:induced_drag_coefficient"]
+        coef_k = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
         
         cl_opt = math.sqrt(cd0/coef_k)
         alpha_opt = (cl_opt-cl0_clean)/cl_alpha*180/math.pi

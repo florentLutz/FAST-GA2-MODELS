@@ -23,17 +23,11 @@
 			<aircraft>
 				<cruise>
 					<CD0>0.02003</CD0>
-					<CL_alpha units="rad**-1">4.650</CL_alpha>
-					<CL0_clean>0.0906</CL0_clean>
 					<L_D_max>18.0</L_D_max>
-					<induced_drag_coefficient>0.0480</induced_drag_coefficient>
 					<optimal_CL>0.5778</optimal_CL>
 				</cruise>
 				<low_speed>
 					<CD0>0.0454</CD0>
-					<CL_alpha units="rad**-1">4.569</CL_alpha>
-					<CL0_clean>0.0889</CL0_clean>
-					<induced_drag_coefficient>0.0480</induced_drag_coefficient>
 				</low_speed>
 			</aircraft>
 			<flaps>
@@ -47,8 +41,16 @@
 				</takeoff>
 			</flaps>
 			<wing>
+				<cruise>
+					<CL_alpha units="rad**-1">4.650</CL_alpha>
+					<CL0_clean>0.0906</CL0_clean>
+					<induced_drag_coefficient>0.0480</induced_drag_coefficient>
+				</cruise>
 				<low_speed>
+					<CL_alpha units="rad**-1">4.569</CL_alpha>
 					<CL_max_clean>1.5070</CL_max_clean>
+					<CL0_clean>0.0889</CL0_clean>
+					<induced_drag_coefficient>0.0480</induced_drag_coefficient>
 				</low_speed>
 			</wing>
 		</aerodynamics>

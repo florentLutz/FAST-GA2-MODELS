@@ -44,11 +44,11 @@ class Cd0Nacelle(ExplicitComponent):
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-            self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:low_speed:unit_reynolds", val=np.nan, units="m**-1")
             self.add_output("data:aerodynamics:nacelles:low_speed:CD0")
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-            self.add_input("data:aerodynamics:cruise:unit_reynolds", val=np.nan)
+            self.add_input("data:aerodynamics:cruise:unit_reynolds", val=np.nan, units="m**-1")
             self.add_output("data:aerodynamics:nacelles:cruise:CD0")
 
         self.declare_partials("*", "*", method="fd")

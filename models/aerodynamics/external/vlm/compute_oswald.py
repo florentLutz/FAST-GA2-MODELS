@@ -22,7 +22,7 @@ from ...constants import POLAR_POINT_COUNT
 from fastoad.utils.physics import Atmosphere
 from .vlm import VLM
 
-_INPUT_AOAList = [14.0]
+_INPUT_AOAList = [10.0]
 _LOGGER = logging.getLogger(__name__)
 
 

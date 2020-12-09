@@ -51,7 +51,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_input("data:geometry:flap:chord_ratio", val=0.2)
         self.add_input("data:geometry:flap:span_ratio", val=np.nan)
         self.add_input("data:geometry:flap_type", val=np.nan)
-        self.add_input("data:aerodynamics:aircraft:low_speed:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
         self.add_input("data:mission:sizing:landing:flap_angle", val=30.0, units="deg")
         self.add_input("data:mission:sizing:takeoff:flap_angle", val=10.0, units="deg")
@@ -142,7 +142,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         :return: increment of lift coefficient
         """
 
-        cl_alpha_wing = inputs['data:aerodynamics:aircraft:low_speed:CL_alpha']
+        cl_alpha_wing = inputs['data:aerodynamics:wing:low_speed:CL_alpha']
         span_wing = inputs['data:geometry:wing:span']
         y1_wing = inputs['data:geometry:fuselage:maximum_width'] / 2.0
         y2_wing = inputs['data:geometry:wing:root:y']
