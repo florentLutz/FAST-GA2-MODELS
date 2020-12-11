@@ -8,17 +8,19 @@ input_file = "../results/oad_process_inputs.xml"
 output_file = "../results/oad_process_outputs.xml"
 
 [model.aicraft]
+    nonlinear_solver = "om.NonlinearBlockGS(maxiter=50, err_on_non_converge=True, iprint=2, debug_print=True, reraise_child_analysiserror=True, rtol=5e-2)"
+    linear_solver = "om.LinearBlockGS(maxiter=10, err_on_non_converge=True, iprint=2, rtol=1e-3)"
     [model.aicraft.geometry]
         id = "fastga.geometry.legacy"
         propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
     [model.aicraft.aerodynamics_highspeed]
             id = "fastga.aerodynamics.highspeed.legacy"
             propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-            result_folder_path = "D:/a.reysset/Documents/Github/TMP"
+            result_folder_path = "D:/tmp"
     [model.aicraft.aerodynamics_lowspeed]
         id = "fastga.aerodynamics.lowspeed.legacy"
         propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-        result_folder_path = "D:/a.reysset/Documents/Github/TMP"
+        result_folder_path = "D:/tmp"
     [model.aicraft.cycle]
         nonlinear_solver = "om.NonlinearBlockGS(maxiter=50, err_on_non_converge=True, iprint=2, debug_print=True, reraise_child_analysiserror=True, rtol=5e-2)"
         linear_solver = "om.LinearBlockGS(maxiter=10, err_on_non_converge=True, iprint=2, rtol=1e-3)"
