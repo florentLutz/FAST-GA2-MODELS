@@ -13,6 +13,7 @@ Computation of lift and drag increment due to high-lift devices
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import os.path as pth
 
 import numpy as np
 import math
@@ -24,10 +25,10 @@ from scipy import interpolate
 
 from . import resources
 
-LIFT_EFFECTIVENESS_FILENAME = "interpolation of lift effectiveness.txt"
-DELTA_CL_PLAIN_FLAP = "delta lift plain flap.csv"
-K_PLAIN_FLAP = "k plain flap.csv"
-KB_FLAPS = "kb flaps.csv"
+LIFT_EFFECTIVENESS_FILENAME = "interpolation_of_lift_effectiveness.txt"
+DELTA_CL_PLAIN_FLAP = "delta_lift_plain_flap.csv"
+K_PLAIN_FLAP = "k_plain_flap.csv"
+KB_FLAPS = "kb_flaps.csv"
 
 
 class ComputeDeltaHighLift(om.ExplicitComponent):
@@ -350,7 +351,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         :return: lift increment and correction factor
         """
 
-        file = resources.__path__[0] + '\\' + DELTA_CL_PLAIN_FLAP
+        file = pth.join(resources.__path__[0], DELTA_CL_PLAIN_FLAP)
         db = read_csv(file)
 
         x_0 = db['X_0']
@@ -383,7 +384,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                  float(cld_thk15(min(max(chord_ratio, min(x_15)), max(x_15))))]
         cl_delta = interpolate.interp1d([0.0, 0.04, 0.1, 0.15], cld_t)(min(thickness, 0.15))
 
-        file = resources.__path__[0] + '\\' + K_PLAIN_FLAP
+        file = pth.join(resources.__path__[0], K_PLAIN_FLAP)
         db = read_csv(file)
 
         x_10 = db['X_10']
@@ -455,7 +456,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         eta_in = float(eta_in)
         eta_out = float(eta_out)
         wing_taper_ratio = max(min(float(inputs['data:geometry:wing:taper_ratio']), 1.0), 0.0)
-        file = resources.__path__[0] + '\\' + KB_FLAPS
+        file = pth.join(resources.__path__[0], KB_FLAPS)
         db = read_csv(file)
 
         x_0 = db['X_0']
