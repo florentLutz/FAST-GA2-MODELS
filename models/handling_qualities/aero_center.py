@@ -54,12 +54,13 @@ class ComputeAeroCenter(ExplicitComponent):
         cl_alpha_wing = inputs["data:aerodynamics:wing:cruise:CL_alpha"]
         cl_alpha_ht = inputs["data:aerodynamics:horizontal_tail:cruise:CL_alpha"]
         
-        # TODO: make variable name is computation sequence more english
+        # TODO: make variable name in computation sequence more english
         x0_25 = fa_length - 0.25 * l0_wing - x0_wing + 0.25 * l1_wing
         ratio_x025 = x0_25 / fus_length
         # fitting result of Raymer book, figure 16.14
         k_h = 0.01222 - 7.40541e-4 * ratio_x025 * 100 + 2.1956e-5 * (ratio_x025 * 100) ** 2
         # equation from Raymer book, eqn 16.22
+        # FIXME: introduce cm_alpha_wing to the equation (non-symmetrical profile)
         cm_alpha_fus = k_h * width_max ** 2 * fus_length / (l0_wing * wing_area) * 180.0 / np.pi
         x_ca_plane = (cl_alpha_ht * lp_ht - cm_alpha_fus * l0_wing) / (cl_alpha_wing + cl_alpha_ht)
         x_aero_center = x_ca_plane / l0_wing + 0.25

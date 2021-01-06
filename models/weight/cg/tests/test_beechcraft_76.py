@@ -46,7 +46,7 @@ def test_compute_cg_wing():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingCG(), ivc)
     x_cg_a1 = problem.get_val("data:weight:airframe:wing:CG:x", units="m")
-    assert x_cg_a1 == pytest.approx(0.39, abs=1e-2)
+    assert x_cg_a1 == pytest.approx(3.68, abs=1e-2)
 
 
 def test_compute_cg_fuselage():
@@ -310,6 +310,6 @@ def test_complete_cg():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(CG(), input_vars, check=True)
     cg_global = problem.get_val("data:weight:aircraft:CG:aft:x", units="m")
-    assert cg_global == pytest.approx(3.46, abs=1e-1)
+    assert cg_global == pytest.approx(3.70, abs=1e-1)
     cg_ratio = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")
-    assert cg_ratio == pytest.approx(0.20, abs=1e-2)
+    assert cg_ratio == pytest.approx(0.42, abs=1e-2)

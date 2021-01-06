@@ -232,8 +232,10 @@ class XfoilPolar(ExternalCodeComp):
 
             # Save results to defined path -------------------------------------------------------------
             if not error:
-                results = [np.array(mach), np.array(reynolds), np.array(cl_max_2d), str(alpha.tolist()), str(cl.tolist()),
-                           str(cd.tolist()), str(cdp.tolist()), str(cm.tolist())]
+                results = [np.array(mach), np.array(reynolds), np.array(cl_max_2d),
+                           str(self._reshape(alpha, alpha).tolist()), str(self._reshape(alpha, cl).tolist()),
+                           str(self._reshape(alpha, cd).tolist()), str(self._reshape(alpha, cdp).tolist()),
+                           str(self._reshape(alpha, cm).tolist())]
                 labels = ["mach", "reynolds", "cl_max_2d", "alpha", "cl", "cd", "cdp", "cm"]
                 if no_file or (data_saved is None):
                     data = pd.DataFrame(results, index=labels)
@@ -261,12 +263,38 @@ class XfoilPolar(ExternalCodeComp):
             tmp_directory.cleanup()
 
         else:
+            # Extract results
             cl_max_2d = np.array(eval(interpolated_result.loc["cl_max_2d", :].to_numpy()[0]))
-            alpha = np.array(eval(interpolated_result.loc["alpha", :].to_numpy()[0]))
-            cl = np.array(eval(interpolated_result.loc["cl", :].to_numpy()[0]))
-            cd = np.array(eval(interpolated_result.loc["cd", :].to_numpy()[0]))
-            cdp = np.array(eval(interpolated_result.loc["cdp", :].to_numpy()[0]))
-            cm = np.array(eval(interpolated_result.loc["cm", :].to_numpy()[0]))
+            ALPHA = np.array(eval(interpolated_result.loc["alpha", :].to_numpy()[0]))
+            CL = np.array(eval(interpolated_result.loc["cl", :].to_numpy()[0]))
+            CD = np.array(eval(interpolated_result.loc["cd", :].to_numpy()[0]))
+            CDP = np.array(eval(interpolated_result.loc["cdp", :].to_numpy()[0]))
+            CM = np.array(eval(interpolated_result.loc["cm", :].to_numpy()[0]))
+
+            # Modify vector length if necessary
+            if POLAR_POINT_COUNT < len(ALPHA):
+                alpha = np.linspace(ALPHA[0], ALPHA[-1], POLAR_POINT_COUNT)
+                cl = np.interp(alpha, ALPHA, CL)
+                cd = np.interp(alpha, ALPHA, CD)
+                cdp = np.interp(alpha, ALPHA, CDP)
+                cm = np.interp(alpha, ALPHA, CM)
+            else:
+                additional_zeros = list(np.zeros(POLAR_POINT_COUNT - len(ALPHA)))
+                alpha = ALPHA.tolist()
+                alpha.extend(additional_zeros)
+                alpha = np.asarray(alpha)
+                cl = CL.tolist()
+                cl.extend(additional_zeros)
+                cl = np.asarray(cl)
+                cd = CD.tolist()
+                cd.extend(additional_zeros)
+                cd = np.asarray(cd)
+                cdp = CDP.tolist()
+                cdp.extend(additional_zeros)
+                cdp = np.asarray(cdp)
+                cm = CM.tolist()
+                cm.extend(additional_zeros)
+                cm = np.asarray(cm)
 
         # Defining outputs -------------------------------------------------------------------------
         outputs["xfoil:alpha"] = alpha
@@ -305,6 +333,14 @@ class XfoilPolar(ExternalCodeComp):
         _LOGGER.warning("2D CL max not found. Using default value (%s)", DEFAULT_2D_CL_MAX)
         return DEFAULT_2D_CL_MAX, True
 
+    @staticmethod
+    def _reshape(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+        """ Delete ending 0.0 values """
+        for idx in range(len(x)):
+            if np.sum(x[idx:len(x)] == 0.0) == (len(x) - idx):
+                y = y[0:idx]
+                break
+        return y
 
     @staticmethod
     def _create_tmp_directory() -> TemporaryDirectory:

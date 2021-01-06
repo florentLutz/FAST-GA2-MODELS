@@ -141,7 +141,7 @@
 		</propulsion>
 		<weight>
 			<aircraft>
-				<MTOW units="kg">1915.02<!--maximum takeoff weight--></MTOW>
+				<MZFW units="kg">1720.0<!--maximum zero fuel weight--></MZFW>
 			</aircraft>
 		</weight>
 	</data>

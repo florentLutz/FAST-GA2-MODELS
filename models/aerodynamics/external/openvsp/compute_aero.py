@@ -458,10 +458,8 @@ class _ComputeAEROopenvsp(ExternalCodeComp):
             cm_htp_vect = []
             for idx in range(2, 4):
                 cm_wing, _, _, _, cl_htp, cm_htp = self._read_lod_file(output_file_list[idx])
-                # calculate aero-center
-                x_aero_center = (cm_wing - cm_wing_vect[idx-2])/cl_wing_vect[idx-2]
                 # correct htp CM
-                cm_htp = cm_htp + cl_htp * (lp_htp-x_aero_center)
+                cm_htp = cm_htp + cl_htp * lp_htp
                 cl_htp_vect.append(cl_htp)
                 cm_htp_vect.append(cm_htp)
             cl_0_htp = float(cl_htp_vect[0])

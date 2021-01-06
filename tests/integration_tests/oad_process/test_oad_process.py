@@ -92,13 +92,11 @@ def test_oad_process(cleanup):
         rtol=5e-2,
     )
 
-    # assert_allclose(problem["data:handling_qualities:static_margin"], 0.789, atol=1e-3)
-    # assert_allclose(problem["data:geometry:wing:MAC:at25percent:x"], 3.45, atol=1e-2)
-    # assert_allclose(problem["data:weight:aircraft:MTOW"], 1297, atol=1)
-    # assert_allclose(problem["data:geometry:wing:area"], 8.33, atol=1e-2)
-    # assert_allclose(problem["data:geometry:vertical_tail:area"], 1.19, atol=1e-2)
-    # assert_allclose(problem["data:geometry:horizontal_tail:area"], 2.11, atol=1e-2)
-    # assert_allclose(problem["data:mission:sizing:fuel"], 156, atol=1)
+    assert_allclose(problem["data:handling_qualities:static_margin"], 0.12, atol=1e-2)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1503, atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 185, atol=1)
 
 
 def est_api(cleanup):
@@ -111,9 +109,9 @@ def est_api(cleanup):
     SOURCE_FILE = pth.join(DATA_FOLDER_PATH, "beechcraft_76.xml")
     _api.generate_configuration_file(configuration_file, overwrite=True)
 
-    api.generate_inputs(configuration_file, SOURCE_FILE, overwrite=True)
 
     # Run 800NM model ---------------------------------------------------------
+    api.generate_inputs(configuration_file, SOURCE_FILE, overwrite=True)
     api.evaluate_problem(configuration_file, True)
 
     OUTPUT_FILE = pth.join(WORK_FOLDER_PATH, 'problem_outputs.xml')
@@ -126,6 +124,8 @@ def est_api(cleanup):
     index = np.where(viewer.dataframe['Name'] == 'data:TLAR:range')[0][0]
     viewer.dataframe.at[index, 'Value'] = 1000.0
     viewer.save(SOURCE_FILE)
+
+    api.generate_inputs(configuration_file, SOURCE_FILE, overwrite=True)
     api.evaluate_problem(configuration_file, True)
 
     OUTPUT_FILE = pth.join(WORK_FOLDER_PATH, 'problem_outputs.xml')
@@ -153,6 +153,8 @@ def est_api(cleanup):
     index = np.where(viewer.dataframe['Name'] == 'data:TLAR:range')[0][0]
     viewer.dataframe.at[index, 'Value'] = 800.0
     viewer.save(SOURCE_FILE)
+
+    api.generate_inputs(configuration_file, SOURCE_FILE, overwrite=True)
     problem = api.optimize_problem(configuration_file, True)
     assert not problem.optim_failed
 

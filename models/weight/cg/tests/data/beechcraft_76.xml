@@ -103,8 +103,11 @@
 				</MAC>
 				<root>
 					<chord units="m">1.549<!--chord length at wing root--></chord>
+					<virtual_chord units="m">1.549<!--virtual chord length at wing root if sweep angle of trailing edge of outer wing part was on the whole wing (no kink)--></virtual_chord>
 					<y units="m">0.6<!--Y-position of wing root--></y>
 				</root>
+				<sweep_25 units="deg">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
+				<span units="m">12.363<!--wing span--></span>
 				<tip>
 					<chord units="m">1.549<!--chord length at wing tip--></chord>
 					<leading_edge>

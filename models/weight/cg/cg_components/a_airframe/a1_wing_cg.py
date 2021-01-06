@@ -16,6 +16,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+import math
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 
@@ -25,8 +26,13 @@ class ComputeWingCG(ExplicitComponent):
 
     def setup(self):
 
+        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:leading_edge:x:local", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="deg")
+        self.add_input("data:geometry:wing:span", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:root:virtual_chord", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
 
         self.add_output("data:weight:airframe:wing:CG:x", units="m")
 
@@ -34,9 +40,20 @@ class ComputeWingCG(ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
+        fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
-        
-        x_cg_a1 = 0.25*l0_wing + x0_wing
+        sweep_25 = inputs["data:geometry:wing:sweep_25"]
+        span = inputs["data:geometry:wing:span"]
+        l1_wing = inputs["data:geometry:wing:root:virtual_chord"]
+        l4_wing = inputs["data:geometry:wing:tip:chord"]
+
+        if sweep_25 < 5.0:
+            x_cg_wing_rel = 0.4 * l0_wing + span * math.sin(sweep_25 * math.pi / 180.0)
+        else:
+            chord = np.interp(0.35, [0.0, 1.0], [l1_wing, l4_wing])
+            x_cg_wing_rel = (0.35 * span / 2.0) * math.sin(sweep_25 * math.pi / 180.0) + 0.6 * chord
+
+        x_cg_a1 = fa_length - 0.25 * l0_wing - x0_wing + x_cg_wing_rel
         
         outputs["data:weight:airframe:wing:CG:x"] = x_cg_a1

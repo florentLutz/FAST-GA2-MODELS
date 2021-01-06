@@ -273,7 +273,6 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
 
     def setup(self):
 
-        self.add_input("data:geometry:propulsion:count", val=np.nan)
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:horizontal_tail:area", val=2.0, units="m**2")
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="kg")
@@ -300,21 +299,17 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        n_engines = inputs["data:geometry:propulsion:count"]
         wing_area = inputs["data:geometry:wing:area"]
         ht_area = inputs["data:geometry:horizontal_tail:area"]
         mlw = inputs["data:weight:aircraft:MLW"]
-        mtow = inputs["data:weight:aircraft:MTOW"]
         cl0_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL0"]
         cl_alpha_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha"]
         cl0_clean_wing = inputs["data:aerodynamics:wing:low_speed:CL0_clean"]
-        cl_alpha_wing = inputs["data:aerodynamics:aircraft:low_speed:CL_alpha"]
+        cl_alpha_wing = inputs["data:aerodynamics:wing:low_speed:CL_alpha"]
         cm0_wing = inputs["data:aerodynamics:wing:low_speed:CM0_clean"]
         cm_alpha_wing = inputs["data:aerodynamics:wing:low_speed:CM_alpha"]
         cl_flaps_landing = inputs["data:aerodynamics:flaps:landing:CL"]
-        cl_flaps_takeoff = inputs["data:aerodynamics:flaps:takeoff:CL"]
         cl_max_landing = inputs["data:aerodynamics:aircraft:landing:CL_max"]
-        cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
         cl_alpha_elev = inputs["data:aerodynamics:elevator:low_speed:CL_alpha"]
 
 
@@ -340,25 +335,15 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
             cl_landing = weight / (0.5 * rho * v_r ** 2 * wing_area)
             alpha = (cl_landing - cl0_landing) / cl_alpha_wing * 180 / math.pi
         else:
-            # Calculation of take-off minimum speed
-            weight = mtow * g
-            vs1 = math.sqrt(weight / (0.5 * rho * wing_area * cl_max_clean))
-            # Rotation speed requirement from FAR 23.51 (depends on number of engines)
-            if n_engines == 1:
-                v_r = vs1 * 1.0
-            else:
-                v_r = vs1 * 1.1
-            # Evaluate aircraft overall angle (aoa)
-            cl0_takeoff = cl0_clean_wing + cl_flaps_takeoff
-            cl_takeoff = weight / (0.5 * rho * v_r ** 2 * wing_area)
-            alpha = (cl_takeoff - cl0_takeoff) / cl_alpha_wing * 180 / math.pi
+            # Define aircraft overall angle (aoa)
+            alpha = 0.0
         # Interpolate cl/cm and define with ht reference surface
         cl_htp = (
-                (cl0_htp + alpha * cl_alpha_htp + cl_elev)
+                (cl0_htp + (alpha * math.pi / 180) * cl_alpha_htp + cl_elev)
                 * wing_area / ht_area
         )
         # FIXME: are we sure it is cm_wing and not cm_htp passed to wing?
-        cm_wing = cm0_wing + alpha * cm_alpha_wing
+        cm_wing = cm0_wing + (alpha * math.pi / 180) * cm_alpha_wing
         # Define Cl_alpha with htp reference surface
         cl_alpha_htp = cl_alpha_htp * wing_area / ht_area
 

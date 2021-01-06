@@ -21,20 +21,18 @@
 		</TLAR>
 		<aerodynamics>
 			<aircraft>
-				<cruise>
-					<CL_alpha units="rad**-1">4.820<!--derivative of lift coefficient with respect to angle of attack in cruise conditions--></CL_alpha>
-				</cruise>
 				<landing>
 					<CL_max>2.0272<!--maximum lift coefficient in landing conditions--></CL_max>
 				</landing>
-				<low_speed>
-					<CL_alpha units="rad**-1">4.705<!--derivative of lift coefficient with respect to angle of attack in low speed conditions--></CL_alpha>
-					<CL0_clean>0.0889<!--value of lift coefficient at angle of attack 0 in clean configuration at low speed--></CL0_clean>
-				</low_speed>
 				<takeoff>
 					<CL_max>1.5702<!--maximum lift coefficient in takeoff conditions--></CL_max>
 				</takeoff>
 			</aircraft>
+			<elevator>
+				<low_speed>
+					<CL_alpha units="rad**-1">0.6167<!--derivative of lift coefficient with respect to angle of attack in low speed conditions--></CL_alpha>
+				</low_speed>
+			</elevator>
 			<flaps>
 				<landing>
 					<CL>0.7321<!--increment of CL due to flaps for landing phase--></CL>
@@ -46,12 +44,14 @@
 				</takeoff>
 			</flaps>
 			<horizontal_tail>
-				<low_speed>
-					<CL_alpha units="rad**-1">0.6967<!--derivative of lift coefficient with respect to angle of attack in low speed conditions--></CL_alpha>
-				</low_speed>
+				<area units="m**2">4.422<!--horizontal_tail area--></area>
 				<cruise>
-					<CL_alpha units="rad**-1">1.23<!--derivative of lift coefficient with respect to angle of attack in cruise conditions--></CL_alpha>
+					<CL_alpha units="rad**-1">1.2589<!--derivative of lift coefficient with respect to angle of attack in cruise conditions--></CL_alpha>
 				</cruise>
+				<low_speed>
+					<CL_alpha units="rad**-1">1.2457<!--derivative of lift coefficient with respect to angle of attack in low speed conditions--></CL_alpha>
+					<CL0>-0.00754<!--value of lift coefficient at angle of attack 0 in clean configuration at low speed--></CL0>
+				</low_speed>
 			</horizontal_tail>
 			<vertical_tail>
 				<cruise>
@@ -60,8 +60,16 @@
 				</cruise>
 			</vertical_tail>
 			<wing>
+				<area units="m**2">19.15<!--wing reference area--></area>
+				<cruise>
+					<CL_alpha units="rad**-1">4.5935<!--derivative of lift coefficient with respect to angle of attack in cruise conditions--></CL_alpha>
+				</cruise>
 				<low_speed>
+					<CL_alpha units="rad**-1">4.5164<!--derivative of lift coefficient with respect to angle of attack in low speed conditions--></CL_alpha>
 					<CL_max_clean>1.5070<!--maximum lift coefficient with clean wing--></CL_max_clean>
+					<CM_alpha units="rad**-1">0.5011<!--derivative of moment coefficient with respect to angle of attack in low speed conditions--></CM_alpha>
+					<CL0_clean>0.1152<!--value of lift coefficient at angle of attack 0 in clean configuration at low speed--></CL0_clean>
+					<CM0_clean>-0.02597<!--value of induced moment at angle of attack 0 in clean configuration at low speed--></CM0_clean>
 				</low_speed>
 			</wing>
 		</aerodynamics>
