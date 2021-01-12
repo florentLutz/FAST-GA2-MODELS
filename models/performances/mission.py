@@ -31,6 +31,72 @@ POINTS_NB_CRUISE = 500
 POINTS_NB_DESCENT = 100
 
 
+class aircraft_equilibrium(om.ExplicitComponent):
+    """
+    Compute the mass-lift equilibrium
+    """
+
+    def setup(self):
+        self.add_input("data:geometry:wing:MAC:leading_edge:x:local", np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:length", np.nan, units="m")
+        self.add_input("data:geometry:wing:root:virtual_chord", np.nan, units="m")
+        self.add_input("data:geometry:fuselage:maximum_width", np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:at25percent:x", np.nan, units="m")
+        self.add_input("data:geometry:fuselage:length", np.nan, units="m")
+        self.add_input("data:geometry:wing:area", np.nan, units="m**2")
+        self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", np.nan, units="m")
+        self.add_input("data:aerodynamics:wing:cruise:CL_alpha", np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:cruise:CL0_clean", np.nan)
+        self.add_input("data:aerodynamics:wing:cruise:CM0_clean", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:CM0_clean", np.nan)
+        self.add_input("data:weight:aircraft:CG:aft:x", np.nan, units="m")
+
+
+    @staticmethod
+    def found_cl_repartition(inputs, load_factor, mass, dynamic_pressure, low_speed):
+
+        x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
+        l0_wing = inputs["data:geometry:wing:MAC:length"]
+        l1_wing = inputs["data:geometry:wing:root:virtual_chord"]
+        width_max = inputs["data:geometry:fuselage:maximum_width"]
+        x_wing = inputs["data:geometry:wing:MAC:at25percent:x"]
+        fus_length = inputs["data:geometry:fuselage:length"]
+        wing_area = inputs["data:geometry:wing:area"]
+        x_htp = x_wing + inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
+        if low_speed:
+            cl_alpha_wing = inputs["data:aerodynamics:wing:low_speed:CL_alpha"]
+            cl0_wing = inputs["data:aerodynamics:wing:low_speed:CL0_clean"]
+            cm0_wing = inputs["data:aerodynamics:wing:low_speed:CM0_clean"]
+        else:
+            cl_alpha_wing = inputs["data:aerodynamics:wing:cruise:CL_alpha"]
+            cl0_wing = inputs["data:aerodynamics:wing:cruise:CL0_clean"]
+            cm0_wing = inputs["data:aerodynamics:wing:cruise:CM0_clean"]
+        x_cg = inputs["data:weight:aircraft:CG:aft:x"]
+
+        # Calculate cm_alpha_fus from Raymer equations (figure 16.14, eqn 16.22)
+        x0_25 = x_wing - 0.25 * l0_wing - x0_wing + 0.25 * l1_wing
+        ratio_x025 = x0_25 / fus_length
+        k_h = 0.01222 - 7.40541e-4 * ratio_x025 * 100 + 2.1956e-5 * (ratio_x025 * 100) ** 2
+        cm_alpha_fus = - k_h * width_max ** 2 * fus_length / (l0_wing * wing_area) * 180.0 / np.pi
+
+        # Define matrix equilibrium (applying load and moment equilibrium)
+        a11 = 1
+        a12 = 1
+        b1 = mass * g * load_factor / (dynamic_pressure * wing_area)
+        a21 = (x_wing - x_cg) - (cm_alpha_fus / cl_alpha_wing) * l0_wing
+        a22 = (x_htp - x_cg)
+        b2 = (cm0_wing + (cm_alpha_fus / cl_alpha_wing) * cl0_wing) * l0_wing
+
+        a = np.array([[a11, a12], [float(a21), float(a22)]])
+        b = np.array([b1, b2])
+        inv_a = np.linalg.inv(a)
+        CL = np.dot(inv_a, b)
+
+        return float(CL[0]), float(CL[1])
+
+
 class Mission(om.Group):
     
     def setup(self):
@@ -100,7 +166,7 @@ class _compute_taxi(om.ExplicitComponent):
             outputs["data:mission:sizing:taxi_in:fuel"] = fuel_mass
 
 
-class _compute_climb(om.ExplicitComponent):
+class _compute_climb(aircraft_equilibrium):
     """
     Compute the fuel consumption on climb segment with constant VCAS and fixed thrust ratio.
     The hypothesis of small alpha/gamma angles is done.
@@ -114,13 +180,14 @@ class _compute_climb(om.ExplicitComponent):
         self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
+        super().setup()
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
         self.add_input("data:geometry:propulsion:count", np.nan)
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
         self.add_input("data:aerodynamics:wing:cruise:induced_drag_coefficient", np.nan)
-        self.add_input("data:geometry:wing:area", np.nan, units="m**2")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient", np.nan)
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:taxi_out:fuel", np.nan, units="kg")
         self.add_input("data:mission:sizing:holding:fuel", 0.0, units="kg")
@@ -138,6 +205,7 @@ class _compute_climb(om.ExplicitComponent):
             [
                 "data:aerodynamics:aircraft:cruise:CD0",
                 "data:aerodynamics:wing:cruise:induced_drag_coefficient",
+                "data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient",
                 "data:geometry:wing:area",
                 "data:weight:aircraft:MTOW",
                 "data:mission:sizing:taxi_out:fuel",
@@ -155,7 +223,8 @@ class _compute_climb(om.ExplicitComponent):
         )
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
         cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
-        coef_k = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
+        coef_k_wing = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
+        coef_k_htp = inputs["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]
@@ -173,20 +242,20 @@ class _compute_climb(om.ExplicitComponent):
         atm_0 = Atmosphere(0.0)
 
         # FIXME: VCAS strategy is specific to ICE-propeller configuration, should be an input
-        cl = math.sqrt(3*cd0/coef_k)
+        cl = math.sqrt(3*cd0/coef_k_wing)
         atm = Atmosphere(altitude_t, altitude_in_feet=False)
         v_cas = math.sqrt((mass_t * g) / (0.5 * atm.density * wing_area * cl))
 
         # Define specific time step ~POINTS_NB_CLIMB points for calculation (with ground conditions)
-        cl = mass_t * g / (0.5 * atm.density * wing_area * v_cas ** 2)
-        cd = cd0 + coef_k * cl ** 2
+        cl_wing, cl_htp = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_cas ** 2), False)
+        cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
         flight_point = FlightPoint(
             mach=v_cas/atm_0.speed_of_sound, altitude=SAFETY_HEIGHT, engine_setting=EngineSetting.CLIMB,
             thrust_rate=thrust_rate
         )  # with engine_setting as EngineSetting
         propulsion_model.compute_flight_points(flight_point)
         thrust = float(flight_point.thrust)
-        climb_rate = thrust / (mass_t * g) - cd / cl
+        climb_rate = thrust / (mass_t * g) - cd / (cl_wing + cl_htp)
         time_step = ((cruise_altitude - SAFETY_HEIGHT) / (v_cas * math.sin(climb_rate))) / float(POINTS_NB_CLIMB)
 
         while altitude_t < cruise_altitude:
@@ -208,12 +277,12 @@ class _compute_climb(om.ExplicitComponent):
             propulsion_model.compute_flight_points(flight_point)
             thrust = float(flight_point.thrust)
 
-            # Calculates cl and drag considering constant climb rate
-            cl = mass_t * g / (0.5 * atm.density * wing_area * v_tas**2)
-            cd = cd0 + coef_k * cl**2
+            # Calculate equilibrium and induced drag
+            cl_wing, cl_htp = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
+            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
 
             # Calculate climb rate and height increase
-            climb_rate = thrust / (mass_t * g) - cd / cl
+            climb_rate = thrust / (mass_t * g) - cd / (cl_wing + cl_htp)
             v_z = v_tas * math.sin(climb_rate)
             v_x = v_tas * math.cos(climb_rate)
             time_step = min(time_step, (cruise_altitude - altitude_t) / v_z)
@@ -231,7 +300,7 @@ class _compute_climb(om.ExplicitComponent):
         outputs["data:mission:sizing:main_route:climb:v_cas"] = v_cas
 
 
-class _compute_cruise(om.ExplicitComponent):
+class _compute_cruise(aircraft_equilibrium):
     """
     Compute the fuel consumption on cruise segment with constant VTAS and altitude.
     The hypothesis of small alpha/gamma angles is done.
@@ -245,6 +314,7 @@ class _compute_cruise(om.ExplicitComponent):
         self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
+        super().setup()
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
@@ -252,7 +322,7 @@ class _compute_cruise(om.ExplicitComponent):
         self.add_input("data:TLAR:range", np.nan, units="m")
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
         self.add_input("data:aerodynamics:wing:cruise:induced_drag_coefficient", np.nan)
-        self.add_input("data:geometry:wing:area", np.nan, units="m**2")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient", np.nan)
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:taxi_out:fuel", np.nan, units="kg")
         self.add_input("data:mission:sizing:holding:fuel", 0.0, units="kg")
@@ -271,6 +341,7 @@ class _compute_cruise(om.ExplicitComponent):
             [
                 "data:aerodynamics:aircraft:cruise:CD0",
                 "data:aerodynamics:wing:cruise:induced_drag_coefficient",
+                "data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient",
                 "data:geometry:wing:area",
                 "data:weight:aircraft:MTOW",
                 "data:mission:sizing:taxi_out:fuel",
@@ -299,7 +370,8 @@ class _compute_cruise(om.ExplicitComponent):
         )
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
         cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
-        coef_k = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
+        coef_k_wing = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
+        coef_k_htp = inputs["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]
@@ -322,9 +394,9 @@ class _compute_cruise(om.ExplicitComponent):
 
         while distance_t < cruise_distance:
 
-            # Calculate Cl - Cd and corresponding drag
-            cl = mass_t * g / (0.5 * atm.density * wing_area * v_tas ** 2)
-            cd = cd0 + coef_k * cl ** 2
+            # Calculate equilibrium and induced drag
+            cl_wing, cl_htp = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
+            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
             drag = 0.5 * atm.density * wing_area * cd * v_tas ** 2
 
             # Evaluate sfc
@@ -364,7 +436,7 @@ class _compute_cruise(om.ExplicitComponent):
         outputs["data:mission:sizing:main_route:cruise:duration"] = time_t
 
 
-class _compute_descent(om.ExplicitComponent):
+class _compute_descent(aircraft_equilibrium):
     """
     Compute the fuel consumption on descent segment with constant VCAS and descent
     rate.
@@ -380,6 +452,7 @@ class _compute_descent(om.ExplicitComponent):
         self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
+        super().setup()
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
@@ -388,7 +461,7 @@ class _compute_descent(om.ExplicitComponent):
         self.add_input("data:aerodynamics:aircraft:cruise:optimal_CL", np.nan)
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", np.nan)
         self.add_input("data:aerodynamics:wing:cruise:induced_drag_coefficient", np.nan)
-        self.add_input("data:geometry:wing:area", np.nan, units="m**2")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient", np.nan)
         self.add_input("data:weight:aircraft:MTOW", np.nan, units="kg")
         self.add_input("data:mission:sizing:taxi_out:fuel", np.nan, units="kg")
         self.add_input("data:mission:sizing:holding:fuel", 0.0, units="kg")
@@ -407,6 +480,7 @@ class _compute_descent(om.ExplicitComponent):
                 "data:aerodynamics:aircraft:cruise:optimal_CL",
                 "data:aerodynamics:aircraft:cruise:CD0",
                 "data:aerodynamics:wing:cruise:induced_drag_coefficient",
+                "data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient",
                 "data:geometry:wing:area",
                 "data:weight:aircraft:MTOW",
                 "data:mission:sizing:taxi_out:fuel",
@@ -427,7 +501,8 @@ class _compute_descent(om.ExplicitComponent):
         descent_rate = -abs(inputs["data:mission:sizing:main_route:descent:descent_rate"])
         cl = inputs["data:aerodynamics:aircraft:cruise:optimal_CL"]
         cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
-        coef_k = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
+        coef_k_wing = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
+        coef_k_htp = inputs["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]
@@ -457,9 +532,11 @@ class _compute_descent(om.ExplicitComponent):
             # Define air properties and calculate VTAS
             atm = Atmosphere(altitude_t, altitude_in_feet=False)
             v_tas = v_cas * math.sqrt(atm_0.density / atm.density)
-            # Calculate lift and drag coefficients changes to maintain speed (cos(gamma)~1)
+            # Calculate equilibrium and induced drag
+            cl_wing, cl_htp = self.found_cl_repartition(inputs, 1.0, mass_t * math.cos(descent_rate),
+                                                        (0.5 * atm.density * v_tas ** 2), False)
+            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
             cl = ((mass_t * g) * math.cos(descent_rate) / (0.5 * atm.density * wing_area * v_tas**2))
-            cd = cd0 + coef_k * cl**2
             cl_cd = cl/cd
             drag = 0.5 * atm.density * wing_area * cd * v_tas**2
             # Evaluate mach

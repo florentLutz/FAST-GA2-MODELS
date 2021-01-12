@@ -30,6 +30,11 @@
 					<CD0>0.0454</CD0>
 				</low_speed>
 			</aircraft>
+			<horizontal_tail>
+				<cruise>
+					<induced_drag_coefficient>2.3486</induced_drag_coefficient>
+				</cruise>
+			</horizontal_tail>
 			<flaps>
 				<landing>
 					<CD>0.0196</CD>
@@ -44,17 +49,32 @@
 				<cruise>
 					<CL_alpha units="rad**-1">4.650</CL_alpha>
 					<CL0_clean>0.0906</CL0_clean>
+					<CM0_clean>-0.0264</CM0_clean>
 					<induced_drag_coefficient>0.0480</induced_drag_coefficient>
 				</cruise>
 				<low_speed>
 					<CL_alpha units="rad**-1">4.569</CL_alpha>
 					<CL_max_clean>1.5070</CL_max_clean>
 					<CL0_clean>0.0889</CL0_clean>
+					<CM0_clean>-0.0258</CM0_clean>
 					<induced_drag_coefficient>0.0480</induced_drag_coefficient>
 				</low_speed>
 			</wing>
 		</aerodynamics>
 		<geometry>
+			<fuselage>
+				<length units="m">8.888<!--total fuselage length--></length>
+				<maximum_width units="m">1.198<!--maximum fuselage width--></maximum_width>
+			</fuselage>
+			<horizontal_tail>
+				<MAC>
+					<at25percent>
+						<x>
+							<from_wingMAC25 units="m">4.334<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
+						</x>
+					</at25percent>
+				</MAC>
+			</horizontal_tail>
 			<landing_gear>
 				<height units="m">1.22<!--mean value of (flap chord)/(section chord)--></height>
 			</landing_gear>
@@ -64,43 +84,57 @@
 				<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
 			</propulsion>
 			<wing>
+				<MAC>
+					<at25percent>
+						<x units="m">3.449<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
+					</at25percent>
+					<leading_edge>
+						<x>
+							<local units="m">0.0<!--X-position of leading edge of mean aerodynamic chord w.r.t. leading edge of root chord--></local>
+						</x>
+					</leading_edge>
+					<length units="m">1.549<!--length of mean aerodynamic chord of wing--></length>
+				</MAC>
 				<area units="m**2">19.151<!--wing reference area--></area>
+				<root>
+					<virtual_chord units="m">0.868</virtual_chord>
+				</root>
 				<span units="m">12.363<!--wing span--></span>
 			</wing>
 		</geometry>
 		<mission>
-		  <sizing>
-			<main_route>
-				<climb>
-					<thrust_rate>0.93</thrust_rate>
-				</climb>
-				<cruise>
-					<altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
-				</cruise>
-				<descent>
-					<descent_rate>0.05</descent_rate>
-				</descent>
-				<reserve>
-					<duration units="min">30.0<!--reserve fuel to extend cruise phase duration--></duration>
-				</reserve>
-			</main_route>
-			<takeoff>
-				<elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>
-				<flap_angle units="deg">10.0<!--flap angle during takeoff phase in sizing mission--></flap_angle>
-				<friction_coefficient_no_brake>0.03</friction_coefficient_no_brake>
-				<thrust_rate>1.0</thrust_rate>
-			</takeoff>
-			<taxi_in>
-				<duration units="s">300</duration>
-				<speed units="kn">30.0</speed>
-				<thrust_rate>0.3</thrust_rate>
-			</taxi_in>
-			<taxi_out>
-				<duration units="s">300</duration>
-				<speed units="kn">30.0</speed>
-				<thrust_rate>0.3</thrust_rate>
-			</taxi_out>
-		  </sizing>
+		  	<sizing>
+				<main_route>
+					<climb>
+						<thrust_rate>0.93</thrust_rate>
+					</climb>
+					<cruise>
+						<altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
+					</cruise>
+					<descent>
+						<descent_rate>0.05</descent_rate>
+					</descent>
+					<reserve>
+						<duration units="min">30.0<!--reserve fuel to extend cruise phase duration--></duration>
+					</reserve>
+				</main_route>
+				<takeoff>
+					<elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>
+					<flap_angle units="deg">10.0<!--flap angle during takeoff phase in sizing mission--></flap_angle>
+					<friction_coefficient_no_brake>0.03</friction_coefficient_no_brake>
+					<thrust_rate>1.0</thrust_rate>
+				</takeoff>
+				<taxi_in>
+					<duration units="s">300</duration>
+					<speed units="kn">30.0</speed>
+					<thrust_rate>0.3</thrust_rate>
+				</taxi_in>
+				<taxi_out>
+					<duration units="s">300</duration>
+					<speed units="kn">30.0</speed>
+					<thrust_rate>0.3</thrust_rate>
+				</taxi_out>
+		  	</sizing>
 		</mission>
 		<propulsion>
 			<IC_engine>
@@ -111,6 +145,11 @@
 		</propulsion>
 		<weight>
 			<aircraft>
+				<CG>
+					<aft>
+						<x units="m">3.6</x>
+					</aft>
+				</CG>
 				<MTOW units="kg">1785.5<!--maximum takeoff weight--></MTOW>
 			</aircraft>
 		</weight>

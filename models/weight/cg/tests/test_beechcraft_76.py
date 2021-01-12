@@ -20,7 +20,7 @@ import openmdao.api as om
 import pytest
 from fastoad.io import VariableIO
 
-from ....tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
+from ....tests.testing_utilities import run_system, get_indep_var_comp, list_inputs, Timer
 
 from ..cg import CG
 from ..cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, \
@@ -302,14 +302,15 @@ def test_update_mlg():
 def test_complete_cg():
     """ Run computation of all models """
 
-    # with data from file
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
-    reader.path_separator = ":"
-    input_vars = reader.read().to_ivc()
+    with Timer(name="CG: loop"):
+        # with data from file
+        reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
+        reader.path_separator = ":"
+        input_vars = reader.read().to_ivc()
 
-    # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(CG(), input_vars, check=True)
-    cg_global = problem.get_val("data:weight:aircraft:CG:aft:x", units="m")
-    assert cg_global == pytest.approx(3.70, abs=1e-1)
-    cg_ratio = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")
-    assert cg_ratio == pytest.approx(0.42, abs=1e-2)
+        # Run problem and check obtained value(s) is/(are) correct
+        problem = run_system(CG(), input_vars, check=True)
+        cg_global = problem.get_val("data:weight:aircraft:CG:aft:x", units="m")
+        assert cg_global == pytest.approx(3.70, abs=1e-1)
+        cg_ratio = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")
+        assert cg_ratio == pytest.approx(0.42, abs=1e-2)

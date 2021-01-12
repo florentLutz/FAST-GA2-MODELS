@@ -188,9 +188,9 @@ def test_cd0_high_speed():
     cd0_lg = problem["data:aerodynamics:landing_gear:cruise:CD0"]
     assert cd0_lg == pytest.approx(0.0, abs=1e-5)
     cd0_other = problem["data:aerodynamics:other:cruise:CD0"]
-    assert cd0_other == pytest.approx(0.00195, abs=1e-5)
+    assert cd0_other == pytest.approx(0.00187, abs=1e-5)
     cd0_total = 1.25*(cd0_wing + cd0_fus + cd0_ht + cd0_vt + cd0_nac + cd0_lg + cd0_other)
-    assert cd0_total == pytest.approx(0.01967, abs=1e-5)
+    assert cd0_total == pytest.approx(0.01958, abs=1e-5)
 
 
 def test_cd0_low_speed():
@@ -219,9 +219,9 @@ def test_cd0_low_speed():
     cd0_lg = problem["data:aerodynamics:landing_gear:low_speed:CD0"]
     assert cd0_lg == pytest.approx(0.01900, abs=1e-5)
     cd0_other = problem["data:aerodynamics:other:low_speed:CD0"]
-    assert cd0_other == pytest.approx(0.00195, abs=1e-5)
+    assert cd0_other == pytest.approx(0.00187, abs=1e-5)
     cd0_total = 1.25*(cd0_wing + cd0_fus + cd0_ht + cd0_vt + cd0_nac + cd0_lg + cd0_other)
-    assert cd0_total == pytest.approx(0.04523, abs=1e-5)
+    assert cd0_total == pytest.approx(0.04513, abs=1e-5)
 
 
 def test_polar():
@@ -700,8 +700,6 @@ def test_high_speed_connection():
         # noinspection PyTypeChecker
         problem = run_system(AerodynamicsHighSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=False), input_vars,
                              check=True)
-        cd0 = problem["data:aerodynamics:aircraft:cruise:CD0"]
-        assert cd0 == pytest.approx(0.0197, abs=1e-4)
         coef_k = problem["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
         assert coef_k == pytest.approx(0.0530, abs=1e-4)
         cl_alpha_wing = problem.get_val("data:aerodynamics:wing:cruise:CL_alpha", units="rad**-1")
@@ -746,8 +744,6 @@ def test_low_speed_connection():
         # noinspection PyTypeChecker
         problem = run_system(AerodynamicsLowSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=False), input_vars,
                              check=True)
-        cd0 = problem["data:aerodynamics:aircraft:low_speed:CD0"]
-        assert cd0 == pytest.approx(0.0450, abs=1e-4)
         coef_k = problem["data:aerodynamics:wing:low_speed:induced_drag_coefficient"]
         assert coef_k == pytest.approx(0.0534, abs=1e-4)
         cl_alpha_wing = problem.get_val("data:aerodynamics:wing:low_speed:CL_alpha", units="rad**-1")

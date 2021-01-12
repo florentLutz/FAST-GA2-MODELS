@@ -234,7 +234,7 @@ def test_compute_climb():
     v_cas = problem.get_val("data:mission:sizing:main_route:climb:v_cas", units="kn")
     assert v_cas == pytest.approx(71.5, abs=1)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:climb:fuel", units="kg")
-    assert fuel_mass == pytest.approx(4.34, abs=1e-2)
+    assert fuel_mass == pytest.approx(4, abs=1)
     distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="m") / 1000.0  # conversion to km
     assert distance == pytest.approx(12.0, abs=1e-1)
     duration = problem.get_val("data:mission:sizing:main_route:climb:duration", units="min")
@@ -257,7 +257,7 @@ def test_compute_cruise():
     register_wrappers()
     problem = run_system(_compute_cruise(propulsion_id=ENGINE_WRAPPER), ivc)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg")
-    assert fuel_mass == pytest.approx(104.58, abs=1e-2)
+    assert fuel_mass == pytest.approx(109, abs=1)
     duration = problem.get_val("data:mission:sizing:main_route:cruise:duration", units="h")
     assert duration == pytest.approx(4.9, abs=1e-1)
 
@@ -298,7 +298,7 @@ def test_loop_cruise_distance():
         # noinspection PyTypeChecker
         problem = run_system(Sizing(propulsion_id=ENGINE_WRAPPER), ivc)
         m_total = problem.get_val("data:mission:sizing:fuel", units="kg")
-        assert m_total == pytest.approx(117.1, abs=1e-1)
+        assert m_total == pytest.approx(122, abs=1)
         climb_distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="NM")
         cruise_distance = problem.get_val("data:mission:sizing:main_route:cruise:distance", units="NM")
         descent_distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="NM")

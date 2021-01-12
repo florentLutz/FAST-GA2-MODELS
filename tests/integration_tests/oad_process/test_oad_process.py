@@ -18,6 +18,7 @@ import os
 import os.path as pth
 import numpy as np
 from shutil import rmtree, copy
+import time
 
 from command import api as _api
 from fastoad import api
@@ -30,7 +31,7 @@ from fastoad.io.xml import VariableXmlStandardFormatter
 from fastoad.openmdao.utils import get_problem_after_setup
 from fastoad.utils.postprocessing import VariableViewer
 from fastoad.utils.postprocessing.analysis_and_plots import wing_geometry_plot, aircraft_geometry_plot, \
-    drag_polar_plot, mass_breakdown_sun_plot, mass_breakdown_bar_plot
+    mass_breakdown_sun_plot, mass_breakdown_bar_plot
 
 INPUT_FOLDER_PATH = pth.join(pth.dirname(__file__), "data")
 RESULTS_FOLDER_PATH = pth.join(pth.dirname(__file__), "results")
@@ -59,7 +60,8 @@ def test_oad_process(cleanup):
     print('\n')
     problem.setup(check=True)
     problem.set_solver_print(level=2)
-    problem.run_model()
+    with Timer(name="Mass-performance loop:"):
+        problem.run_model()
     problem.write_outputs()
 
     if not pth.exists(RESULTS_FOLDER_PATH):
@@ -189,3 +191,16 @@ def est_api(cleanup):
 
     # Objective
     assert_allclose(problem["data:mission:sizing:fuel"], 20565, atol=50)
+
+class Timer(object):
+    def __init__(self, name=None):
+        self.name = name
+
+    def __enter__(self):
+        self.tstart = time.time()
+
+    def __exit__(self, type, value, traceback):
+        print('\n')
+        if self.name:
+            print('[%s]' % self.name,)
+        print('Elapsed: %s' % (time.time() - self.tstart))
