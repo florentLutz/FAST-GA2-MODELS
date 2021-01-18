@@ -20,8 +20,8 @@ import numpy as np
 from shutil import rmtree, copy
 import time
 
-from command import api as _api
-from fastoad import api
+# from command import api as _api
+# from fastoad import api
 import openmdao.api as om
 import pytest
 from numpy.testing import assert_allclose
@@ -94,9 +94,9 @@ def test_oad_process(cleanup):
         rtol=5e-2,
     )
 
-    assert_allclose(problem["data:handling_qualities:static_margin"], 0.12, atol=1e-2)
+    assert_allclose(problem["data:handling_qualities:static_margin"], 0.0954, atol=1e-2)
     # noinspection PyTypeChecker
-    assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1503, atol=1)
+    assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1502, atol=1)
     # noinspection PyTypeChecker
     assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 185, atol=1)
 
