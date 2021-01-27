@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 from typing import Union, Sequence, Tuple, Optional
 from scipy.constants import g
+import warnings
 
 from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting
@@ -310,9 +311,11 @@ class BasicICEngine(AbstractFuelPropulsion):
             else:  # Diesel 4-strokes
                 sfc_p = -0.964 * max_power + 231.91
         else:
-            raise FastBasicICEngineInconsistentInputParametersError(
-                "Bad engine configuration: fuel type {0:f} model does not exist.".format(float(self.fuel_type))
-            )
+            warnings.warn('Propulsion layout {} not implemented in model, replaced by layout 1!'.format(self.fuel_type))
+            if self.strokes_nb == 2.:  # Gasoline 2-strokes
+                sfc_p = 1125.9 * max_power ** (-0.2441)
+            else:  # Gasoline 4-strokes
+                sfc_p = -0.0011 * max_power ** 2 + 0.5905 * max_power + 228.58
 
         sfc_p = sfc_p / 1e6 / 3600.0  # change units to be in kg/s/W
 

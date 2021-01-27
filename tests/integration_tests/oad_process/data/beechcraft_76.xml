@@ -42,6 +42,9 @@
 					</passenger>
 				</seats>
 			</cabin>
+			<fuselage>
+				<rear_length units="m">4.0</rear_length>
+			</fuselage>
 			<has_T_tail>1.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
 			<horizontal_tail>
 				<MAC>
@@ -74,7 +77,7 @@
 			<wing>
 				<MAC>
 					<at25percent>
-						<x units="m">2.95<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
+						<x units="m">3.5<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
 					</at25percent>
 				</MAC>
 				<area units="m**2">19.151<!--wing reference area--></area>
@@ -87,6 +90,11 @@
 				<thickness_ratio>0.12<!--mean thickness ratio of wing--></thickness_ratio>
 			</wing>
 		</geometry>
+		<handling_qualities>
+				<static_margin>
+					<target>0.1<!--aircraft static margin--></target>
+				</static_margin>
+		</handling_qualities>
 		<propulsion>
 			<IC_engine>
 				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>

@@ -21,12 +21,13 @@ from .geom_components import ComputeTotalArea
 from .geom_components.fuselage.compute_fuselage import (
     ComputeFuselageGeometryBasic,
     ComputeFuselageGeometryCabinSizing,
+    ComputeFuselageGeometryCabinSizing2,
 )
-from .geom_components.ht import ComputeHorizontalTailGeometry
+from .geom_components.ht.compute_horizontal_tail import ComputeHorizontalTailGeometry, ComputeHorizontalTailGeometry2
 from .geom_components.nacelle.compute_nacelle import (
     ComputeNacelleGeometry,
 )
-from .geom_components.vt import ComputeVerticalTailGeometry
+from .geom_components.vt.compute_vertical_tail import ComputeVerticalTailGeometry, ComputeVerticalTailGeometry2
 from .geom_components.wing.compute_wing import ComputeWingGeometry
 from ..options import CABIN_SIZING_OPTION
 
@@ -47,16 +48,17 @@ class Geometry(om.Group):
 
     def setup(self):
         
-        self.add_subsystem("compute_vt", ComputeVerticalTailGeometry(), promotes=["*"])
-        self.add_subsystem("compute_ht", ComputeHorizontalTailGeometry(), promotes=["*"])
+        # self.add_subsystem("compute_vt", ComputeVerticalTailGeometry(), promotes=["*"])
+        # self.add_subsystem("compute_ht", ComputeHorizontalTailGeometry(), promotes=["*"])
         if self.options[CABIN_SIZING_OPTION] == 1.0:
             self.add_subsystem(
-                "compute_fuselage", ComputeFuselageGeometryCabinSizing(propulsion_id=self.options["propulsion_id"]),
+                "compute_fuselage", ComputeFuselageGeometryCabinSizing2(propulsion_id=self.options["propulsion_id"]),
                 promotes=["*"]
             )
         else:
             self.add_subsystem("compute_fuselage", ComputeFuselageGeometryBasic(), promotes=["*"])
-
+        self.add_subsystem("compute_vt", ComputeVerticalTailGeometry2(), promotes=["*"])
+        self.add_subsystem("compute_ht", ComputeHorizontalTailGeometry2(), promotes=["*"])
         self.add_subsystem("compute_wing", ComputeWingGeometry(), promotes=["*"])
         self.add_subsystem(
             "compute_engine_nacelle", ComputeNacelleGeometry(propulsion_id=self.options["propulsion_id"]),

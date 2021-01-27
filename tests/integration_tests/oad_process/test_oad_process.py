@@ -45,6 +45,7 @@ NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, "notebooks")
 @pytest.fixture(scope="module")
 def cleanup():
     rmtree(RESULTS_FOLDER_PATH, ignore_errors=True)
+    rmtree("D:/tmp", ignore_errors=True)
 
 
 def test_oad_process(cleanup):
@@ -52,13 +53,16 @@ def test_oad_process(cleanup):
     Test for the overall aircraft design process.
     """
 
-    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process.toml")).get_problem()
+    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_2.toml")).get_problem()
+    recorder = om.SqliteRecorder("cases.sql")
 
     ref_inputs = pth.join(INPUT_FOLDER_PATH, "beechcraft_76.xml")
     get_problem_after_setup(problem).write_needed_inputs(ref_inputs, VariableXmlStandardFormatter())
     problem.read_inputs()
     print('\n')
     problem.setup(check=True)
+    solver = problem.model.nonlinear_solver
+    solver.add_recorder(recorder)
     problem.set_solver_print(level=2)
     with Timer(name="Mass-performance loop:"):
         problem.run_model()
@@ -71,6 +75,9 @@ def test_oad_process(cleanup):
     )
     om.n2(problem, outfile=pth.join(RESULTS_FOLDER_PATH, "n2.html"), show_browser=False)
 
+    # Print recorded data
+    cr = om.CaseReader("cases.sql")
+    solver_cases = cr.list_cases('root.nonlinear_solver')
 
     # Check that weight-performances loop correctly converged
     assert_allclose(
@@ -94,7 +101,7 @@ def test_oad_process(cleanup):
         rtol=5e-2,
     )
 
-    assert_allclose(problem["data:handling_qualities:static_margin"], 0.12, atol=1e-2)
+    assert_allclose(problem["data:handling_qualities:static_margin"], 0.10, atol=1e-2)
     # noinspection PyTypeChecker
     assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1503, atol=1)
     # noinspection PyTypeChecker

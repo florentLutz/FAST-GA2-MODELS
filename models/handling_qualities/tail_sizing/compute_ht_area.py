@@ -260,7 +260,11 @@ class _ComputeArea(om.ExplicitComponent):
         # Calculation of equivalent area
         area_2 = coef_vol * wing_area * wing_mac / lp_ht
 
-        outputs["data:geometry:horizontal_tail:area"] = max(area_1, area_2)
+        if max(area_1, area_2) < 0.0:
+            print("Warning: HTP area estimated negative (in ComputeHTArea) forced to 1m²!")
+            outputs["data:geometry:horizontal_tail:area"] = 1.0
+        else:
+            outputs["data:geometry:horizontal_tail:area"] = max(area_1, area_2)
 
 
 class _ComputeAeroCoeff(om.ExplicitComponent):

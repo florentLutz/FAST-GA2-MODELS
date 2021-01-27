@@ -18,7 +18,7 @@ import openmdao.api as om
 
 from .components import ComputeHTChord
 from .components import ComputeHTDistance
-from .components import ComputeHTMAC
+from .components.compute_ht_mac import ComputeHTMAC, ComputeHTMAC2
 from .components import ComputeHTSweep
 from .components import ComputeHTWetArea
 
@@ -29,6 +29,17 @@ class ComputeHorizontalTailGeometry(om.Group):
     def setup(self):
         self.add_subsystem("ht_chord", ComputeHTChord(), promotes=["*"])
         self.add_subsystem("ht_mac", ComputeHTMAC(), promotes=["*"])
+        self.add_subsystem("ht_sweep", ComputeHTSweep(), promotes=["*"])
+        self.add_subsystem("ht_wet_area", ComputeHTWetArea(), promotes=["*"])
+        self.add_subsystem("ht_distance", ComputeHTDistance(), promotes=["*"])
+
+
+class ComputeHorizontalTailGeometry2(om.Group):
+    """ Horizontal tail geometry estimation """
+
+    def setup(self):
+        self.add_subsystem("ht_chord", ComputeHTChord(), promotes=["*"])
+        self.add_subsystem("ht_mac", ComputeHTMAC2(), promotes=["*"])
         self.add_subsystem("ht_sweep", ComputeHTSweep(), promotes=["*"])
         self.add_subsystem("ht_wet_area", ComputeHTWetArea(), promotes=["*"])
         self.add_subsystem("ht_distance", ComputeHTDistance(), promotes=["*"])

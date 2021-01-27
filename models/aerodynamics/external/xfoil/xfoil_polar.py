@@ -128,13 +128,23 @@ class XfoilPolar(ExternalCodeComp):
                     lower_values = data_reduced.loc[labels, index_lower_reynolds]
                     upper_values = data_reduced.loc[labels, index_upper_reynolds]
                     interpolated_result = lower_values
-                    # Modify saved text to numpy array
-                    x_low_ratio = (min(upper_reynolds) - reynolds)/(min(upper_reynolds) - max(lower_reynolds))
-                    x_up_ratio = (reynolds - max(lower_reynolds)) / (min(upper_reynolds) - max(lower_reynolds))
+                    # Calculate reynolds interval ratio
+                    x_ratio = (min(upper_reynolds) - reynolds)/(min(upper_reynolds) - max(lower_reynolds))
+                    # Search for common alpha range
+                    alpha_lower = eval(lower_values.loc['alpha', index_lower_reynolds].to_numpy()[0])
+                    alpha_upper = eval(upper_values.loc['alpha', index_upper_reynolds].to_numpy()[0])
+                    alpha_shared = np.array(list(set(alpha_upper).intersection(alpha_lower)))
+                    interpolated_result.loc['alpha', index_lower_reynolds] = str(alpha_shared.tolist())
+                    labels.remove('alpha')
+                    # Calculate average values (cd, cl...) with linear interpolation
                     for label in labels:
                         lower_value = np.array(eval(lower_values.loc[label, index_lower_reynolds].to_numpy()[0]))
                         upper_value = np.array(eval(upper_values.loc[label, index_upper_reynolds].to_numpy()[0]))
-                        value = (lower_value * x_low_ratio + upper_value * x_up_ratio).tolist()
+                        # If values relative to alpha vector, performs interpolation with shared vector
+                        if np.size(lower_value) == len(alpha_lower):
+                            lower_value = np.interp(alpha_shared, np.array(alpha_lower), lower_value)
+                            upper_value = np.interp(alpha_shared, np.array(alpha_upper), upper_value)
+                        value = (lower_value * x_ratio + upper_value * (1 - x_ratio)).tolist()
                         interpolated_result.loc[label, index_lower_reynolds] = str(value)
 
         if interpolated_result is None:
@@ -282,18 +292,23 @@ class XfoilPolar(ExternalCodeComp):
                 additional_zeros = list(np.zeros(POLAR_POINT_COUNT - len(ALPHA)))
                 alpha = ALPHA.tolist()
                 alpha.extend(additional_zeros)
+                # noinspection PyTypeChecker
                 alpha = np.asarray(alpha)
                 cl = CL.tolist()
                 cl.extend(additional_zeros)
+                # noinspection PyTypeChecker
                 cl = np.asarray(cl)
                 cd = CD.tolist()
                 cd.extend(additional_zeros)
+                # noinspection PyTypeChecker
                 cd = np.asarray(cd)
                 cdp = CDP.tolist()
                 cdp.extend(additional_zeros)
+                # noinspection PyTypeChecker
                 cdp = np.asarray(cdp)
                 cm = CM.tolist()
                 cm.extend(additional_zeros)
+                # noinspection PyTypeChecker
                 cm = np.asarray(cm)
 
         # Defining outputs -------------------------------------------------------------------------

@@ -422,8 +422,8 @@ class _ComputeAEROopenvsp(ExternalCodeComp):
             super().compute(inputs, outputs)
 
             # Post-processing: STEP1/2 - wing coefficients ---------------------------------------------
-            cl_0_wing, cm_0_wing, y_vector, cl_vector, _, _ = self._read_lod_file(output_file_list[0])
-            cl_1_wing, cm_1_wing, _, _, _, _ = self._read_lod_file(output_file_list[1])
+            cl_0_wing, _, cm_0_wing, y_vector, cl_vector, _, _, _ = self._read_lod_file(output_file_list[0])
+            cl_1_wing, _, cm_1_wing, _, _, _, _, _ = self._read_lod_file(output_file_list[1])
             cl_wing_vect = [cl_0_wing, cl_1_wing]
             cm_wing_vect = [cm_0_wing, cm_1_wing]
             # Fuselage correction
@@ -457,7 +457,7 @@ class _ComputeAEROopenvsp(ExternalCodeComp):
             cl_htp_vect = []
             cm_htp_vect = []
             for idx in range(2, 4):
-                cm_wing, _, _, _, cl_htp, cm_htp = self._read_lod_file(output_file_list[idx])
+                _, _, _, _, _, cl_htp, _, cm_htp = self._read_lod_file(output_file_list[idx])
                 # correct htp CM
                 cm_htp = cm_htp + cl_htp * lp_htp
                 cl_htp_vect.append(cl_htp)
@@ -468,10 +468,8 @@ class _ComputeAEROopenvsp(ExternalCodeComp):
             cl_alpha_htp = float((cl_htp_vect[1] - cl_htp_vect[0]) / (INPUT_AOAList[1] * math.pi/180))
             cm_alpha_htp = float((cm_htp_vect[1] - cm_htp_vect[0]) / (INPUT_AOAList[1] * math.pi / 180))
             # Read oswald
-            oswald1, cl1 = self._read_polar_file(output_file_list[0].replace('lod', 'polar'))  # wing
-            oswald2, cl2 = self._read_polar_file(output_file_list[2].replace('lod', 'polar'))  # wing+htp
-            coef_e = oswald2 * (cl1/cl2)**2 - oswald1
-            coef_k_htp = float(1. / (math.pi * span_htp ** 2 / sref_htp * coef_e))
+            _, _, _, _, _, cl_htp, cdi_htp, _ = self._read_lod_file(output_file_list[3])  # wing+htp
+            coef_k_htp = cdi_htp / cl_htp**2
 
             # Save results to defined path -------------------------------------------------------------
             if self.options["result_folder_path"] != "":
@@ -532,16 +530,18 @@ class _ComputeAEROopenvsp(ExternalCodeComp):
 
 
     @staticmethod
-    def _read_lod_file(tmp_result_file_path: str) -> Tuple[float, float, List, List, float, float]:
+    def _read_lod_file(tmp_result_file_path: str) -> Tuple[float, float, float, List, List, float, float, float]:
         """
         Collect data from .lod file
         """
         totals = False
         cl_wing = 0.0
+        cdi_wing = 0.0
         cm_wing = 0.0
         y_vector = []
         cl_vector = []
         cl_htp = 0.0
+        cdi_htp = 0.0
         cm_htp = 0.0
         with open(tmp_result_file_path, 'r') as lf:
             data = lf.readlines()
@@ -555,16 +555,18 @@ class _ComputeAEROopenvsp(ExternalCodeComp):
                     totals = True
                 if totals:
                     cl_wing = float(data[i + 1].split()[5]) + float(data[i + 2].split()[5])  # sum CL left/right
+                    cdi_wing = float(data[i + 1].split()[6]) + float(data[i + 2].split()[6])  # sum CDi left/right
                     cm_wing = float(data[i + 1].split()[12]) + float(data[i + 2].split()[12])  # sum CM left/right
                     # noinspection PyBroadException
                     try:
                         cl_htp = float(data[i + 3].split()[5]) + float(data[i + 4].split()[5])  # sum CL left/right
+                        cdi_htp = float(data[i + 3].split()[6]) + float(data[i + 4].split()[6])  # sum CDi left/right
                         cm_htp = float(data[i + 3].split()[12]) + float(data[i + 4].split()[12])  # sum CM left/right
                     except:
                         pass
                     break
 
-        return cl_wing, cm_wing, y_vector, cl_vector, cl_htp, cm_htp
+        return cl_wing, cdi_wing, cm_wing, y_vector, cl_vector, cl_htp, cdi_htp, cm_htp
 
     @staticmethod
     def _read_polar_file(tmp_result_file_path: str) -> Tuple[float, float]:

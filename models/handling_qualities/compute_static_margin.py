@@ -17,7 +17,7 @@ Estimation of static margin
 
 import numpy as np
 import openmdao.api as om
-from .aero_center import ComputeAeroCenter
+from ..aerodynamics.aero_center import ComputeAeroCenter
 
 
 class ComputeStaticMargin(om.Group):

@@ -21,6 +21,9 @@ tmp/
 # Error or check file
 *.out
 
+# Solver recorded data
+*.sql
+
 # Project files
 .ropeproject
 .project
@@ -64,3 +67,6 @@ venv*/
 
 # External tools
 /XFOIL
+
+# Private DEP models
+models/aerodynamics/external/vlm/private/*

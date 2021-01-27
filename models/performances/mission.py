@@ -52,6 +52,7 @@ class aircraft_equilibrium(om.ExplicitComponent):
         self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CM0_clean", np.nan)
         self.add_input("data:weight:aircraft:CG:aft:x", np.nan, units="m")
+        self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean", np.nan)
 
 
     @staticmethod
@@ -74,6 +75,7 @@ class aircraft_equilibrium(om.ExplicitComponent):
             cl0_wing = inputs["data:aerodynamics:wing:cruise:CL0_clean"]
             cm0_wing = inputs["data:aerodynamics:wing:cruise:CM0_clean"]
         x_cg = inputs["data:weight:aircraft:CG:aft:x"]
+        cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
 
         # Calculate cm_alpha_fus from Raymer equations (figure 16.14, eqn 16.22)
         x0_25 = x_wing - 0.25 * l0_wing - x0_wing + 0.25 * l1_wing
@@ -94,7 +96,11 @@ class aircraft_equilibrium(om.ExplicitComponent):
         inv_a = np.linalg.inv(a)
         CL = np.dot(inv_a, b)
 
-        return float(CL[0]), float(CL[1])
+        # Return equilibrated lift coefficients if maximum clean Cl not exceeded otherwise only cl_wing
+        if CL[0] < cl_max_clean:
+            return float(CL[0]), float(CL[1])
+        else:
+            return float(mass * g * load_factor / (dynamic_pressure * wing_area)), 0.0
 
 
 class Mission(om.Group):

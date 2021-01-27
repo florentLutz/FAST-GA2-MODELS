@@ -82,3 +82,56 @@ class ComputeHTMAC(ExplicitComponent):
         outputs["data:geometry:horizontal_tail:MAC:length"] = mac_ht
         outputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"] = x0_ht
         outputs["data:geometry:horizontal_tail:MAC:y"] = y0_ht
+
+
+class ComputeHTMAC2(ExplicitComponent):
+    # TODO: Document equations. Cite sources
+    """ Horizontal tail mean aerodynamic chord estimation """
+
+    def setup(self):
+        self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:tip:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
+        self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
+        self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
+        self.add_input("data:geometry:has_T_tail", val=np.nan)
+        self.add_input("data:geometry:vertical_tail:tip:x", val=np.nan, units="m")
+
+        self.add_output("data:geometry:horizontal_tail:MAC:length", units="m")
+        self.add_output("data:geometry:horizontal_tail:MAC:at25percent:x:local", units="m")
+        self.add_output("data:geometry:horizontal_tail:MAC:y", units="m")
+        self.add_output("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", units="m")
+
+        self.declare_partials("*", "*", method="fd")
+
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+        root_chord = inputs["data:geometry:horizontal_tail:root:chord"]
+        tip_chord = inputs["data:geometry:horizontal_tail:tip:chord"]
+        sweep_25_ht = inputs["data:geometry:horizontal_tail:sweep_25"]
+        b_h = inputs["data:geometry:horizontal_tail:span"]
+        fus_length = inputs["data:geometry:fuselage:length"]
+        tail_type = inputs["data:geometry:has_T_tail"]
+        x_vt_tip = inputs["data:geometry:vertical_tail:tip:x"]
+
+        tmp = (
+            root_chord * 0.25 + b_h / 2 * math.tan(sweep_25_ht / 180.0 * math.pi) - tip_chord * 0.25
+        )
+
+        mac_ht = (
+            (root_chord ** 2 + root_chord * tip_chord + tip_chord ** 2)
+            / (tip_chord + root_chord)
+            * 2
+            / 3
+        )
+        x0_ht = (tmp * (root_chord + 2 * tip_chord)) / (3 * (root_chord + tip_chord))
+        y0_ht = (b_h * (0.5 * root_chord + tip_chord)) / (3 * (root_chord + tip_chord))
+
+        if tail_type == 1.0:
+            ht_lp = x_vt_tip + x0_ht
+        else:
+            ht_lp = fus_length - root_chord + x0_ht
+
+        outputs["data:geometry:horizontal_tail:MAC:length"] = mac_ht
+        outputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"] = x0_ht
+        outputs["data:geometry:horizontal_tail:MAC:y"] = y0_ht
+        outputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"] = ht_lp

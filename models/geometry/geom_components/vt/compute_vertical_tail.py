@@ -18,7 +18,7 @@
 import openmdao.api as om
 
 from .components import ComputeVTChords
-from .components import ComputeVTMAC
+from .components.compute_vt_mac import ComputeVTMAC, ComputeVTMAC2
 from .components import ComputeVTSweep
 from .components import ComputeVTWetArea
 
@@ -30,5 +30,15 @@ class ComputeVerticalTailGeometry(om.Group):
         
         self.add_subsystem("vt_chords", ComputeVTChords(), promotes=["*"])
         self.add_subsystem("vt_mac", ComputeVTMAC(), promotes=["*"])
+        self.add_subsystem("vt_sweep", ComputeVTSweep(), promotes=["*"])
+        self.add_subsystem("vt_wet_area", ComputeVTWetArea(), promotes=["*"])
+
+
+class ComputeVerticalTailGeometry2(om.Group):
+    """ Vertical tail geometry estimation """
+
+    def setup(self):
+        self.add_subsystem("vt_chords", ComputeVTChords(), promotes=["*"])
+        self.add_subsystem("vt_mac", ComputeVTMAC2(), promotes=["*"])
         self.add_subsystem("vt_sweep", ComputeVTSweep(), promotes=["*"])
         self.add_subsystem("vt_wet_area", ComputeVTWetArea(), promotes=["*"])

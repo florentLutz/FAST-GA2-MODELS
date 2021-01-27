@@ -333,12 +333,13 @@ class _ComputeAEROvlm(VLM):
 
             downwash_angle = 2.0 * np.array(cl_wing_vect)/beta * 180.0 / (aspect_ratio_wing * np.pi**2)
             HTP_AOAList = list(np.array(INPUT_AOAList) - downwash_angle)
-            cl_htp_vect, _, oswald, cm_htp_vect = super().compute_htp(inputs, HTP_AOAList, v_inf, use_airfoil=True)
+            cl_htp_vect, cdi_htp_vect, oswald, cm_htp_vect = super().compute_htp(inputs, HTP_AOAList, v_inf, use_airfoil=True)
             # Write value with wing Sref
             cl_htp_vect = np.array(cl_htp_vect) / beta * area_ratio
             cm_htp_vect = np.array(cm_htp_vect) / beta * area_ratio
             cl_0_htp = float(cl_htp_vect[0])
-            cl_1_htp = float(cl_htp_vect[1])
+            cl_1_htp = float(cl_htp_vect[1]) / area_ratio
+            cdi_1_htp = float(cdi_htp_vect[1])
             cm_0_htp = float(cm_htp_vect[0])
             # Calculate derivative
             cl_alpha_htp = float((cl_htp_vect[1] - cl_htp_vect[0]) / (INPUT_AOAList[1] * math.pi / 180))
@@ -348,9 +349,9 @@ class _ComputeAEROvlm(VLM):
             if mach > 0.4:
                 oswald = oswald * (-0.001521 * ((mach - 0.05) / 0.3 - 1) ** 10.82 + 1)  # Mach correction
             cdp_foil = self._interpolate_cdp(cl_htp_airfoil, cdp_htp_airfoil, cl_1_htp)
-            cdi = cl_1_htp ** 2 / (math.pi * aspect_ratio_htp * oswald) + cdp_foil
+            cdi = cdi_1_htp + cdp_foil
             coef_e = cl_1_htp ** 2 / (math.pi * aspect_ratio_htp * cdi)
-            coef_k_htp = float(1. / (math.pi * htp_span ** 2 / sref_htp * coef_e) / area_ratio**2)
+            coef_k_htp = float(1. / (math.pi * htp_span ** 2 / sref_htp * coef_e) / area_ratio)
 
             # Save results to defined path -------------------------------------------------------------
             if self.options["result_folder_path"] != "":

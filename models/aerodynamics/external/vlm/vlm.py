@@ -377,7 +377,7 @@ class VLM(om.ExplicitComponent):
             alphaind = np.dot(AIC_wake, gamma) / vinf
             cdind_panel = cp * alphaind
             cdi = np.sum(cdind_panel * panelsurf) / np.sum(panelsurf)
-            oswald = cl ** 2 / (math.pi * aspect_ratio * cdi) * 0.955  # !!!: manual correction?
+            oswald = cl ** 2 / (math.pi * aspect_ratio * cdi)
             cmpanel = np.multiply(cp, (xc[:self.nx * self.ny] - meanchord / 4))
             cm = np.sum(cmpanel * panelsurf) / np.sum(panelsurf)
             # Save data
