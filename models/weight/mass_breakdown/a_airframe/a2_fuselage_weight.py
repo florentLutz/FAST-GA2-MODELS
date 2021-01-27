@@ -16,13 +16,19 @@ Estimation of fuselage weight
 
 import numpy as np
 import openmdao.api as om
+import math
 
+from fastoad.utils.physics import Atmosphere
 
 class ComputeFuselageWeight(om.ExplicitComponent):
     """
     Fuselage weight estimation
 
-    # TODO: Based on :????????????
+    Based on : Nicolai, Leland M., and Grant E. Carichner. Fundamentals of aircraft and airship design,
+    Volume 1–Aircraft Design. American Institute of Aeronautics and Astronautics, 2010.
+
+    Can also be found in : Gudmundsson, Snorri. General aviation aircraft design: Applied Methods and Procedures.
+    Butterworth-Heinemann, 2013. Equation (6-25)
     """
 
     def setup(self):
@@ -32,7 +38,8 @@ class ComputeFuselageWeight(om.ExplicitComponent):
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
-        self.add_input("data:TLAR:v_cruise", val=np.nan, units="kn")
+        self.add_input("data:TLAR:v_limit", val=np.nan, units="kn")
+        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
         
         self.add_output("data:weight:airframe:fuselage:mass", units="lb")
 
@@ -45,13 +52,19 @@ class ComputeFuselageWeight(om.ExplicitComponent):
         maximum_width = inputs["data:geometry:fuselage:maximum_width"]
         maximum_height = inputs["data:geometry:fuselage:maximum_height"]
         fus_length = inputs["data:geometry:fuselage:length"]
-        cruise_speed = inputs["data:TLAR:v_cruise"]
-        
+        limit_speed = inputs["data:TLAR:v_limit"]
+        cruise_alt = inputs["data:mission:sizing:main_route:cruise:altitude"]
+
+        rho_cruise = Atmosphere(cruise_alt).density
+        rho_SL     = Atmosphere(    0.0   ).density
+
+        limit_speed_KEAS = limit_speed * math.sqrt(rho_cruise / rho_SL)
+
         a2 = 200.0*(
                 (mtow*sizing_factor_ultimate / (10.0**5.0))**0.286
                 * (fus_length * 3.28084/10.0)**0.857
                 * (maximum_width + maximum_height) * 3.28084/10.0
-                * (cruise_speed/100.0)**0.338
+                * (limit_speed_KEAS/100.0)**0.338
         )**1.1  # mass formula in lb
             
         outputs["data:weight:airframe:fuselage:mass"] = a2

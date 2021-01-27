@@ -22,30 +22,53 @@ class ComputeLandingGearWeight(om.ExplicitComponent):
     """
     Weight estimation for landing gears
 
-    # TODO: Based on :????????????
+    Based on : Wells, Douglas P., Bryce L. Horvath, and Linwood A. McCullers. "The Flight Optimization System Weights
+    Estimation Method." (2017). Equation 63 and 64
+
+    and
+
+    Raymer, Daniel. Aircraft design: a conceptual approach. American Institute of Aeronautics and
+    Astronautics, Inc., 2012. Commentary on table 15.2
+
     """
 
     def setup(self):
-        
-        self.add_input("data:mission:sizing:cs23:sizing_factor_ultimate", val=np.nan)
+
+        self.add_input("data:weight:aircraft:MLW", val=np.nan, units="lb")
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
         self.add_input("data:geometry:landing_gear:height", val=np.nan, units="ft")
-        
+        self.add_input("data:geometry:landing_gear:is_retractable", val=np.nan)
+
         self.add_output("data:weight:airframe:landing_gear:main:mass", units="lb")
         self.add_output("data:weight:airframe:landing_gear:front:mass", units="lb")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
-        sizing_factor_ultimate = inputs["data:mission:sizing:cs23:sizing_factor_ultimate"]
+
+        mlw = inputs["data:weight:aircraft:MLW"]
         mtow = inputs["data:weight:aircraft:MTOW"]
-        height = inputs["data:geometry:landing_gear:height"]
-        
-        l_sm = height/3  # Shock strut length for MLG
-        a5 = 0.054*l_sm**0.501*(mtow*sizing_factor_ultimate)**0.684  # mass formula in lb
-        a51 = a5*2/3
-        a52 = a5*1/3
+        lg_height = inputs["data:geometry:landing_gear:height"] * 12.
+        # Ft to inches
+        is_retractable = inputs["data:geometry:landing_gear:is_retractable"]
+
+        carbas = 0.0
+        dfte = 0.0
+
+        mlg_weight = (0.0117 - dfte * 0.0012) * mlw ** 0.95 * lg_height ** 0.43
+        nlg_weight = (0.048 - dfte * 0.008) * mlw ** 0.67 * lg_height ** 0.43 * (1. + 0.8 * carbas)
+
+        if not is_retractable:
+            weight_reduction = 1.4 * mtow / 100.
+            weight_reduction_factor = (mlg_weight + nlg_weight - weight_reduction) / (mlg_weight + nlg_weight)
+
+            a51 = mlg_weight * weight_reduction_factor
+            a52 = nlg_weight * weight_reduction_factor
+
+        else:
+
+            a51 = mlg_weight
+            a52 = nlg_weight
 
         outputs["data:weight:airframe:landing_gear:main:mass"] = a51
         outputs["data:weight:airframe:landing_gear:front:mass"] = a52

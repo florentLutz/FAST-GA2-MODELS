@@ -76,7 +76,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         :param max_power: maximum delivered mechanical power of engine (units=W)
         :param design_altitude: design altitude for cruise (units=m)
         :param design_speed: design altitude for cruise (units=m/s)
-        :param fuel_type: 1.0 for gasoline and 2.0 for gasoil engine
+        :param fuel_type: 1.0 for gasoline and 2.0 for diesel engine and 3.0 for Jet Fuel
         :param strokes_nb: can be either 2-strockes (=2.0) or 4-strockes (=4.0)
         """
         if fuel_type == 1.0:
@@ -379,15 +379,16 @@ class BasicICEngine(AbstractFuelPropulsion):
     def compute_weight(self) -> float:
         """
         Computes weight of installed propulsion (engine, nacelle and propeller) depending on maximum power.
-        Uses model described in :...
+        Uses model described in : Gudmundsson, Snorri. General aviation aircraft design: Applied Methods and Procedures.
+        Butterworth-Heinemann, 2013. Equation (6-44)
 
         """
 
         power_sl = self.max_power / 735.5  # conversion to european hp
-        installed_weight = ((power_sl - 21.55) / 0.5515)
-        self.engine.mass = installed_weight
+        uninstalled_weight = ((power_sl - 21.55) / 0.5515)
+        self.engine.mass = uninstalled_weight
 
-        return installed_weight
+        return uninstalled_weight
 
     def compute_dimensions(self) -> (float, float, float, float):
         """

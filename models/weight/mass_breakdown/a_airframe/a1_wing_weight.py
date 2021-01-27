@@ -18,12 +18,18 @@ import numpy as np
 import openmdao.api as om
 import math
 
+from fastoad.utils.physics import Atmosphere
+
 
 class ComputeWingWeight(om.ExplicitComponent):
     """
     Wing weight estimation
 
-    # TODO: Based on :????????????
+    Based on : Nicolai, Leland M., and Grant E. Carichner. Fundamentals of aircraft and airship design,
+    Volume 1–Aircraft Design. American Institute of Aeronautics and Astronautics, 2010.
+
+    Can also be found in : Gudmundsson, Snorri. General aviation aircraft design: Applied Methods and Procedures.
+    Butterworth-Heinemann, 2013. Equation (6-19)
     """
 
     def setup(self):
@@ -36,6 +42,7 @@ class ComputeWingWeight(om.ExplicitComponent):
         self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="rad")
         self.add_input("data:TLAR:v_limit", val=np.nan, units="kn")
+        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
         
         self.add_output("data:weight:airframe:wing:mass", units="lb")
 
@@ -51,12 +58,18 @@ class ComputeWingWeight(om.ExplicitComponent):
         aspect_ratio = inputs["data:geometry:wing:aspect_ratio"]
         sweep_25 = inputs["data:geometry:wing:sweep_25"]
         limit_speed = inputs["data:TLAR:v_limit"]
+        cruise_alt = inputs["data:mission:sizing:main_route:cruise:altitude"]
+
+        rho_cruise = Atmosphere(cruise_alt).density
+        rho_sl = Atmosphere(0.0).density
+
+        limit_speed_keas = limit_speed * math.sqrt(rho_cruise / rho_sl)
 
         a1 = 96.948*(
                 (mtow*sizing_factor_ultimate/10.0**5.0)**0.65
-                * (aspect_ratio/math.cos(sweep_25))**0.57
+                * (aspect_ratio/(math.cos(sweep_25)**2.0))**0.57
                 * (wing_area/100.0)**0.61 * ((1.0+taper_ratio) / (2.0*thickness_ratio))**0.36
-                * (1+limit_speed/500.0)**0.5
+                * (1.+limit_speed_keas/500.0)**0.5
         )**0.993  # mass formula in lb
             
         outputs["data:weight:airframe:wing:mass"] = a1

@@ -135,7 +135,7 @@ def test_compute_vt_mac():
     length = problem.get_val("data:geometry:vertical_tail:MAC:length", units="m")
     assert length == pytest.approx(1.472, abs=1e-3)
     vt_x0 = problem.get_val("data:geometry:vertical_tail:MAC:at25percent:x:local", units="m")
-    assert vt_x0 == pytest.approx(0.219, abs=1e-3)
+    assert vt_x0 == pytest.approx(0.539, abs=1e-3)
     vt_z0 = problem.get_val("data:geometry:vertical_tail:MAC:z", units="m")
     assert vt_z0 == pytest.approx(0.799, abs=1e-3)
     vt_lp = problem.get_val("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", units="m")
@@ -154,9 +154,9 @@ def test_compute_vt_sweep():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeVTSweep(), ivc)
     sweep_0 = problem.get_val("data:geometry:vertical_tail:sweep_0", units="deg")
-    assert sweep_0 == pytest.approx(15.3, abs=1e-1)
+    assert sweep_0 == pytest.approx(34.03, abs=1e-1)
     sweep_100 = problem.get_val("data:geometry:vertical_tail:sweep_100", units="deg")
-    assert sweep_100 == pytest.approx(173.3, abs=1e-1)
+    assert sweep_100 == pytest.approx(15.83, abs=1e-1)
 
 
 def test_compute_vt_wet_area():
@@ -481,7 +481,7 @@ def test_geometry_wing_mfw():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeMFW(), ivc)
     mfw = problem.get_val("data:weight:aircraft:MFW", units="kg")
-    assert mfw == pytest.approx(573.00, abs=1e-2)
+    assert mfw == pytest.approx(564.28, abs=1e-2)
 
 
 def test_geometry_nacelle():

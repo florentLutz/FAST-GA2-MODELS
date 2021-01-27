@@ -83,6 +83,9 @@ def test_engine_weight():
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
     _250kw_engine = BasicICEngine(250000.0, 2400.0, 81.0, 1.0, 4.0)
     np.testing.assert_allclose(_250kw_engine.compute_weight(), 577, atol=1)
+    # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
+    _130kw_engine = BasicICEngine(130000.0, 2400.0, 81.0, 1.0, 4.0)
+    np.testing.assert_allclose(_130kw_engine.compute_weight(), 281.41, atol=1)
 
 
 def test_engine_dim():
@@ -117,6 +120,13 @@ def test_sfc_at_max_thrust():
     sfc = _250kw_engine.sfc_at_max_power(atm)
     np.testing.assert_allclose(sfc, 8.540416666666667e-08, rtol=1e-4)
 
+    # Check with scalars
+    # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
+    _130kw_engine = BasicICEngine(130000.0, 2400.0, 81.0, 1.0, 4.0)
+    atm = Atmosphere(0, altitude_in_feet=False)
+    sfc = _130kw_engine.sfc_at_max_power(atm)
+    np.testing.assert_allclose(sfc, 7.965417e-08, rtol=1e-4)
+
 
 def test_sfc_ratio():
     """    Checks SFC ratio model    """
@@ -126,7 +136,7 @@ def test_sfc_ratio():
     altitudes = np.array([-2370, -1564, -1562.5, -1560, -846, 678, 2202, 3726])
     ratio, _ = engine.sfc_ratio(altitudes, 0.8)
     assert ratio == pytest.approx(
-        [0.958656, 0.958656, 0.958656, 0.958656, 0.958656, 0.9603615 , 0.96421448, 0.96808154], rel=1e-3
+        [0.958656, 0.958656, 0.958656, 0.958656, 0.958656, 0.9603615, 0.96421448, 0.96808154], rel=1e-3
     )
 
     # Because there some code differs when we have scalars:

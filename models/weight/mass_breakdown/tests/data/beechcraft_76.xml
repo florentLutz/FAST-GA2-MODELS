@@ -16,7 +16,7 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-			<NPAX>4.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
+			<NPAX>2.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
 			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">179.0<!--top-level requirement: limit speed--></v_limit>
 		</TLAR>
@@ -26,16 +26,39 @@
 				<maximum_height units="m">1.338<!--maximum fuselage height--></maximum_height>
 				<maximum_width units="m">1.198<!--maximum fuselage width--></maximum_width>
 			</fuselage>
+			<has_T_tail>1.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
 			<horizontal_tail>
 				<root>
 					<chord units="m">0.868<!--horizontal tail root chord--></chord>
 				</root>
+				<MAC>
+					<at25percent>
+						<x>
+							<from_wingMAC25 units="m">4.334<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
+						</x>
+					</at25percent>
+				</MAC>
 				<span units="m">5.095<!--horizontal tail span--></span>
+				<aspect_ratio>5.85<!--aspect ratio of vertical tail--></aspect_ratio>
 				<thickness_ratio>0.1<!--horizontal tail thickness ratio--></thickness_ratio>
-				<wet_area units="m**2">7.428<!--horizontal tail wet area--></wet_area>
+				<area units="m**2">4.422<!--horizontal tail area--></area>
+				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
+				<taper_ratio>1.0<!--taper ratio of horizontal tail--></taper_ratio>
 			</horizontal_tail>
+			<vertical_tail>
+				<root>
+					<chord units="m">1.566<!--horizontal tail root chord--></chord>
+				</root>
+				<area units="m**2">2.655<!--horizontal tail area--></area>
+				<span units="m">1.785<!--horizontal tail span--></span>
+				<taper_ratio>0.62<!--taper ratio of vertical tail--></taper_ratio>
+				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>
+				<sweep_25 units="deg">30.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
+				<thickness_ratio>0.1<!--horizontal tail thickness ratio--></thickness_ratio>
+			</vertical_tail>
 			<landing_gear>
-				<height units="m">1.22<!--height of landing gear--></height>
+				<is_retractable>1.0<!--0=LG is NOT retractable / 1=LG is retractable--></is_retractable>
+				<height units="m">0.791<!--height of landing gear--></height>
 			</landing_gear>
 			<propulsion>
 				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
@@ -44,6 +67,7 @@
 			</propulsion>
 			<wing>
 				<area units="m**2">19.15<!--wing reference area--></area>
+				<span units="m">12.36<!--wing span--></span>
 				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
 				<sweep_25 units="deg">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
 				<taper_ratio>1.0<!--wing taper ratio--></taper_ratio>
@@ -59,7 +83,7 @@
 		</mission>
 		<propulsion>
 			<IC_engine>
-				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
+				<fuel_type>1.0<!--1=gasoline ICE engine / 2=Diesel ICE engine--></fuel_type>
 				<max_power units="W">130000.0<!--max power @ see level--></max_power>
 				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
 			</IC_engine>
@@ -76,6 +100,7 @@
 		<weight>
 			<aircraft>
 				<MFW units="kg">587.15<!--maximum fuel weight--></MFW>
+				<MLW units="kg">1746.53<!--maximum landing weight--></MLW>
 				<MTOW units="kg">1915.02<!--maximum takeoff weight--></MTOW>
 				<max_payload units="kg">478.0<!--max payload weight--></max_payload>
 			</aircraft>

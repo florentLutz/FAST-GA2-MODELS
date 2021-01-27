@@ -71,7 +71,7 @@ class FuelEngineSet(AbstractFuelPropulsion):
         flight_points.thrust_rate = flight_points_per_engine.thrust_rate
       
     def compute_weight(self):
-
+        test = self.engine.compute_weight()
         return self.engine.compute_weight()*self.engine_count
 
     def compute_dimensions(self):

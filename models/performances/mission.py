@@ -419,7 +419,10 @@ class _compute_cruise(aircraft_equilibrium):
 
             # Calculate distance increase
             distance_t += v_tas * min(time_step, (cruise_distance - distance_t) / v_tas)
-
+            fuel_flow = propulsion_model.get_consumed_mass(
+                        flight_point,
+                        min(time_step, (cruise_distance - distance_t) / v_tas)
+            ) / time_step
             # Estimate mass evolution and update time
             mass_fuel_t += propulsion_model.get_consumed_mass(
                 flight_point,

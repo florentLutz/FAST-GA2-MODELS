@@ -17,7 +17,7 @@
 	<data>
 		<TLAR>
 			<range units="NM">780.0</range>
-			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
+			<v_cruise units="kn">164.0<!--top-level requirement: cruise speed--></v_cruise>
 		</TLAR>
 		<aerodynamics>
 			<aircraft>
@@ -115,7 +115,7 @@
 						<descent_rate>0.05</descent_rate>
 					</descent>
 					<reserve>
-						<duration units="min">30.0<!--reserve fuel to extend cruise phase duration--></duration>
+						<duration units="min">45.0<!--reserve fuel to extend cruise phase duration--></duration>
 					</reserve>
 				</main_route>
 				<takeoff>

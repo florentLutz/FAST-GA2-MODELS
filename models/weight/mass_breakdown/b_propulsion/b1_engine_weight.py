@@ -49,6 +49,9 @@ class ComputeEngineWeight(ExplicitComponent):
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
         )
 
-        b1 = propulsion_model.compute_weight()
+        # This should give the UNINSTALLED weight
+        uninstalled_engine_weight = propulsion_model.compute_weight()
+
+        b1 = 1.4 * uninstalled_engine_weight
 
         outputs["data:weight:propulsion:engine:mass"] = b1

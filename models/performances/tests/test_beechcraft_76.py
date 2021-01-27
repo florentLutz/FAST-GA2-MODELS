@@ -58,7 +58,7 @@ class DummyEngine(AbstractFuelPropulsion):
         sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
         max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
         max_thrust = min(
-            self.max_thrust * sigma**(1/3),
+            self.max_thrust * sigma**(1./3.),
             max_power * 0.8 / np.maximum(mach * Atmosphere(altitude).speed_of_sound, 1e-20)
         )
         if flight_points.thrust_rate is None:
@@ -66,7 +66,7 @@ class DummyEngine(AbstractFuelPropulsion):
             flight_points.thrust_rate = float(thrust) / max_thrust
         else:
             flight_points.thrust = max_thrust * np.array(flight_points.thrust_rate)
-        sfc_pmax = 7.96359441e-08  # fixed whatever the thrust ratio
+        sfc_pmax = 7.96359441e-08  # fixed whatever the thrust ratio, sfc for ONE 130kW engine !
         sfc = sfc_pmax * flight_points.thrust_rate * mach * Atmosphere(altitude).speed_of_sound
 
         flight_points['sfc'] = sfc
@@ -257,9 +257,9 @@ def test_compute_cruise():
     register_wrappers()
     problem = run_system(_compute_cruise(propulsion_id=ENGINE_WRAPPER), ivc)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg")
-    assert fuel_mass == pytest.approx(109, abs=1)
+    assert fuel_mass == pytest.approx(125.65, abs=1)
     duration = problem.get_val("data:mission:sizing:main_route:cruise:duration", units="h")
-    assert duration == pytest.approx(4.9, abs=1e-1)
+    assert duration == pytest.approx(4.7, abs=1e-1)
 
 
 def test_compute_descent():
@@ -298,7 +298,7 @@ def test_loop_cruise_distance():
         # noinspection PyTypeChecker
         problem = run_system(Sizing(propulsion_id=ENGINE_WRAPPER), ivc)
         m_total = problem.get_val("data:mission:sizing:fuel", units="kg")
-        assert m_total == pytest.approx(122, abs=1)
+        assert m_total == pytest.approx(146.83080545, abs=1)
         climb_distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="NM")
         cruise_distance = problem.get_val("data:mission:sizing:main_route:cruise:distance", units="NM")
         descent_distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="NM")

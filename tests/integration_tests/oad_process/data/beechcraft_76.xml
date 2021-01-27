@@ -114,7 +114,7 @@
 						<descent_rate>0.05</descent_rate>
 					</descent>
 					<reserve>
-						<duration units="min">30.0<!--reserve fuel to extend cruise phase duration--></duration>
+						<duration units="min">45.0<!--reserve fuel to extend cruise phase duration--></duration>
 					</reserve>
 				</main_route>
 				<takeoff>
