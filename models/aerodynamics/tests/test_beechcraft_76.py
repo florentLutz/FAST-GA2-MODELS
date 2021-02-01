@@ -42,7 +42,8 @@ from ..external.vlm.compute_aero import DEFAULT_WING_AIRFOIL, DEFAULT_HTP_AIRFOI
 from ..external.xfoil import XfoilPolar
 from ..external.xfoil import resources
 from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp, \
-    ComputeHTPCLCMopenvsp, ComputeAEROopenvsp
+    ComputeHTPCLCMopenvsp
+from ..external.openvsp.compute_aero2 import ComputeAEROopenvsp
 from ..components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
 from ..components.compute_cl_max import ComputeMaxCL
 from ..components.high_lift_aero import ComputeDeltaHighLift
@@ -138,7 +139,7 @@ def reshape_polar(cl, cdp):
     return cl, cdp
 
 
-def test_compute_reynolds():
+def _test_compute_reynolds():
     """ Tests high and low speed reynolds calculation """
 
     # Research independent input value in .xml file
@@ -162,7 +163,7 @@ def test_compute_reynolds():
     assert reynolds == pytest.approx(2746999, abs=1)
 
 
-def test_cd0_high_speed():
+def _test_cd0_high_speed():
     """ Tests drag coefficient @ high speed """
 
     # Research independent input value in .xml file
@@ -193,7 +194,7 @@ def test_cd0_high_speed():
     assert cd0_total == pytest.approx(0.01958, abs=1e-5)
 
 
-def test_cd0_low_speed():
+def _test_cd0_low_speed():
     """ Tests drag coefficient @ low speed """
 
     # Research independent input value in .xml file
@@ -224,7 +225,7 @@ def test_cd0_low_speed():
     assert cd0_total == pytest.approx(0.04513, abs=1e-5)
 
 
-def test_polar():
+def _test_polar():
     """ Tests polar execution (XFOIL) @ high and low speed """
 
     # Clear saved polar results (for wing and htp airfoils)
@@ -388,7 +389,7 @@ def _test_vlm_comp_low_speed():
     assert cm2 == pytest.approx(-0.0667, abs=1e-4)
 
 
-def test_vlm_comp_low_speed_new():
+def _test_vlm_comp_low_speed_new():
     """ Tests vlm components @ high speed """
 
     # Create result temporary directory

@@ -49,7 +49,7 @@ def generate_configuration_file(configuration_file_path: str, overwrite: bool = 
     root_folder = resources.__path__[0]
     for i in range(2):
         root_folder = pth.split(root_folder)[0]
-    package_path = "[\"" + root_folder.replace('\\','/') + "\"]"
+    package_path = "[\"" + root_folder.replace('\\', '/') + "\"]"
     with path(resources, SAMPLE_FILENAME) as input_template_path:
         parser.set_template_file(str(input_template_path))
         # noinspection PyTypeChecker

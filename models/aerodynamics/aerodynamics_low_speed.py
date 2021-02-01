@@ -24,7 +24,7 @@ from .components.compute_cl_max import ComputeMaxCL
 from .components.high_lift_aero import ComputeDeltaHighLift
 
 from .external.vlm import ComputeAEROvlm
-from .external.openvsp import ComputeAEROopenvsp
+from .external.openvsp.compute_aero2 import ComputeAEROopenvsp
 
 
 class AerodynamicsLowSpeed(Group):

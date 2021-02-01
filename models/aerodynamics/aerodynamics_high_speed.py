@@ -23,7 +23,7 @@ from .components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
 from .components.clalpha_vt import ComputeClalphaVT
 
 from .external.vlm import ComputeAEROvlm
-from .external.openvsp import ComputeAEROopenvsp
+from .external.openvsp.compute_aero2 import ComputeAEROopenvsp
 
 
 class AerodynamicsHighSpeed(Group):

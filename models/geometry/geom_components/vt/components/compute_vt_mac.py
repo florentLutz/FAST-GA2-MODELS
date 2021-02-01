@@ -102,6 +102,7 @@ class ComputeVTMAC2(ExplicitComponent):
         self.add_input("data:geometry:vertical_tail:sweep_25", val=np.nan, units="deg")
         self.add_input("data:geometry:vertical_tail:span", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
 
         self.add_output("data:geometry:vertical_tail:MAC:length", units="m")
         self.add_output("data:geometry:vertical_tail:MAC:at25percent:x:local", units="m")
@@ -117,6 +118,7 @@ class ComputeVTMAC2(ExplicitComponent):
         sweep_25_vt = inputs["data:geometry:vertical_tail:sweep_25"]
         b_v = inputs["data:geometry:vertical_tail:span"]
         fus_length = inputs["data:geometry:fuselage:length"]
+        x_wing25 = inputs["data:geometry:wing:MAC:at25percent:x"]
 
 
         tmp = root_chord * 0.25 + b_v * math.tan(sweep_25_vt / 180.0 * math.pi) - tip_chord * 0.25
@@ -130,8 +132,8 @@ class ComputeVTMAC2(ExplicitComponent):
         x0_vt = (tmp * (root_chord + 2 * tip_chord)) / (3 * (root_chord + tip_chord))
         z0_vt = (2 * b_v * (0.5 * root_chord + tip_chord)) / (3 * (root_chord + tip_chord))
 
-        vt_lp = fus_length - root_chord + x0_vt
-        x_tip = b_v * math.tan(sweep_25_vt / 180.0 * math.pi) + vt_lp
+        vt_lp = (fus_length - root_chord + x0_vt) - x_wing25
+        x_tip = b_v * math.tan(sweep_25_vt / 180.0 * math.pi) + x_wing25 + (vt_lp - x0_vt)
 
         outputs["data:geometry:vertical_tail:MAC:length"] = mac_vt
         outputs["data:geometry:vertical_tail:MAC:at25percent:x:local"] = x0_vt

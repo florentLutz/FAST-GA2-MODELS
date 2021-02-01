@@ -96,6 +96,7 @@ class ComputeHTMAC2(ExplicitComponent):
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
         self.add_input("data:geometry:has_T_tail", val=np.nan)
         self.add_input("data:geometry:vertical_tail:tip:x", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
 
         self.add_output("data:geometry:horizontal_tail:MAC:length", units="m")
         self.add_output("data:geometry:horizontal_tail:MAC:at25percent:x:local", units="m")
@@ -112,6 +113,7 @@ class ComputeHTMAC2(ExplicitComponent):
         fus_length = inputs["data:geometry:fuselage:length"]
         tail_type = inputs["data:geometry:has_T_tail"]
         x_vt_tip = inputs["data:geometry:vertical_tail:tip:x"]
+        x_wing25 = inputs["data:geometry:wing:MAC:at25percent:x"]
 
         tmp = (
             root_chord * 0.25 + b_h / 2 * math.tan(sweep_25_ht / 180.0 * math.pi) - tip_chord * 0.25
@@ -127,9 +129,9 @@ class ComputeHTMAC2(ExplicitComponent):
         y0_ht = (b_h * (0.5 * root_chord + tip_chord)) / (3 * (root_chord + tip_chord))
 
         if tail_type == 1.0:
-            ht_lp = x_vt_tip + x0_ht
+            ht_lp = (x_vt_tip + x0_ht) - x_wing25
         else:
-            ht_lp = fus_length - root_chord + x0_ht
+            ht_lp = (fus_length - root_chord + x0_ht) - x_wing25
 
         outputs["data:geometry:horizontal_tail:MAC:length"] = mac_ht
         outputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"] = x0_ht

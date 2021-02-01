@@ -32,7 +32,7 @@ class ComputeWingX(ExplicitComponent):
         self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
         self.add_input("data:geometry:wing:kink:y", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:y", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="deg")
+        self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="rad")
 
         self.add_output("data:geometry:wing:kink:leading_edge:x:local", units="m")
         self.add_output("data:geometry:wing:tip:leading_edge:x:local", units="m")
