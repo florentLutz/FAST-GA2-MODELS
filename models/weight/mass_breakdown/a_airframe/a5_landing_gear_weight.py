@@ -37,7 +37,7 @@ class ComputeLandingGearWeight(om.ExplicitComponent):
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="lb")
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
         self.add_input("data:geometry:landing_gear:height", val=np.nan, units="ft")
-        self.add_input("data:geometry:landing_gear:is_retractable", val=np.nan)
+        self.add_input("data:geometry:landing_gear:type", val=np.nan)
 
         self.add_output("data:weight:airframe:landing_gear:main:mass", units="lb")
         self.add_output("data:weight:airframe:landing_gear:front:mass", units="lb")
@@ -50,7 +50,7 @@ class ComputeLandingGearWeight(om.ExplicitComponent):
         mtow = inputs["data:weight:aircraft:MTOW"]
         lg_height = inputs["data:geometry:landing_gear:height"] * 12.
         # Ft to inches
-        is_retractable = inputs["data:geometry:landing_gear:is_retractable"]
+        is_retractable = inputs["data:geometry:landing_gear:type"]
 
         carbas = 0.0
         dfte = 0.0

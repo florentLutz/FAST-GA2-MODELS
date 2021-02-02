@@ -48,10 +48,10 @@ class ComputePassengerSeatsCG(ExplicitComponent):
         l_instr = 0.7
         # Seats and passengers gravity center (hypothesis of 2 pilots)
         nrows = int(npax1/count_by_row)
-        x_cg_d2 = lav + l_instr + l_pilot_seat * 2/(npax + 2)
+        x_cg_d2 = lav + l_instr + l_pilot_seat * 2./(npax + 2.)
         for idx in range(nrows):
             length = l_pilot_seat + (idx + 0.5)*l_pass_seat
             nb_pers = min(count_by_row, npax-idx*count_by_row)
-            x_cg_d2 = x_cg_d2 + length*nb_pers/(npax + 2)
+            x_cg_d2 = x_cg_d2 + length*nb_pers/(npax + 2.)
 
         outputs["data:weight:furniture:passenger_seats:CG:x"] = x_cg_d2

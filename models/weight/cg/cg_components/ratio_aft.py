@@ -84,9 +84,8 @@ class ComputeCG(om.ExplicitComponent):
 
         weight_moment = np.dot(cgs, masses)
         outputs["data:weight:aircraft_empty:mass"] = np.sum(masses)
-        outputs["data:weight:aircraft_empty:CG:x"] = (
-            weight_moment / outputs["data:weight:aircraft_empty:mass"]
-        )
+        x_cg_empty_aircraft = weight_moment / outputs["data:weight:aircraft_empty:mass"]
+        outputs["data:weight:aircraft_empty:CG:x"] = x_cg_empty_aircraft
 
 
 class CGRatio(om.ExplicitComponent):

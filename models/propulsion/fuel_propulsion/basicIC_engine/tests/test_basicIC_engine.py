@@ -28,7 +28,7 @@ from ..basicIC_engine import BasicICEngine
 
 def test_compute_flight_points():
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
-    engine = BasicICEngine(130000.0, 2400.0, 81.0, 1.0, 4.0)  # load a 4-strokes 130kW gasoline engine
+    engine = BasicICEngine(130000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)  # load a 4-strokes 130kW gasoline engine
 
     # Test with scalars
     flight_point = FlightPoint(
@@ -78,22 +78,22 @@ def test_compute_flight_points():
 
 def test_engine_weight():
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
-    _50kw_engine = BasicICEngine(50000.0, 2400.0, 81.0, 1.0, 4.0)
+    _50kw_engine = BasicICEngine(50000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
     np.testing.assert_allclose(_50kw_engine.compute_weight(), 84, atol=1)
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
-    _250kw_engine = BasicICEngine(250000.0, 2400.0, 81.0, 1.0, 4.0)
+    _250kw_engine = BasicICEngine(250000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
     np.testing.assert_allclose(_250kw_engine.compute_weight(), 577, atol=1)
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
-    _130kw_engine = BasicICEngine(130000.0, 2400.0, 81.0, 1.0, 4.0)
+    _130kw_engine = BasicICEngine(130000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
     np.testing.assert_allclose(_130kw_engine.compute_weight(), 281.41, atol=1)
 
 
 def test_engine_dim():
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
-    _50kw_engine = BasicICEngine(50000.0, 2400.0, 81.0, 1.0, 4.0)
+    _50kw_engine = BasicICEngine(50000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
     np.testing.assert_allclose(_50kw_engine.compute_dimensions(), [0.45, 0.67, 0.89, 2.03], atol=1e-2)
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
-    _250kw_engine = BasicICEngine(250000.0, 2400.0, 81.0, 1.0, 4.0)
+    _250kw_engine = BasicICEngine(250000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
     np.testing.assert_allclose(_250kw_engine.compute_dimensions(), [0.77, 1.15, 1.53, 5.93], atol=1e-2)
 
 
@@ -106,7 +106,7 @@ def test_sfc_at_max_thrust():
 
     # Check with arrays
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
-    _50kw_engine = BasicICEngine(50000.0, 2400.0, 81.0, 1.0, 4.0)
+    _50kw_engine = BasicICEngine(50000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
     atm = Atmosphere([0, 10668, 13000], altitude_in_feet=False)
     sfc = _50kw_engine.sfc_at_max_power(atm)
     # Note: value for alt==10668 is different from PhD report
@@ -115,14 +115,14 @@ def test_sfc_at_max_thrust():
 
     # Check with scalars
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
-    _250kw_engine = BasicICEngine(250000.0, 2400.0, 81.0, 1.0, 4.0)
+    _250kw_engine = BasicICEngine(250000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
     atm = Atmosphere(0, altitude_in_feet=False)
     sfc = _250kw_engine.sfc_at_max_power(atm)
     np.testing.assert_allclose(sfc, 8.540416666666667e-08, rtol=1e-4)
 
     # Check with scalars
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb)
-    _130kw_engine = BasicICEngine(130000.0, 2400.0, 81.0, 1.0, 4.0)
+    _130kw_engine = BasicICEngine(130000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
     atm = Atmosphere(0, altitude_in_feet=False)
     sfc = _130kw_engine.sfc_at_max_power(atm)
     np.testing.assert_allclose(sfc, 7.965417e-08, rtol=1e-4)
@@ -130,7 +130,7 @@ def test_sfc_at_max_thrust():
 
 def test_sfc_ratio():
     """    Checks SFC ratio model    """
-    engine = BasicICEngine(75000.0, 2400.0, 81.0, 1.0, 4.0)
+    engine = BasicICEngine(75000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
 
     # Test different altitude (even negative: robustness) with constant thrust rate/power ratio
     altitudes = np.array([-2370, -1564, -1562.5, -1560, -846, 678, 2202, 3726])

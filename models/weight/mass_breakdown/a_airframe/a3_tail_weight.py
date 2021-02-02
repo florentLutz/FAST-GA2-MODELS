@@ -93,7 +93,7 @@ class ComputeTailWeight(om.ExplicitComponent):
         ar_vt = inputs["data:geometry:vertical_tail:aspect_ratio"]
         taper_vt = inputs["data:geometry:vertical_tail:taper_ratio"]
 
-        a32 = 0.016 * (1. + has_t_tail) * (
+        a32 = 0.073 * (1. + 0.2 * has_t_tail) * (
                 (sizing_factor_ultimate * mtow) ** 0.376 *
                 dynamic_pressure ** 0.122 *
                 area_vt ** 0.873 *

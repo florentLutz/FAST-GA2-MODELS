@@ -45,6 +45,7 @@ class ComputePayload(om.ExplicitComponent):
         npax = inputs["data:TLAR:NPAX"] + 2.0  # addition of 2 pilots
         mass_per_pax = inputs["settings:weight:aircraft:payload:design_mass_per_passenger"]
         max_mass_per_pax = inputs["settings:weight:aircraft:payload:max_mass_per_passenger"]
+        luggage_weight = 20.
 
-        outputs["data:weight:aircraft:payload"] = npax * mass_per_pax
-        outputs["data:weight:aircraft:max_payload"] = npax * max_mass_per_pax
+        outputs["data:weight:aircraft:payload"] = npax * mass_per_pax + (npax - 2.0) * luggage_weight
+        outputs["data:weight:aircraft:max_payload"] = npax * max_mass_per_pax + (npax - 2.0) * luggage_weight

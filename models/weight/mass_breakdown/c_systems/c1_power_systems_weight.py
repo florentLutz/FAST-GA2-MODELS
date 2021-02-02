@@ -42,7 +42,7 @@ class ComputePowerSystemsWeight(ExplicitComponent):
         m_fuel_lines = inputs["data:weight:propulsion:fuel_lines:mass"]
         m_iae = inputs["data:weight:systems:navigation:mass"]
         
-        c12 = 426*((m_fuel_lines+m_iae)/1000)**0.51  # mass formula in lb
+        c12 = 426. * ((m_fuel_lines+m_iae) / 1000.)**0.51  # mass formula in lb
         c13 = 0.007*mtow  # mass formula in lb
         
         outputs["data:weight:systems:power:electric_systems:mass"] = c12

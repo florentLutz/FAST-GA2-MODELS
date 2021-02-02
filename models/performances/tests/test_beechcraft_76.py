@@ -234,11 +234,11 @@ def test_compute_climb():
     v_cas = problem.get_val("data:mission:sizing:main_route:climb:v_cas", units="kn")
     assert v_cas == pytest.approx(71.5, abs=1)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:climb:fuel", units="kg")
-    assert fuel_mass == pytest.approx(4, abs=1)
+    assert fuel_mass == pytest.approx(4.346, abs=1e-1)
     distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="m") / 1000.0  # conversion to km
-    assert distance == pytest.approx(12.0, abs=1e-1)
+    assert distance == pytest.approx(12.048, abs=1e-2)
     duration = problem.get_val("data:mission:sizing:main_route:climb:duration", units="min")
-    assert duration == pytest.approx(5.3, abs=1e-1)
+    assert duration == pytest.approx(5.2712, abs=1e-2)
 
 
 def test_compute_cruise():
@@ -257,9 +257,9 @@ def test_compute_cruise():
     register_wrappers()
     problem = run_system(_compute_cruise(propulsion_id=ENGINE_WRAPPER), ivc)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg")
-    assert fuel_mass == pytest.approx(125.65, abs=1)
+    assert fuel_mass == pytest.approx(126.1663, abs=1e-1)
     duration = problem.get_val("data:mission:sizing:main_route:cruise:duration", units="h")
-    assert duration == pytest.approx(4.7, abs=1e-1)
+    assert duration == pytest.approx(4.703212, abs=1e-3)
 
 
 def test_compute_descent():
@@ -279,9 +279,9 @@ def test_compute_descent():
     fuel_mass = problem.get_val("data:mission:sizing:main_route:descent:fuel", units="kg")
     assert fuel_mass == pytest.approx(0.04, abs=1e-2)
     distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="m") / 1000  # conversion to km
-    assert distance == pytest.approx(48.7, abs=1e-1)
+    assert distance == pytest.approx(48.727, abs=1e-2)
     duration = problem.get_val("data:mission:sizing:main_route:descent:duration", units="min")
-    assert duration == pytest.approx(15.9, abs=1e-1)
+    assert duration == pytest.approx(15.984, abs=1e-2)
 
 
 def test_loop_cruise_distance():

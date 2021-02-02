@@ -17,15 +17,15 @@
 	<data>
 		<TLAR>
 			<NPAX>2.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
-			<range units="NM">780.0</range>
-			<v_approach units="kn">78.0<!--top-level requirement: approach speed--></v_approach>
-			<v_cruise units="kn">164.0<!--top-level requirement: cruise speed--></v_cruise>
-			<v_limit units="kn">192.0<!--top-level requirement: limit speed--></v_limit>
+			<range units="NM">940.0</range>
+			<v_approach units="kn">77.0<!--top-level requirement: approach speed--></v_approach>
+			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
+			<v_limit units="kn">202.6<!--top-level requirement: limit speed--></v_limit>
 		</TLAR>
 		<geometry>
 			<flap>
-				<chord_ratio>0.197<!--mean value of (flap chord)/(section chord)--></chord_ratio>
-				<span_ratio>0.8<!--ratio (width of flaps)/(total span)--></span_ratio>
+				<chord_ratio>0.25<!--mean value of (flap chord)/(section chord)--></chord_ratio>
+				<span_ratio>0.6<!--ratio (width of flaps)/(total span)--></span_ratio>
 			</flap>
 			<flap_type>1.0<!--0=plain flap / 1=flap simple slotted--></flap_type>
 			<cabin>
@@ -42,56 +42,56 @@
 					</passenger>
 				</seats>
 			</cabin>
-			<has_T_tail>1.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
+			<has_T_tail>0.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
 			<horizontal_tail>
 				<MAC>
 					<at25percent>
 						<x>
-							<from_wingMAC25 units="m">4.9<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
+							<from_wingMAC25 units="m">4.293<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
 						</x>
 					</at25percent>
 				</MAC>
-				<area units="m**2">3.44<!--horizontal tail area--></area>
+				<area units="m**2">2.302<!--horizontal tail area--></area>
 				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
-				<taper_ratio>1.0<!--taper ratio of horizontal tail--></taper_ratio>
+				<taper_ratio>0.95<!--taper ratio of horizontal tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>
 			</horizontal_tail>
 			<landing_gear>
 				<type>1.0<!--0=non-retractable landing gears / 1=retractable landing gear--></type>
 			</landing_gear>
 			<propulsion>
-				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
-				<count>2.0<!--number of engines--></count>
+				<layout>3.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
+				<count>1.0<!--number of engines--></count>
 				<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
 			</propulsion>
 			<vertical_tail>
-				<area units="m**2">2.653<!--vertical tail area--></area>
-				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>
-				<sweep_25 units="deg">30.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
-				<taper_ratio>0.62<!--taper ratio of vertical tail--></taper_ratio>
+				<area units="m**2">1.649<!--vertical tail area--></area>
+				<aspect_ratio>2.0<!--aspect ratio of vertical tail--></aspect_ratio>
+				<sweep_25 units="deg">10.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
+				<taper_ratio>0.502<!--taper ratio of vertical tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of vertical tail--></thickness_ratio>
 			</vertical_tail>
 			<wing>
 				<MAC>
 					<at25percent>
-						<x units="m">2.638<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
+						<x units="m">2.526<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
 					</at25percent>
 				</MAC>
-				<area units="m**2">16.638<!--wing reference area--></area>
-				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
+				<area units="m**2">11.80<!--wing reference area--></area>
+				<aspect_ratio>8.0<!--wing aspect ratio--></aspect_ratio>
 				<kink>
 					<span_ratio>0.0<!--ratio (Y-position of kink)/(semi-span)--></span_ratio>
 				</kink>
 				<sweep_25 units="deg">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
-				<taper_ratio>1.0<!--taper ratio of wing--></taper_ratio>
+				<taper_ratio>0.95<!--taper ratio of wing--></taper_ratio>
 				<thickness_ratio>0.12<!--mean thickness ratio of wing--></thickness_ratio>
 			</wing>
 		</geometry>
 		<propulsion>
 			<IC_engine>
 				<fuel_type>1.0<!--1=Avgas ICE engine / 2=Diesel ICE engine--></fuel_type>
-				<max_power units="W">130000.0<!--max power @ see level--></max_power>
-				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
+				<max_power units="W">186420.0<!--max power @ see level--></max_power>
+				<strokes_nb>2.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
 			</IC_engine>
 		</propulsion>
 		<mission>
@@ -140,7 +140,7 @@
 		<weight>
 			<aircraft>
 				<CG>
-					<range>0.15<!--distance between front position and aft position of CG, as ratio of mean aerodynamic chord (allows to have front position of CG, as currently, FAST-OAD estimates only the aft position of CG)--></range>
+					<range>0.24<!--distance between front position and aft position of CG, as ratio of mean aerodynamic chord (allows to have front position of CG, as currently, FAST-OAD estimates only the aft position of CG)--></range>
 				</CG>
 			</aircraft>
 		</weight>

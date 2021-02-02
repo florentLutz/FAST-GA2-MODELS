@@ -565,7 +565,7 @@ def test_high_lift():
     delta_cm_landing = problem["data:aerodynamics:flaps:landing:CM"]
     assert delta_cm_landing == pytest.approx(-0.0988, abs=1e-4)
     delta_cd_landing = problem["data:aerodynamics:flaps:landing:CD"]
-    assert delta_cd_landing == pytest.approx(0.0196, abs=1e-4)
+    assert delta_cd_landing == pytest.approx(0.01383, abs=1e-4)
     delta_cl0_takeoff = problem["data:aerodynamics:flaps:takeoff:CL"]
     assert delta_cl0_takeoff == pytest.approx(0.2805, abs=1e-4)
     delta_clmax_takeoff = problem["data:aerodynamics:flaps:takeoff:CL_max"]
@@ -573,7 +573,7 @@ def test_high_lift():
     delta_cm_takeoff = problem["data:aerodynamics:flaps:takeoff:CM"]
     assert delta_cm_takeoff == pytest.approx(-0.0378, abs=1e-4)
     delta_cd_takeoff = problem["data:aerodynamics:flaps:takeoff:CD"]
-    assert delta_cd_takeoff == pytest.approx(0.0034, abs=1e-4)
+    assert delta_cd_takeoff == pytest.approx(0.00111811, abs=1e-4)
     cl_alpha_elev = problem.get_val("data:aerodynamics:elevator:low_speed:CL_alpha", units="rad**-1")
     assert cl_alpha_elev == pytest.approx(0.6167, abs=1e-4)
 

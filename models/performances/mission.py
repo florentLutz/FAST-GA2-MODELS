@@ -26,9 +26,9 @@ from fastoad.utils.physics import Atmosphere
 from scipy.constants import g
 from .takeoff import SAFETY_HEIGHT
 
-POINTS_NB_CLIMB = 100
-POINTS_NB_CRUISE = 500
-POINTS_NB_DESCENT = 100
+POINTS_NB_CLIMB = 200
+POINTS_NB_CRUISE = 1000
+POINTS_NB_DESCENT = 200
 
 
 class aircraft_equilibrium(om.ExplicitComponent):
@@ -228,7 +228,6 @@ class _compute_climb(aircraft_equilibrium):
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]
-        m_ho = inputs["data:mission:sizing:holding:fuel"]
         m_tk = inputs["data:mission:sizing:takeoff:fuel"]
         m_ic = inputs["data:mission:sizing:initial_climb:fuel"]
         thrust_rate = inputs["data:mission:sizing:main_route:climb:thrust_rate"]
@@ -237,7 +236,7 @@ class _compute_climb(aircraft_equilibrium):
         altitude_t = SAFETY_HEIGHT  # conversion to m
         distance_t = 0.0
         time_t = 0.0
-        mass_t = mtow - (m_to + m_ho + m_tk + m_ic)
+        mass_t = mtow - (m_to + m_tk + m_ic)
         mass_fuel_t = 0.0
         atm_0 = Atmosphere(0.0)
 
@@ -246,23 +245,28 @@ class _compute_climb(aircraft_equilibrium):
         atm = Atmosphere(altitude_t, altitude_in_feet=False)
         v_cas = math.sqrt((mass_t * g) / (0.5 * atm.density * wing_area * cl))
 
+        mach = math.sqrt(
+            5 * ((atm_0.pressure / atm.pressure * (
+                    (1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) ** 3.5 - 1
+            ) + 1) ** (1 / 3.5) - 1)
+        )
+        v_tas = mach * atm.speed_of_sound
         # Define specific time step ~POINTS_NB_CLIMB points for calculation (with ground conditions)
-        cl_wing, cl_htp = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_cas ** 2), False)
+        cl_wing, cl_htp = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
         cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
         flight_point = FlightPoint(
-            mach=v_cas/atm_0.speed_of_sound, altitude=SAFETY_HEIGHT, engine_setting=EngineSetting.CLIMB,
+            mach=mach, altitude=SAFETY_HEIGHT, engine_setting=EngineSetting.CLIMB,
             thrust_rate=thrust_rate
         )  # with engine_setting as EngineSetting
         propulsion_model.compute_flight_points(flight_point)
         thrust = float(flight_point.thrust)
         climb_rate = thrust / (mass_t * g) - cd / (cl_wing + cl_htp)
-        time_step = ((cruise_altitude - SAFETY_HEIGHT) / (v_cas * math.sin(climb_rate))) / float(POINTS_NB_CLIMB)
+        time_step = ((cruise_altitude - SAFETY_HEIGHT) / (v_tas * math.sin(climb_rate))) / float(POINTS_NB_CLIMB)
 
         while altitude_t < cruise_altitude:
 
             # Define air properties
             atm = Atmosphere(altitude_t, altitude_in_feet=False)
-            v_tas = v_cas * math.sqrt(atm_0.density / atm.density)
 
             # Evaluate thrust and sfc
             mach = math.sqrt(
@@ -270,6 +274,7 @@ class _compute_climb(aircraft_equilibrium):
                         (1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) ** 3.5 - 1
                 ) + 1) ** (1 / 3.5) - 1)
             )
+            v_tas = mach * atm.speed_of_sound
             flight_point = FlightPoint(
                 mach=mach, altitude=altitude_t, engine_setting=EngineSetting.CLIMB,
                 thrust_rate=thrust_rate
@@ -375,7 +380,6 @@ class _compute_cruise(aircraft_equilibrium):
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]
-        m_ho = inputs["data:mission:sizing:holding:fuel"]
         m_tk = inputs["data:mission:sizing:takeoff:fuel"]
         m_ic = inputs["data:mission:sizing:initial_climb:fuel"]
         m_cl = inputs["data:mission:sizing:main_route:climb:fuel"]
@@ -387,10 +391,8 @@ class _compute_cruise(aircraft_equilibrium):
         distance_t = 0.0
         time_t = 0.0
         mass_fuel_t = 0.0
-        mass_t = mtow - (m_to + m_ho + m_tk + m_ic + m_cl)
-        atm_0 = Atmosphere(0.0)
+        mass_t = mtow - (m_to + m_tk + m_ic + m_cl)
         atm = Atmosphere(cruise_altitude, altitude_in_feet=False)
-        v_cas = v_tas / math.sqrt(atm_0.density / atm.density)
 
         while distance_t < cruise_distance:
 
@@ -400,11 +402,7 @@ class _compute_cruise(aircraft_equilibrium):
             drag = 0.5 * atm.density * wing_area * cd * v_tas ** 2
 
             # Evaluate sfc
-            mach = math.sqrt(
-                5 * ((atm_0.pressure / atm.pressure * (
-                        (1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) ** 3.5 - 1
-                ) + 1) ** (1 / 3.5) - 1)
-            )
+            mach = v_tas / atm.speed_of_sound
             flight_point = FlightPoint(
                 mach=mach, altitude=cruise_altitude, engine_setting=EngineSetting.CRUISE,
                 thrust_is_regulated=True, thrust=drag,
@@ -432,6 +430,9 @@ class _compute_cruise(aircraft_equilibrium):
                 flight_point,
                 min(time_step, (cruise_distance - distance_t) / v_tas)
             )
+            conso = propulsion_model.get_consumed_mass( flight_point,
+                min(time_step, (cruise_distance - distance_t) / v_tas)
+            ) / time_step
             time_t += min(time_step, (cruise_distance - distance_t) / v_tas)
 
         outputs["data:mission:sizing:main_route:cruise:fuel"] = mass_fuel_t
@@ -534,7 +535,12 @@ class _compute_descent(aircraft_equilibrium):
 
             # Define air properties and calculate VTAS
             atm = Atmosphere(altitude_t, altitude_in_feet=False)
-            v_tas = v_cas * math.sqrt(atm_0.density / atm.density)
+            mach = math.sqrt(
+                5 * ((atm_0.pressure / atm.pressure * (
+                        (1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) ** 3.5 - 1
+                ) + 1) ** (1 / 3.5) - 1)
+            )
+            v_tas = mach * atm.speed_of_sound
             # Calculate equilibrium and induced drag
             cl_wing, cl_htp = self.found_cl_repartition(inputs, 1.0, mass_t * math.cos(descent_rate),
                                                         (0.5 * atm.density * v_tas ** 2), False)
@@ -542,12 +548,7 @@ class _compute_descent(aircraft_equilibrium):
             cl = ((mass_t * g) * math.cos(descent_rate) / (0.5 * atm.density * wing_area * v_tas**2))
             cl_cd = cl/cd
             drag = 0.5 * atm.density * wing_area * cd * v_tas**2
-            # Evaluate mach
-            mach = math.sqrt(
-                5 * ((atm_0.pressure / atm.pressure * (
-                        (1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) ** 3.5 - 1
-                ) + 1) ** (1 / 3.5) - 1)
-            )
+
             # Calculate necessary Thrust to maintain VCAS and descent rate
             # if T<0N, VCAS is maintained reducing gamma/descent rate and engine in IDLE condition
             thrust = drag + (mass_t * g) * math.sin(gamma)

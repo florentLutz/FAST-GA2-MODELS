@@ -20,8 +20,8 @@ import numpy as np
 from shutil import rmtree, copy
 import time
 
-# from command import api as _api
-# from fastoad import api
+from command import api as _api
+from fastoad import api
 import openmdao.api as om
 import pytest
 from numpy.testing import assert_allclose
@@ -37,9 +37,10 @@ INPUT_FOLDER_PATH = pth.join(pth.dirname(__file__), "data")
 RESULTS_FOLDER_PATH = pth.join(pth.dirname(__file__), "results")
 PATH = pth.dirname(__file__).split(os.path.sep)
 NOTEBOOKS_PATH = PATH[0] + os.path.sep
-for folder in PATH[1:len(PATH)-3]:
+for folder in PATH[1:len(PATH) - 3]:
     NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, folder)
 NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, "notebooks")
+XML_NAME = "cirrus_sr22.xml"
 
 
 @pytest.fixture(scope="module")
@@ -53,8 +54,8 @@ def test_oad_process(cleanup):
     """
 
     problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process.toml")).get_problem()
-
-    ref_inputs = pth.join(INPUT_FOLDER_PATH, "beechcraft_76.xml")
+    problem.model.aicraft.set_input_defaults('data:geometry:horizontal_tail:sweep_25', val=10., units='deg')
+    ref_inputs = pth.join(INPUT_FOLDER_PATH, XML_NAME)
     get_problem_after_setup(problem).write_needed_inputs(ref_inputs, VariableXmlStandardFormatter())
     problem.read_inputs()
     print('\n')
@@ -70,7 +71,6 @@ def test_oad_process(cleanup):
         problem, outfile=pth.join(RESULTS_FOLDER_PATH, "connections.html"), show_browser=False
     )
     om.n2(problem, outfile=pth.join(RESULTS_FOLDER_PATH, "n2.html"), show_browser=False)
-
 
     # Check that weight-performances loop correctly converged
     assert_allclose(
@@ -94,23 +94,29 @@ def test_oad_process(cleanup):
         rtol=5e-2,
     )
 
-    assert_allclose(problem["data:handling_qualities:static_margin"], 0.0954, atol=1e-2)
+    assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 203.65, atol=1)
     # noinspection PyTypeChecker
-    assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1502, atol=1)
+    assert_allclose(problem.get_val("data:weight:aircraft:max_payload", units="kg"), 400.0, atol=1)
     # noinspection PyTypeChecker
-    assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 185, atol=1)
+    assert_allclose(problem["data:handling_qualities:static_margin"], 0.08515, atol=1e-2)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1650.24, atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:weight:aircraft:payload", units="kg"), 360., atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1046.61, atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg"), 166.405, atol=1)
 
 
 def est_api(cleanup):
-
     # Generation of inputs ----------------------------------------------------
     # We get the same inputs as in tutorial notebook
     DATA_FOLDER_PATH = pth.join(NOTEBOOKS_PATH, "tutorial", "data")
     WORK_FOLDER_PATH = pth.join(NOTEBOOKS_PATH, "tutorial", "workdir")
     configuration_file = pth.join(WORK_FOLDER_PATH, "oad_process.toml")
-    SOURCE_FILE = pth.join(DATA_FOLDER_PATH, "beechcraft_76.xml")
+    SOURCE_FILE = pth.join(DATA_FOLDER_PATH, XML_NAME)
     _api.generate_configuration_file(configuration_file, overwrite=True)
-
 
     # Run 800NM model ---------------------------------------------------------
     api.generate_inputs(configuration_file, SOURCE_FILE, overwrite=True)
@@ -192,6 +198,7 @@ def est_api(cleanup):
     # Objective
     assert_allclose(problem["data:mission:sizing:fuel"], 20565, atol=50)
 
+
 class Timer(object):
     def __init__(self, name=None):
         self.name = name
@@ -202,5 +209,5 @@ class Timer(object):
     def __exit__(self, type, value, traceback):
         print('\n')
         if self.name:
-            print('[%s]' % self.name,)
+            print('[%s]' % self.name, )
         print('Elapsed: %s' % (time.time() - self.tstart))

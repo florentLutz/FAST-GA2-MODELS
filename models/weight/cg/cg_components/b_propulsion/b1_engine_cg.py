@@ -37,6 +37,7 @@ class ComputeEngineCG(ExplicitComponent):
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:length", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:nacelle:y", val=np.nan, units="m")
+        self.add_input("data:geometry:propulsion:propeller:depth", val=np.nan, units="m")
 
         self.add_output("data:weight:propulsion:engine:CG:x", units="m")
 
@@ -53,6 +54,7 @@ class ComputeEngineCG(ExplicitComponent):
                         "data:geometry:wing:MAC:at25percent:x",
                         "data:geometry:propulsion:nacelle:length",
                         "data:geometry:propulsion:nacelle:y",
+                        "data:geometry:propulsion:propeller:depth",
                 ],
                 method="fd",
         )
@@ -70,23 +72,27 @@ class ComputeEngineCG(ExplicitComponent):
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         nacelle_length = inputs["data:geometry:propulsion:nacelle:length"]
         y_nacell = inputs["data:geometry:propulsion:nacelle:y"]
-        
+        prop_depth = inputs["data:geometry:propulsion:propeller:depth"]
+
+        x_cg_in_nacelle = 0.5 * nacelle_length
+        # From the beginning of the nacelle wrt to the nose, the CG is at x_cg_in_nacelle
+
         if prop_layout == 1.0:
             if y_nacell > y2_wing:  # Nacelle in the tapered part of the wing
                 l_wing_nac = l4_wing + (l2_wing - l4_wing) * (y4_wing - y_nacell) / (y4_wing - y2_wing)
                 delta_x_nacell = 0.05 * l_wing_nac
                 x_nacell_cg = (
                         x4_wing * (y_nacell - y2_wing) / (y4_wing - y2_wing)
-                        - delta_x_nacell - 0.2 * nacelle_length
+                        - delta_x_nacell - (1. - x_cg_in_nacelle)
                 )
                 x_cg_b1 = fa_length - 0.25 * l0_wing - (x0_wing - x_nacell_cg)
             else:  # Nacelle in the straight part of the wing
                 l_wing_nac = l2_wing
                 delta_x_nacell = 0.05 * l_wing_nac
-                x_nacell_cg = -delta_x_nacell - 0.2 * nacelle_length
+                x_nacell_cg = -delta_x_nacell - (1. - x_cg_in_nacelle)
                 x_cg_b1 = fa_length - 0.25 * l0_wing - (x0_wing - x_nacell_cg)
         elif prop_layout == 3.0:
-            x_cg_b1 = nacelle_length / 2
+            x_cg_b1 = x_cg_in_nacelle + prop_depth
         else:  # FIXME: no equation for configuration 2.0
             if y_nacell > y2_wing:  # Nacelle in the tapered part of the wing
                 l_wing_nac = l4_wing + (l2_wing - l4_wing) * (y4_wing - y_nacell) / (y4_wing - y2_wing)

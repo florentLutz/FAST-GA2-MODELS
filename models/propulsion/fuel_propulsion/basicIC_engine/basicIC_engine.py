@@ -31,7 +31,7 @@ from fastoad.base.dict import DynamicAttributeDict, AddKeyAttributes
 # Logger for this module
 _LOGGER = logging.getLogger(__name__)
 
-PROPELLER_EFFICIENCY = 0.8
+PROPELLER_EFFICIENCY = 0.85  # Used to be 0.8 maybe make it an xml parameter
 
 # Set of dictionary keys that are mapped to instance attributes.
 ENGINE_LABELS = {
@@ -66,6 +66,7 @@ class BasicICEngine(AbstractFuelPropulsion):
             design_speed: float,
             fuel_type: float,
             strokes_nb: float,
+            prop_layout: float,
     ):
         """
         Parametric Internal Combustion engine.
@@ -95,6 +96,7 @@ class BasicICEngine(AbstractFuelPropulsion):
                 "width": 0.650,
                 "mass": 205,
             }  # TDA CR 1.9 16V
+        self.prop_layout = prop_layout
         self.max_power = max_power
         self.design_altitude = design_altitude
         self.design_speed = design_speed
@@ -297,7 +299,7 @@ class BasicICEngine(AbstractFuelPropulsion):
 
         altitude = atmosphere.get_altitude(altitude_in_feet=True)
         sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
-        max_power = (self.max_power/1e3) * (sigma - (1 - sigma) / 7.55)  # max power in kW
+        max_power = (self.max_power / 1e3) * (sigma - (1 - sigma) / 7.55)  # max power in kW
 
         if self.fuel_type == 1.:
             if self.strokes_nb == 2.:  # Gasoline 2-strokes
@@ -337,7 +339,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         altitude = np.asarray(altitude)
         thrust_rate = np.asarray(thrust_rate)
         mach = np.asarray(mach)
-        mach = mach + (mach == 0)*1e-12
+        mach = mach + (mach == 0) * 1e-12
         max_thrust = self.max_thrust(Atmosphere(altitude, altitude_in_feet=False), mach)
         sigma = Atmosphere(altitude, altitude_in_feet=False).density / Atmosphere(0.0).density
         max_power = np.minimum(self.max_power * (sigma - (1 - sigma) / 7.55),
@@ -370,8 +372,8 @@ class BasicICEngine(AbstractFuelPropulsion):
         mach = np.asarray(mach)
         sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
         max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
-        _, _, _, _ = self.compute_dimensions()
-        thrust_1 = (self.propeller["thrust_SL"]*g) * sigma**(1/3)  # considered fixed point @altitude
+        _, _, _, _, _, _ = self.compute_dimensions()
+        thrust_1 = (self.propeller["thrust_SL"] * g) * sigma ** (1 / 3)  # considered fixed point @altitude
         thrust_2 = max_power * PROPELLER_EFFICIENCY / np.maximum(mach * Atmosphere(altitude).speed_of_sound, 1e-20)
 
         return np.minimum(thrust_1, thrust_2)
@@ -384,7 +386,7 @@ class BasicICEngine(AbstractFuelPropulsion):
 
         """
 
-        power_sl = self.max_power / 735.5  # conversion to european hp
+        power_sl = self.max_power / 745.7  # conversion to european hp
         uninstalled_weight = ((power_sl - 21.55) / 0.5515)
         self.engine.mass = uninstalled_weight
 
@@ -402,31 +404,40 @@ class BasicICEngine(AbstractFuelPropulsion):
         self.engine.height = self.ref["height"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
         self.engine.width = self.ref["width"] * (self.max_power / self.ref["max_power"]) ** (1 / 3)
 
+        if self.prop_layout == 3.0:
+            nacelle_length = 1.15 * self.engine.length
+            # Based on the length between nose and firewall for TB20 and SR22
+        else:
+            nacelle_length = 1.50 * self.engine.length
+
         # Compute nacelle dimensions
         self.nacelle = Nacelle(
             height=self.engine.height * 1.1,
             width=self.engine.width * 1.1,
-            length=1.5 * self.engine.length,
+            length=nacelle_length,
         )
         self.nacelle.wet_area = 2 * (self.nacelle.height + self.nacelle.width) * self.nacelle.length
 
         # Compute propeller dimensions (2-blades)
         w_propeller = 2500  # regulated propeller speed in RPM
         v_sound = Atmosphere(self.design_altitude, altitude_in_feet=False).speed_of_sound
-        d_max = (((v_sound*0.85)**2 - self.design_speed**2) / ((w_propeller*math.pi/30)/2)**2)**0.5
-        d_opt = 1.04**2 * ((self.max_power/735.5) * 1e8 / (w_propeller**2 * self.design_speed * 3.6))**(1/4)
+        d_max = (((v_sound * 0.85) ** 2 - self.design_speed ** 2) / ((w_propeller * math.pi / 30) / 2) ** 2) ** 0.5
+        d_opt = 1.04 ** 2 * ((self.max_power / 735.5) * 1e8 / (w_propeller ** 2 * self.design_speed * 3.6)) ** (1 / 4)
         d = min(d_max, d_opt)
-        t_0 = 7.4 * ((self.max_power/735.5) * d)**(2/3)
-        area = 13307 * t_0 / (d**2 * w_propeller**2)
-        chord = area/d
+        t_0 = 7.4 * ((self.max_power / 735.5) * d) ** (2 / 3)
+        area = 13307 * t_0 / (d ** 2 * w_propeller ** 2)
+        chord = area / d
         self.propeller = Propeller(
             area=area,
-            depth=chord*1.1,
+            depth=chord * 1.1,
             diameter=d,
             thrust_SL=t_0,
         )
+        propeller_depth = max(chord*1.1, 0.2*d)
+        # For clarity purposes, it has been assimilated as the spinner length
 
-        return self.nacelle["height"], self.nacelle["width"], self.nacelle["length"], self.nacelle["wet_area"]
+        return self.nacelle["height"], self.nacelle["width"], self.nacelle["length"], self.nacelle[
+            "wet_area"], d, propeller_depth
 
     def compute_drag(self, mach, unit_reynolds, wing_mac):
         """
@@ -435,7 +446,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         """
 
         # Compute dimensions
-        _, _, _, _ = self.compute_dimensions()
+        _, _, _, _, _, _ = self.compute_dimensions()
         # Local Reynolds:
         reynolds = unit_reynolds * self.nacelle.length
         # Roskam method for wing-nacelle interaction factor (vol 6 page 3.62)

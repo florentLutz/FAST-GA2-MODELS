@@ -83,15 +83,19 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         self.add_input("data:geometry:cabin:seats:passenger:width", val=np.nan, units="m")
         self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
         self.add_input("data:geometry:cabin:aisle_width", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:MAC:length", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
+        self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
+        self.add_input("data:geometry:vertical_tail:sweep_25", val=np.nan, units="deg")
+        self.add_input("data:geometry:vertical_tail:span", val=np.nan, units="m")
 
         self.add_output("data:geometry:cabin:NPAX")
         self.add_output("data:geometry:fuselage:length", units="m")
+        self.add_output("data:geometry:plane:length", units="m")
         self.add_output("data:geometry:fuselage:maximum_width", units="m")
         self.add_output("data:geometry:fuselage:maximum_height", units="m")
         self.add_output("data:geometry:fuselage:front_length", units="m")
@@ -119,6 +123,10 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         vt_lp = inputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"]
         ht_length = inputs["data:geometry:horizontal_tail:MAC:length"]
         vt_length = inputs["data:geometry:vertical_tail:MAC:length"]
+        sweep_25_vt = inputs["data:geometry:vertical_tail:sweep_25"]
+        b_v = inputs["data:geometry:vertical_tail:span"]
+        sweep_25_ht = inputs["data:geometry:horizontal_tail:sweep_25"]
+        b_h = inputs["data:geometry:horizontal_tail:span"]
 
         # Length of instrument panel
         l_instr = 0.7
@@ -144,12 +152,16 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         cabin_length = l_instr + lpax + l_lug
         # Calculate nose length
         if prop_layout == 3.0:  # engine located in nose
-            _, _, propulsion_length, _ = propulsion_model.compute_dimensions()
-            lav = propulsion_length
+            _, _, propulsion_length, _, _, spinner_length = propulsion_model.compute_dimensions()
+            lav = propulsion_length + spinner_length
         else:
-            lav = 1.7 * h_f 
+            lav = 1.40 * h_f
+            # Used to be 1.7, supposedly as an A320 according to FAST legacy. Results on the BE76 tend to say it is
+            # around 1.40, though it varies a lot depending on the airplane and its use
         # Calculate fuselage length
         fus_length = fa_length + max(ht_lp + 0.75 * ht_length, vt_lp + 0.75 * vt_length)
+        plane_length = fa_length + max(ht_lp + 0.75 * ht_length + b_h / 2.0 * math.tan( sweep_25_ht * math.pi / 180),
+                                       vt_lp + 0.75 * vt_length + b_v * math.tan( sweep_25_vt * math.pi / 180))
         lar = fus_length - (lav + cabin_length)
         # Calculate wet area
         fus_dia = math.sqrt(b_f * h_f)  # equivalent diameter of the fuselage
@@ -161,6 +173,7 @@ class ComputeFuselageGeometryCabinSizing(ExplicitComponent):
         
         outputs["data:geometry:cabin:NPAX"] = npax_1
         outputs["data:geometry:fuselage:length"] = fus_length
+        outputs["data:geometry:plane:length"] = plane_length
         outputs["data:geometry:fuselage:maximum_width"] = b_f
         outputs["data:geometry:fuselage:maximum_height"] = h_f
         outputs["data:geometry:fuselage:front_length"] = lav

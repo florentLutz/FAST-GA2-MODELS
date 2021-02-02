@@ -33,6 +33,7 @@ from ..a_airframe import (
     ComputeTailWeight,
     ComputeFlightControlsWeight,
     ComputeFuselageWeight,
+    ComputeFuselageWeightRaymer,
     ComputeWingWeight,
     ComputeLandingGearWeight,
 )
@@ -99,7 +100,6 @@ BundleLoader().context.install_bundle(__name__).start()
 
 
 def test_compute_payload():
-
     # Run problem and check obtained value(s) is/(are) correct
     ivc = om.IndepVarComp()
     ivc.add_output("data:TLAR:NPAX", val=2.0)
@@ -141,6 +141,18 @@ def test_compute_fuselage_weight():
     assert weight_a2 == pytest.approx(154.15, abs=1e-2)
 
 
+def test_compute_fuselage_weight_raymer():
+    """ Tests fuselage weight computation from sample XML data """
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeFuselageWeightRaymer()), __file__, XML_FILE)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeFuselageWeightRaymer(), ivc)
+    weight_a2 = problem.get_val("data:weight:airframe:fuselage:mass_raymer", units="kg")
+    assert weight_a2 == pytest.approx(186.93351769, abs=1e-2)
+
+
 def test_compute_empennage_weight():
     """ Tests empennage weight computation from sample XML data """
 
@@ -152,7 +164,7 @@ def test_compute_empennage_weight():
     weight_a31 = problem.get_val("data:weight:airframe:horizontal_tail:mass", units="kg")
     assert weight_a31 == pytest.approx(36.72, abs=1e-2)
     weight_a32 = problem.get_val("data:weight:airframe:vertical_tail:mass", units="kg")
-    assert weight_a32 == pytest.approx(9.30, abs=1e-2)
+    assert weight_a32 == pytest.approx(25.478, abs=1e-2)
 
 
 def test_compute_flight_controls_weight():
@@ -203,7 +215,7 @@ def test_compute_fuel_lines_weight():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuelLinesWeight(), ivc)
     weight_b2 = problem.get_val("data:weight:propulsion:fuel_lines:mass", units="kg")
-    assert weight_b2 == pytest.approx(58.23, abs=1e-2)
+    assert weight_b2 == pytest.approx(57.3149, abs=1e-2)
 
 
 def test_compute_navigation_systems_weight():
@@ -243,8 +255,20 @@ def test_compute_life_support_systems_weight():
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeLifeSupportSystemsWeight(), ivc)
+    weight_c21 = problem.get_val("data:weight:systems:life_support:insulation:mass", units="kg")
+    assert weight_c21 == pytest.approx(00., abs=1e-2)
     weight_c22 = problem.get_val("data:weight:systems:life_support:air_conditioning:mass", units="kg")
     assert weight_c22 == pytest.approx(44.43, abs=1e-2)
+    weight_c23 = problem.get_val("data:weight:systems:life_support:de_icing:mass", units="kg")
+    assert weight_c23 == pytest.approx(0., abs=1e-2)
+    weight_c24 = problem.get_val("data:weight:systems:life_support:internal_lighting:mass", units="kg")
+    assert weight_c24 == pytest.approx(0., abs=1e-2)
+    weight_c25 = problem.get_val("data:weight:systems:life_support:seat_installation:mass", units="kg")
+    assert weight_c25 == pytest.approx(0., abs=1e-2)
+    weight_c26 = problem.get_val("data:weight:systems:life_support:fixed_oxygen:mass", units="kg")
+    assert weight_c26 == pytest.approx(8.40, abs=1e-2)
+    weight_c27 = problem.get_val("data:weight:systems:life_support:security_kits:mass", units="kg")
+    assert weight_c27 == pytest.approx(0., abs=1e-2)
 
 
 def test_compute_passenger_seats_weight():
@@ -270,7 +294,7 @@ def test_evaluate_owe():
     mass_computation = run_system(ComputeOperatingWeightEmpty(propulsion_id=ENGINE_WRAPPER), input_vars)
 
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1180.79, abs=1e-2)
+    assert oew == pytest.approx(1204.0159, abs=1e-2)
 
 
 def test_loop_compute_owe():
@@ -295,14 +319,14 @@ def test_loop_compute_owe():
             check=True,
         )
         oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
-        assert oew == pytest.approx(1097.56, abs=1e-2)  # 1026.20 (with MTOW local loop)
+        assert oew == pytest.approx(1120.7867, abs=1e-2)  # 1026.20 (with MTOW local loop)
 
     # with payload as input
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read(
         ignore=[
-              "data:weight:aircraft:MLW",
+            "data:weight:aircraft:MLW",
         ]
     ).to_ivc()
     input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
@@ -313,4 +337,4 @@ def test_loop_compute_owe():
         check=False,
     )
     oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1097.56, abs=1e-2)  # 1009.19 (with MTOW local loop)
+    assert oew == pytest.approx(1120.7867, abs=1e-2)  # 1009.19 (with MTOW local loop)

@@ -40,7 +40,13 @@ class ComputeLifeSupportSystemsWeight(ExplicitComponent):
         self.add_input("data:TLAR:v_limit", val=np.nan, units="m/s")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
        
+        self.add_output("data:weight:systems:life_support:insulation:mass", units="lb")
         self.add_output("data:weight:systems:life_support:air_conditioning:mass", units="lb")
+        self.add_output("data:weight:systems:life_support:de_icing:mass", units="lb")
+        self.add_output("data:weight:systems:life_support:internal_lighting:mass", units="lb")
+        self.add_output("data:weight:systems:life_support:seat_installation:mass", units="lb")
+        self.add_output("data:weight:systems:life_support:fixed_oxygen:mass", units="lb")
+        self.add_output("data:weight:systems:life_support:security_kits:mass", units="lb")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -57,6 +63,23 @@ class ComputeLifeSupportSystemsWeight(ExplicitComponent):
 
         atm = Atmosphere(cruise_alt)
         limit_mach = limit_speed/atm.speed_of_sound  # converted to mach
+
+        c21 = 0.0
+
         c22 = 0.265*mtow**.52*n_occ**0.68*m_iae**0.17*limit_mach**0.08  # mass formula in lb
-       
+
+        c23 = 0.0
+        c24 = 0.0
+        c25 = 0.0
+
+        c26 = 7. * n_occ ** 0.702
+
+        c27 = 0.0
+
+        outputs["data:weight:systems:life_support:insulation:mass"] = c21
         outputs["data:weight:systems:life_support:air_conditioning:mass"] = c22
+        outputs["data:weight:systems:life_support:de_icing:mass"] = c23
+        outputs["data:weight:systems:life_support:internal_lighting:mass"] = c24
+        outputs["data:weight:systems:life_support:seat_installation:mass"] = c25
+        outputs["data:weight:systems:life_support:fixed_oxygen:mass"] = c26
+        outputs["data:weight:systems:life_support:security_kits:mass"] = c27

@@ -58,7 +58,7 @@ def test_compute_cg_fuselage():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuselageCG(), ivc)
     x_cg_a2 = problem.get_val("data:weight:airframe:fuselage:CG:x", units="m")
-    assert x_cg_a2 == pytest.approx(3.99, abs=1e-2)
+    assert x_cg_a2 == pytest.approx(3.46593, abs=1e-2)
 
 
 def test_compute_cg_tail():
@@ -70,9 +70,9 @@ def test_compute_cg_tail():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeTailCG(), ivc)
     x_cg_a31 = problem.get_val("data:weight:airframe:horizontal_tail:CG:x", units="m")
-    assert x_cg_a31 == pytest.approx(7.91, abs=1e-2)
+    assert x_cg_a31 == pytest.approx(7.9769453, abs=1e-2)
     x_cg_a32 = problem.get_val("data:weight:airframe:vertical_tail:CG:x", units="m")
-    assert x_cg_a32 == pytest.approx(8.05, abs=1e-2)
+    assert x_cg_a32 == pytest.approx(7.9571, abs=1e-2)
 
 
 def test_compute_cg_flight_control():
@@ -117,11 +117,12 @@ def test_compute_cg_fuel_lines():
     # Research independent input value in .xml file and add values calculated from other modules
     ivc = get_indep_var_comp(list_inputs((ComputeFuelLinesCG())), __file__, XML_FILE)
     ivc.add_output("data:weight:propulsion:engine:CG:x", 2.7, units="m")
+    ivc.add_output("data:weight:propulsion:tank:CG:x", 3.83, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuelLinesCG(), ivc)
     x_cg_b2 = problem.get_val("data:weight:propulsion:fuel_lines:CG:x", units="m")
-    assert x_cg_b2 == pytest.approx(2.7, abs=1e-2)
+    assert x_cg_b2 == pytest.approx(3.265, abs=1e-2)
 
 
 def test_compute_cg_tank():
@@ -146,9 +147,9 @@ def test_compute_cg_power_systems():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputePowerSystemsCG(), ivc)
     x_cg_c12 = problem.get_val("data:weight:systems:power:electric_systems:CG:x", units="m")
-    assert x_cg_c12 == pytest.approx(0.0, abs=1e-2)
+    assert x_cg_c12 == pytest.approx(4.1185, abs=1e-2)
     x_cg_c13 = problem.get_val("data:weight:systems:power:hydraulic_systems:CG:x", units="m")
-    assert x_cg_c13 == pytest.approx(0.0, abs=1e-2)
+    assert x_cg_c13 == pytest.approx(4.1185, abs=1e-2)
 
 
 def test_compute_cg_life_support_systems():
@@ -160,7 +161,7 @@ def test_compute_cg_life_support_systems():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeLifeSupportCG(), ivc)
     x_cg_c22 = problem.get_val("data:weight:systems:life_support:air_conditioning:CG:x", units="m")
-    assert x_cg_c22 == pytest.approx(0.0, abs=1e-2)
+    assert x_cg_c22 == pytest.approx(2.274, abs=1e-2)
 
 
 def test_compute_cg_navigation_systems():
@@ -172,7 +173,7 @@ def test_compute_cg_navigation_systems():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeNavigationSystemsCG(), ivc)
     x_cg_c3 = problem.get_val("data:weight:systems:navigation:CG:x", units="m")
-    assert x_cg_c3 == pytest.approx(2.97, abs=1e-2)
+    assert x_cg_c3 == pytest.approx(2.624, abs=1e-2)
 
 
 def test_compute_cg_passenger_seats():
@@ -311,6 +312,6 @@ def test_complete_cg():
         # Run problem and check obtained value(s) is/(are) correct
         problem = run_system(CG(), input_vars, check=True)
         cg_global = problem.get_val("data:weight:aircraft:CG:aft:x", units="m")
-        assert cg_global == pytest.approx(3.70, abs=1e-1)
+        assert cg_global == pytest.approx(3.86577958, abs=1e-1)
         cg_ratio = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")
-        assert cg_ratio == pytest.approx(0.42, abs=1e-2)
+        assert cg_ratio == pytest.approx(0.51906364, abs=1e-2)
