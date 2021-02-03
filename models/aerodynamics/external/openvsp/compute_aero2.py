@@ -70,14 +70,11 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             self.add_output("data:aerodynamics:wing:low_speed:CL0_clean")
             self.add_output("data:aerodynamics:wing:low_speed:CL_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:wing:low_speed:CM0_clean")
-            self.add_output("data:aerodynamics:wing:low_speed:CM_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:wing:low_speed:Y_vector", shape=SPAN_MESH_POINT_OPENVSP, units="m")
             self.add_output("data:aerodynamics:wing:low_speed:CL_vector", shape=SPAN_MESH_POINT_OPENVSP)
             self.add_output("data:aerodynamics:wing:low_speed:induced_drag_coefficient")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL0")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
-            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CM0")
-            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CM_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:induced_drag_coefficient")
         else:
             self.add_output("data:aerodynamics:wing:cruise:CL0_clean")
@@ -87,8 +84,6 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             self.add_output("data:aerodynamics:wing:cruise:induced_drag_coefficient")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL0")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
-            self.add_output("data:aerodynamics:horizontal_tail:cruise:CM0")
-            self.add_output("data:aerodynamics:horizontal_tail:cruise:CM_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient")
         
         self.declare_partials("*", "*", method="fd")
@@ -153,8 +148,9 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             cl_alpha_wing = (cl_X_wing - cl_0_wing) / (INPUT_AOA * math.pi / 180)
             y_vector = wing_0["y_vector"]
             cl_vector = (np.array(wing_0["cl_vector"]) * k_fus).tolist()
+            k_fus = 1 - 2 * (width_max / span_wing) ** 2  # Fuselage correction
             # Full aircraft correction: Wing lift is 105% of total lift, so: CDi = (CL*1.05)^2/(piAe) -> e' = e/1.05^2
-            coef_e = float(wing_0["coef_e"] * k_fus / 1.05 ** 2)
+            coef_e = float(wing_X["coef_e"] * k_fus / 1.05 ** 2)
             coef_k_wing = float(1. / (math.pi * span_wing ** 2 / sref_wing * coef_e))
             # Post-process HTP data
             _, htp_0, aircraft_0 = self.compute_aircraft(inputs, outputs, altitude, mach, 0.0)

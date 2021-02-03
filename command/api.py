@@ -17,11 +17,22 @@ API
 import logging
 import os.path as pth
 import os
+import warnings
 from importlib_resources import path
-
-from fastoad.cmd.exceptions import FastFileExistsError
+from typing import Union, List
+from openmdao.core.explicitcomponent import ExplicitComponent
+from openmdao.core.implicitcomponent import ImplicitComponent
+from openmdao.core.group import Group
 from openmdao.utils.file_wrap import InputFileGenerator
+
+from fastoad.openmdao.variables import VariableList
+from fastoad.cmd.exceptions import FastFileExistsError
+from fastoad.openmdao.problem import FASTOADProblem
+from fastoad.io.xml import VariableXmlStandardFormatter
+from fastoad.io import VariableIO
+
 from . import resources
+from models.tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,4 +71,98 @@ def generate_configuration_file(configuration_file_path: str, overwrite: bool = 
         parser.generate()
 
     _LOGGER.info("Sample configuration written in %s", configuration_file_path)
+
+
+def generate_block_analysis(
+        system: Union[ExplicitComponent, ImplicitComponent, Group],
+        var_inputs: List,
+        xml_file_path: str,
+        overwrite: bool = False,
+):
+    # List openmdao component/group inputs
+    all_inputs = list_inputs(system)
+
+    # Search what are the component/group outputs
+    variables = VariableList.from_system(system)
+    outputs_names = [var.name for var in variables if not var.is_input]
+
+    # Check that variable inputs are in the group/component list
+    if not(set(var_inputs) == set(all_inputs).intersection(set(var_inputs))):
+        raise Exception('The input list contains name(s) out of component/group input list!')
+
+    # Perform some tests on the .xml availability and completeness
+    if not(os.path.exists(xml_file_path)) and not(var_inputs.sort() == all_inputs.sort()):
+        # If no input file and some inputs are missing, generate it and return None
+        if isinstance(system, Group):
+            problem = FASTOADProblem(system)
+        else:
+            group = Group()
+            group.add_subsystem('system', system, promotes=["*"])
+            problem = FASTOADProblem(group)
+        problem.input_file_path = xml_file_path
+        problem.write_needed_inputs(None, VariableXmlStandardFormatter())
+        warnings.warn('Input .xml file not found, a default file has been created with default NaN values, '
+                      'but no function is returned!\nConsider defining proper values before second execution!')
+        return None
+    elif os.path.exists(xml_file_path):
+
+        reader = VariableIO(xml_file_path, VariableXmlStandardFormatter()).read(ignore=(var_inputs + outputs_names))
+        xml_inputs = reader.names()
+        if not(set(xml_inputs + var_inputs).intersection(set(all_inputs)) == set(all_inputs)):
+            # If some inputs are missing add them to the problem if authorized
+            if overwrite:
+                reader.path_separator = ":"
+                ivc = reader.to_ivc()
+                group = Group()
+                group.add_subsystem('system', system, promotes=["*"])
+                group.add_subsystem('ivc', ivc, promotes=["*"])
+                problem = FASTOADProblem(group)
+                problem.output_file_path = xml_file_path
+                problem.write_outputs()
+                warnings.warn('Some inputs are missing in the given .xml file, they have been added with default NaN, '
+                              'but no function is returned!\nConsider defining proper values before second execution!')
+                return None
+            else:
+                # Else raise an error mentioning missing inputs
+                missing_inputs = list(
+                    set(xml_inputs + var_inputs).intersection(set(all_inputs)).difference(set(all_inputs))
+                )
+                message = 'Following inputs are missing in .xml file: '
+                message += ['[' + item + '], ' for item in list(missing_inputs)]
+                raise Exception(message[:-1])
+        else:
+            # If all inputs addressed either by .xml or var_inputs, construct the function
+            def patched_function(inputs_dict: dict) -> dict:
+                """
+                The patched function perform a run of an openmdao component or group applying FASTOAD formalism.
+
+                @param inputs_dict: dictionary of input (values, units) saved with their key name,
+                as an example: inputs_dict = {'in1': (3.0, "m")}.
+                @return: dictionary of the component/group outputs saving names as keys and (value, units) as tuple.
+                """
+
+
+                # Read .xml file and construct Independent Variable Component excluding outputs
+                reader.path_separator = ":"
+                ivc_local = reader.to_ivc()
+                for name, value in inputs_dict.items():
+                    ivc_local.add_output(name, value[0], units=value[1])
+                group_local = Group()
+                group_local.add_subsystem('system', system, promotes=["*"])
+                group_local.add_subsystem('ivc', ivc_local, promotes=["*"])
+                problem_local = FASTOADProblem(group_local)
+                problem_local.setup()
+                problem_local.run_model()
+                if overwrite:
+                    problem_local.output_file_path = xml_file_path
+                    problem_local.write_outputs()
+                # Get output names from component/group and construct dictionary
+                outputs_units = [var.units for var in variables if not var.is_input]
+                outputs_dict = {}
+                for idx in range(len(outputs_names)):
+                    value = problem_local.get_val(outputs_names[idx], outputs_units[idx])
+                    outputs_dict[outputs_names[idx]] = (value, outputs_units[idx])
+                return outputs_dict
+            return patched_function
+
 

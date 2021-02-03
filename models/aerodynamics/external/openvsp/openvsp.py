@@ -262,6 +262,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
                     cl_wing = float(data[i + 1].split()[5]) + float(data[i + 2].split()[5])  # sum CL left/right
                     cdi_wing = float(data[i + 1].split()[6]) + float(data[i + 2].split()[6])  # sum CDi left/right
                     cm_wing = float(data[i + 1].split()[12]) + float(data[i + 2].split()[12])  # sum CM left/right
+                    break
         # Open .polar file and extract data
         with open(output_file_list[1], 'r') as lf:
             data = lf.readlines()

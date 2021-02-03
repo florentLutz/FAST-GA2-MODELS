@@ -55,6 +55,7 @@ from ..aerodynamics_low_speed import AerodynamicsLowSpeed
 from ...tests.xfoil_exe.get_xfoil import get_xfoil_path
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ...propulsion.propulsion import IPropulsion
+from command.api import generate_block_analysis
 
 
 RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
@@ -526,7 +527,7 @@ def _test_openvsp_comp_low_speed():
     results_folder.cleanup()
 
 
-def test_openvsp_comp_low_speed_new():
+def _test_openvsp_comp_low_speed_new():
     """ Tests openvsp components @ low speed """
 
     # Create result temporary directory
@@ -549,7 +550,7 @@ def test_openvsp_comp_low_speed_new():
         run_system(ComputeAEROopenvsp(low_speed_aero=True, result_folder_path=results_folder.name), ivc)
 
 
-def test_high_lift():
+def _test_high_lift():
     """ Tests high-lift contribution """
 
     # Research independent input value in .xml file
@@ -579,7 +580,7 @@ def test_high_lift():
     assert cl_alpha_elev == pytest.approx(0.6167, abs=1e-4)
 
 
-def test_max_cl():
+def _test_max_cl():
     """ Tests maximum cl component with Openvsp and VLM results"""
 
     # Clear saved polar results (for wing and htp airfoils)
@@ -652,7 +653,7 @@ def test_max_cl():
     assert cl_max_landing == pytest.approx(2.0193, abs=1e-4)
 
 
-def test_l_d_max():
+def _test_l_d_max():
     """ Tests best lift/drag component """
 
     # Define independent input value (openVSP)
@@ -674,7 +675,7 @@ def test_l_d_max():
     assert optimal_alpha == pytest.approx(6.00, abs=1e-2)
 
 
-def test_cnbeta():
+def _test_cnbeta():
     """ Tests cn beta fuselage """
 
     # Research independent input value in .xml file
@@ -687,7 +688,7 @@ def test_cnbeta():
     assert cn_beta_fus == pytest.approx(-0.0599, abs=1e-4)
 
 
-def test_high_speed_connection():
+def _test_high_speed_connection():
     """ Tests high speed components connection """
 
     # load all inputs
@@ -725,7 +726,7 @@ def test_high_speed_connection():
         assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
 
 
-def test_low_speed_connection():
+def _test_low_speed_connection():
     """ Tests low speed components connection """
 
     # Clear saved polar results (for wing and htp airfoils)
@@ -775,3 +776,16 @@ def test_low_speed_connection():
         assert cl_max_landing == pytest.approx(2.1108, abs=1e-4)
         cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
         assert cl_alpha_htp == pytest.approx(0.6760, abs=1e-4)
+
+
+def test_wrapper():
+    xml_file_path = pth.join(pth.dirname(__file__), "data", "reference_aircraft.xml")
+    # noinspection PyTypeChecker
+    my_function = generate_block_analysis(
+        ComputeAEROopenvsp(low_speed_aero=True),
+        ["data:TLAR:v_approach"],
+        xml_file_path,
+        True,
+    )
+    inputs_dict = {"data:TLAR:v_approach": (42.0, "m/s")}
+    my_function(inputs_dict)

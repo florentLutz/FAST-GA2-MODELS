@@ -6,6 +6,7 @@
 *.py[cod]
 *.so
 *.cfg
+*.pyc
 !.isort.cfg
 !setup.cfg
 *.orig
