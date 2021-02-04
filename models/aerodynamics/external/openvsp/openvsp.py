@@ -16,6 +16,9 @@
 
 from importlib_resources import path
 import numpy as np
+import warnings
+import math
+import pandas as pd
 from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
 import os
@@ -30,6 +33,7 @@ from fastoad.utils.resource_management.copy import copy_resource, copy_resource_
 from ... import resources
 from . import resources as local_resources
 from . import openvsp3201
+from ...constants import SPAN_MESH_POINT_OPENVSP
 
 DEFAULT_WING_AIRFOIL = "naca23012.af"
 DEFAULT_HTP_AIRFOIL = "naca0012.af"
@@ -43,6 +47,7 @@ VSPAERO_EXE_NAME = "vspaero.exe"
 class OPENVSPSimpleGeometry(ExternalCodeComp):
 
     def initialize(self):
+        self.options.declare("result_folder_path", default="", types=str)
         self.options.declare("openvsp_exe_path", default="", types=str, allow_none=True)
         self.options.declare("wing_airfoil_file", default=DEFAULT_WING_AIRFOIL, types=str, allow_none=True)
         self.options.declare("htp_airfoil_file", default=DEFAULT_HTP_AIRFOIL, types=str, allow_none=True)
@@ -66,6 +71,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
         self.add_input("data:geometry:horizontal_tail:taper_ratio", val=np.nan)
         self.add_input("data:geometry:horizontal_tail:aspect_ratio", val=np.nan)
+        self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:tip:chord", val=np.nan, units="m")
@@ -78,6 +84,123 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         # let void to avoid logger error on "The command cannot be empty"
         pass
 
+
+    def compute_cl_alpha_wing(self, inputs, outputs, altitude, mach, aoa_angle):
+        """
+        Function that perform a complete calculation of aerodynamic parameters under OpenVSP and return only the
+        cl_alpha_wing parameter.
+
+        """
+        _, cl_alpha_wing, _, _, _, _, _, _, _, _ = self.compute_aero_coef(inputs, outputs, altitude, mach, aoa_angle)
+        return cl_alpha_wing
+
+
+    def compute_aero_coef(self, inputs, outputs, altitude, mach, aoa_angle):
+        """
+        Function that computes in OpenVSP environment all the aerodynamic parameters @0° and aoa_angle and calculate
+        the associated derivatives.
+
+        @param inputs: inputs parameters defined within FAST-OAD-GA
+        @param outputs: outputs parameters defined within FAST-OAD-GA
+        @param altitude: altitude for aerodynamic calculation in meters
+        @param mach: air speed expressed in mach
+        @param aoa_angle: air speed angle of attack with respect to aircraft
+        @return: cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_vector, coef_k_wing, cl_0_htp, \
+               cl_alpha_htp, coef_k_htp parameters.
+        """
+
+        # Fix mach number of digits to consider similar results
+        mach = round(float(mach) * 1e3) / 1e3
+
+        # Get inputs necessary to define global geometry
+        sref_wing = float(inputs['data:geometry:wing:area'])
+        sref_htp = float(inputs['data:geometry:horizontal_tail:area'])
+        area_ratio = sref_htp / sref_wing
+        sweep25_wing = float(inputs["data:geometry:wing:sweep_25"])
+        taper_ratio_wing = float(inputs["data:geometry:wing:taper_ratio"])
+        aspect_ratio_wing = float(inputs["data:geometry:wing:aspect_ratio"])
+        sweep25_htp = float(inputs["data:geometry:horizontal_tail:sweep_25"])
+        aspect_ratio_htp = float(inputs["data:geometry:horizontal_tail:aspect_ratio"])
+        taper_ratio_htp = float(inputs["data:geometry:horizontal_tail:taper_ratio"])
+        geometry_set = np.around(np.array(
+            [sweep25_wing, taper_ratio_wing, aspect_ratio_wing, sweep25_htp, taper_ratio_htp, aspect_ratio_htp, mach,
+             area_ratio]), decimals=6)
+
+        # Search if results already exist:
+        result_folder_path = self.options["result_folder_path"]
+        result_file_path, saved_area_ratio = self.search_results(result_folder_path, geometry_set)
+
+        # If no result saved for that geometry under this mach condition, computation is done
+        if result_file_path is None:
+
+            # Create result folder first (if it must fail, let it fail as soon as possible)
+            if result_folder_path != "":
+                if not os.path.exists(result_folder_path):
+                    os.makedirs(pth.join(result_folder_path), exist_ok=True)
+
+            # Save the geometry (result_file_path is None entering the function)
+            if self.options["result_folder_path"] != "":
+                result_file_path = self.save_geometry(result_folder_path, geometry_set)
+
+            # Compute wing alone @ 0°/X° angle of attack
+            wing_0 = self.compute_wing(inputs, outputs, altitude, mach, 0.0)
+            wing_X = self.compute_wing(inputs, outputs, altitude, mach, aoa_angle)
+
+            # Post-process wing data -----------------------------------------------------------------------------------
+            width_max = inputs["data:geometry:fuselage:maximum_width"]
+            span_wing = inputs['data:geometry:wing:span']
+            k_fus = 1 + 0.025 * width_max / span_wing - 0.025 * (width_max / span_wing) ** 2
+            cl_0_wing = float(wing_0["cl"] * k_fus)
+            cl_X_wing = float(wing_X["cl"] * k_fus)
+            cm_0_wing = float(wing_0["cm"] * k_fus)
+            cl_alpha_wing = (cl_X_wing - cl_0_wing) / (aoa_angle * math.pi / 180)
+            y_vector = wing_0["y_vector"]
+            cl_vector = (np.array(wing_0["cl_vector"]) * k_fus).tolist()
+            k_fus = 1 - 2 * (width_max / span_wing) ** 2  # Fuselage correction
+            # Full aircraft correction: Wing lift is 105% of total lift, so: CDi = (CL*1.05)^2/(piAe) -> e' = e/1.05^2
+            coef_e = float(wing_X["coef_e"] * k_fus / 1.05 ** 2)
+            coef_k_wing = float(1. / (math.pi * span_wing ** 2 / sref_wing * coef_e))
+            # Post-process HTP data
+            _, htp_0, aircraft_0 = self.compute_aircraft(inputs, outputs, altitude, mach, 0.0)
+            _, htp_X, _ = self.compute_aircraft(inputs, outputs, altitude, mach, aoa_angle)
+            cl_0_htp = float(htp_0["cl"])
+            cl_X_htp = float(htp_X["cl"])
+            cl_alpha_htp = float((cl_X_htp - cl_0_htp) / (aoa_angle * math.pi / 180))
+            coef_k_htp = float(htp_0["cdi"]) / cl_0_htp ** 2
+
+            # Resize vectors -------------------------------------------------------------------------------------------
+            if SPAN_MESH_POINT_OPENVSP < len(y_vector):
+                y_interp = np.linspace(y_vector[0], y_vector[-1], SPAN_MESH_POINT_OPENVSP)
+                cl_vector = np.interp(y_interp, y_vector, cl_vector)
+                y_vector = y_interp
+                warnings.warn("Defined maximum span mesh in fast aerodynamics\\constants.py exceeded!")
+            else:
+                additional_zeros = list(np.zeros(SPAN_MESH_POINT_OPENVSP - len(y_vector)))
+                y_vector.extend(additional_zeros)
+                cl_vector.extend(additional_zeros)
+
+            # Save results to defined path -----------------------------------------------------------------------------
+            if self.options["result_folder_path"] != "":
+                results = [cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_0_htp, cl_alpha_htp,
+                           coef_k_wing, coef_k_htp]
+                self.save_results(result_file_path, results)
+
+        # Else retrieved results are used, eventually adapted with new area ratio
+        else:
+            # Read values from result file -----------------------------------------------------------------------------
+            data = self.read_results(result_file_path)
+            cl_0_wing = float(data.loc["cl_0_wing", 0])
+            cl_alpha_wing = float(data.loc["cl_alpha_wing", 0])
+            cm_0_wing = float(data.loc["cm_0_wing", 0])
+            y_vector = np.array([float(i) for i in data.loc["y_vector", 0][1:-2].split(',')])
+            cl_vector = np.array([float(i) for i in data.loc["cl_vector", 0][1:-2].split(',')])
+            coef_k_wing = float(data.loc["coef_k_wing", 0])
+            cl_0_htp = float(data.loc["cl_0_htp", 0]) * (area_ratio / saved_area_ratio)
+            cl_alpha_htp = float(data.loc["cl_alpha_htp", 0]) * (area_ratio / saved_area_ratio)
+            coef_k_htp = float(data.loc["coef_k_htp", 0]) * (area_ratio / saved_area_ratio)
+
+        return cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_vector, coef_k_wing, cl_0_htp, \
+               cl_alpha_htp, coef_k_htp
 
     def compute_wing(self, inputs, outputs, altitude, mach, aoa_angle):
         """
@@ -552,3 +675,68 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             break
             
         return tmp_directory
+
+
+    @staticmethod
+    def search_results(result_folder_path, geometry_set):
+
+        if os.path.exists(result_folder_path):
+            if result_folder_path != "":
+                geometry_set_labels = ["sweep25_wing", "taper_ratio_wing", "aspect_ratio_wing", "sweep25_htp",
+                                       "taper_ratio_htp", "aspect_ratio_htp", "mach", "area_ratio"]
+                # If some results already stored search for corresponding geometry
+                if pth.exists(pth.join(result_folder_path, "geometry_0.csv")):
+                    idx = 0
+                    while pth.exists(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv")):
+                        if pth.exists(pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")):
+                            data = pd.read_csv(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv"))
+                            values = data.to_numpy()[:, 1].tolist()
+                            labels = data.to_numpy()[:, 0].tolist()
+                            data = pd.DataFrame(values, index=labels)
+                            # noinspection PyBroadException
+                            try:
+                                if np.size(data.loc[geometry_set_labels[0:-1], 0].to_numpy()) == 7:
+                                    saved_set = np.around(data.loc[geometry_set_labels[0:-1], 0].to_numpy(), decimals=6)
+                                    if np.sum(saved_set == geometry_set[0:-1]) == 7:
+                                        result_file_path = pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")
+                                        saved_area_ratio = data.loc["area_ratio", 0]
+                                        return result_file_path, saved_area_ratio
+                            except:
+                                break
+                        idx += 1
+
+        return None, 1.0
+
+
+    @staticmethod
+    def save_geometry(result_folder_path, geometry_set):
+
+        # Save geometry if not already computed by finding first available index
+        geometry_set_labels = ["sweep25_wing", "taper_ratio_wing", "aspect_ratio_wing", "sweep25_htp",
+                               "taper_ratio_htp", "aspect_ratio_htp", "mach", "area_ratio"]
+        data = pd.DataFrame(geometry_set, index=geometry_set_labels)
+        idx = 0
+        while pth.exists(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv")):
+            idx += 1
+        data.to_csv(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv"))
+        result_file_path = pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")
+
+        return result_file_path
+
+    @staticmethod
+    def save_results(result_file_path, results):
+
+        labels = ["cl_0_wing", "cl_alpha_wing", "cm_0_wing", "y_vector", "cl_vector", "cl_0_htp", "cl_alpha_htp",
+                  "coef_k_wing", "coef_k_htp"]
+        data = pd.DataFrame(results, index=labels)
+        data.to_csv(result_file_path)
+
+
+    @staticmethod
+    def read_results(result_file_path):
+
+        data = pd.read_csv(result_file_path)
+        values = data.to_numpy()[:, 1].tolist()
+        labels = data.to_numpy()[:, 0].tolist()
+
+        return pd.DataFrame(values, index=labels)
