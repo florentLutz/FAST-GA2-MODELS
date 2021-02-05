@@ -160,7 +160,8 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             # Full aircraft correction: Wing lift is 105% of total lift, so: CDi = (CL*1.05)^2/(piAe) -> e' = e/1.05^2
             coef_e = float(wing_X["coef_e"] * k_fus / 1.05 ** 2)
             coef_k_wing = float(1. / (math.pi * span_wing ** 2 / sref_wing * coef_e))
-            # Post-process HTP data
+
+            # Post-process HTP data ------------------------------------------------------------------------------------
             _, htp_0, aircraft_0 = self.compute_aircraft(inputs, outputs, altitude, mach, 0.0)
             _, htp_X, _ = self.compute_aircraft(inputs, outputs, altitude, mach, aoa_angle)
             cl_0_htp = float(htp_0["cl"])

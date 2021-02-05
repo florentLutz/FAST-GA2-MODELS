@@ -778,14 +778,14 @@ def _test_low_speed_connection():
         assert cl_alpha_htp == pytest.approx(0.6760, abs=1e-4)
 
 
-def test_wrapper():
-    xml_file_path = pth.join(pth.dirname(__file__), "data", "reference_aircraft.xml")
+def test_block_analysis():
+    xml_file_path = pth.join(pth.dirname(__file__), "data", XML_FILE)
     # noinspection PyTypeChecker
-    my_function = generate_block_analysis(
+    aerodynamic_function = generate_block_analysis(
         ComputeAEROopenvsp(low_speed_aero=True),
         ["data:TLAR:v_approach"],
         xml_file_path,
-        True,
+        False,
     )
     inputs_dict = {"data:TLAR:v_approach": (42.0, "m/s")}
-    my_function(inputs_dict)
+    aerodynamic_function(inputs_dict)

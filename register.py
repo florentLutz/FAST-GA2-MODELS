@@ -97,18 +97,3 @@ OpenMDAOSystemRegistry.register_system(
     "fastga.performances.sizing",
     domain=ModelDomain.PERFORMANCE
 )
-
-# Propulsion ##################################################################
-basic_IC_engine_description = """
-Parametric engine model as OpenMDAO component.
-
-Implementation of basic scaled power propeller-engine model with fixed efficiency.
-For more information, see BasicICEngine class in FAST-OAD developer documentation.
-"""
-
-OpenMDAOSystemRegistry.register_system(
-    OMBasicICEngineComponent,
-    "fastga.propulsion.basicIC_engine",
-    domain=ModelDomain.PROPULSION,
-    desc=basic_IC_engine_description,
-)

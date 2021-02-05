@@ -14,6 +14,7 @@ Test module for geometry functions of cg components
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os.path as pth
 import openmdao.api as om
 import pandas as pd
 from openmdao.core.component import Component
@@ -61,6 +62,7 @@ from ..geom_components import ComputeTotalArea
 from ..geometry import Geometry
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ...propulsion.propulsion import IPropulsion
+from command.api import generate_block_analysis
 
 XML_FILE = "beechcraft_76.xml"
 ENGINE_WRAPPER = "test.wrapper.geometry.beechcraft.dummy_engine"
@@ -535,3 +537,19 @@ def test_complete_geometry():
     # Run problem and check obtained value(s) is/(are) correct
     # noinspection PyTypeChecker
     run_system(Geometry(propulsion_id=ENGINE_WRAPPER), ivc)
+
+
+def test_block_analysis():
+    xml_file_path = pth.join(pth.dirname(__file__), "data", "geometry_inputs.xml")
+    var_inputs = ["data:geometry:wing:area", "data:geometry:wing:aspect_ratio", "data:geometry:wing:taper_ratio"]
+    # noinspection PyTypeChecker
+    geometry_function = generate_block_analysis(
+        Geometry(propulsion_id=ENGINE_WRAPPER),
+        var_inputs,
+        xml_file_path,
+        False,
+    )
+    inputs_dict = {"data:geometry:wing:area": (19.0, "m**2"),
+                   "data:geometry:wing:aspect_ratio": (8.0, None),
+                   "data:geometry:wing:taper_ratio": (0.8, None)}
+    geometry_function(inputs_dict)

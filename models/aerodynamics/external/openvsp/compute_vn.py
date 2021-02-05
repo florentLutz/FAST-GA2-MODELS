@@ -73,7 +73,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
     def compute(self, inputs, outputs):
         v_tas = inputs["data:aerodynamics:cruise:mach"]
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
-        design_mass = inputs["data:weight:aircraft:DW"]
+        design_mass = inputs["data:weight:aircraft:MTOW"]
 
         design_vc = Atmosphere(cruise_altitude, altitude_in_feet=False).get_equivalent_airspeed(v_tas)
         velocity_array, load_factor_array, _ = self.flight_domain(inputs, outputs, design_mass,
@@ -150,6 +150,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         for idx in range(len(mach_interp)):
             cl_alpha[idx] = self.compute_cl_alpha_wing(inputs, outputs, altitude, mach_interp[idx], INPUT_AOA)
         cl_alpha_fct = lambda x: np.interp(np.log(min(max(x, Vs_1g_ps), 1.4*Vh)), np.log(v_interp), cl_alpha)
+        # FIXME: check if cl_alpha should be taken in log also
 
 
         # We will now establish the minimum limit maneuvering load factors outside of gust load
@@ -212,7 +213,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
                 / (weight_lbf / wing_area_sft * self.lbf_to_N / self.ft_to_m ** 2)
         )
         load_factor_stall_p = lambda x: (x / Vs_1g_ps) ** 2.0
-        load_factor_stall_n = lambda x: -(x / Vs_1g_ps) ** 2.0
+        load_factor_stall_n = lambda x: -(x / Vs_1g_ng) ** 2.0
 
         # We can now go back to the computation of the maneuvering speeds, we will first compute it
         # "traditionally" and should we find out that the line limited by the Cl max is under the gust
@@ -496,7 +497,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         return np.max(roots[roots > 0.0])
 
 
-    def delta_axial_load(self, inputs, air_speed, altitude, mass):
+    def delta_axial_load(self, air_speed, inputs, altitude, mass):
 
         propulsion_model = FuelEngineSet(
             self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]

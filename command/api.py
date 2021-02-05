@@ -24,6 +24,8 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 from openmdao.core.implicitcomponent import ImplicitComponent
 from openmdao.core.group import Group
 from openmdao.utils.file_wrap import InputFileGenerator
+import openmdao.api as om
+from fastoad.module_management import OpenMDAOSystemRegistry
 
 from fastoad.openmdao.variables import VariableList
 from fastoad.cmd.exceptions import FastFileExistsError
@@ -32,7 +34,6 @@ from fastoad.io.xml import VariableXmlStandardFormatter
 from fastoad.io import VariableIO
 
 from . import resources
-from models.tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -166,3 +167,17 @@ def generate_block_analysis(
             return patched_function
 
 
+def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
+    """ Reads input variables from a component/problem and return as a list """
+    register_wrappers()
+    variables = VariableList.from_system(component)
+    input_names = [var.name for var in variables if var.is_input]
+
+    return input_names
+
+
+def register_wrappers():
+    """ Register all the wrappers from models """
+    path_name, folder_name = pth.split(pth.dirname(__file__))
+    path_name = pth.join(path_name, "models")
+    OpenMDAOSystemRegistry.explore_folder(path_name)

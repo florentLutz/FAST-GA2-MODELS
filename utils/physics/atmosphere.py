@@ -24,11 +24,11 @@ class Atmosphere(Atmos):
 
     """
 
-    def get_true_airspeed(self, equivalent_airspeed):
+    def get_tas_from_cas(self, calibrated_airspeed):
         """
-        Computes true airspeed (TAS) from equivalent airspeed (EAS).
+        Computes true airspeed (TAS) from equivalent airspeed (CAS).
 
-        :param equivalent_airspeed: in m/s
+        :param calibrated_airspeed: in m/s
         :return: true airspeed in m/s
         """
         sea_level = Atmosphere(0)
@@ -37,7 +37,7 @@ class Atmosphere(Atmos):
 
         impact_pressure = (
                 sea_level.pressure
-                * (((np.asarray(equivalent_airspeed) / sea_level.speed_of_sound) ** 2.0 / 5.0 + 1.0) ** 3.5 - 1.0)
+                * (((np.asarray(calibrated_airspeed) / sea_level.speed_of_sound) ** 2.0 / 5.0 + 1.0) ** 3.5 - 1.0)
         )
 
         total_pressure = current_level.pressure + impact_pressure
@@ -49,9 +49,9 @@ class Atmosphere(Atmos):
 
         return self._return_value(true_airspeed)
 
-    def get_equivalent_airspeed(self, true_airspeed):
+    def get_cas_from_tas(self, true_airspeed):
         """
-        Computes equivalent airspeed (EAS) from true airspeed (TAS).
+        Computes equivalent airspeed (CAS) from true airspeed (TAS).
 
         :param true_airspeed: in m/s
         :return: equivalent airspeed in m/s
