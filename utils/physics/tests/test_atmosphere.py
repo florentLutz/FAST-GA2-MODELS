@@ -15,13 +15,13 @@
 
 from numpy.testing import assert_allclose
 
-from ..atmosphere import Atmosphere2
+from ..atmosphere import Atmosphere
 
 
 def test_speed_conversions():
     """Tests for speed conversions."""
     # noinspection PyTypeChecker
-    atm = Atmosphere2([[0.0, 1000.0, 35000.0], [0.0, 1000.0, 35000.0]])
+    atm = Atmosphere([[0.0, 1000.0, 35000.0], [0.0, 1000.0, 35000.0]])
     TAS = [[100.0, 100.0, 100.0], [800.0, 800.0, 800.0]]
 
     # source:  http://www.aerospaceweb.org/design/scripts/atmosphere/
