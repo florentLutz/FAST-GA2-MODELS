@@ -16,12 +16,9 @@
 
 import math
 import numpy as np
-import pandas as pd
-import os
-import os.path as pth
-import warnings
 from scipy.constants import g
 import scipy.optimize as optimize
+from scipy.constants import knot, foot, lbf
 from openmdao.core.group import Group
 
 from .openvsp import OPENVSPSimpleGeometry, DEFAULT_WING_AIRFOIL, DEFAULT_HTP_AIRFOIL
@@ -35,6 +32,7 @@ from fastoad.constants import EngineSetting
 from fastoad.utils.physics import Atmosphere
 
 INPUT_AOA = 10.0  # only one value given since calculation is done by default around 0.0!
+MACH_NB_PTS = 5  # number of points for cl_alpha_wing fitting along mach axis
 
 
 class ComputeVNopenvsp(OPENVSPSimpleGeometry):
@@ -42,9 +40,9 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._engine_wrapper = None
-        self.kts_to_ms = 0.5144  # Converting from knots to meters per seconds
-        self.ft_to_m = 0.3048  # Converting from feet to meters
-        self.lbf_to_N = 4.4482  # Converting from pound force to Newtons
+        self.kts_to_ms = knot  # Converting from knots to meters per seconds
+        self.ft_to_m = foot  # Converting from feet to meters
+        self.lbf_to_N = lbf  # Converting from pound force to Newtons
 
     def initialize(self):
         self.options.declare("openvsp_exe_path", default="", types=str, allow_none=True)
@@ -120,6 +118,14 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         atm_0 = Atmosphere(0.0)
         atm = Atmosphere(altitude, altitude_in_feet=False)
 
+        # Depending on whether or not the maximum Sea Level flight velocity was already demonstrated we either
+        # take the value from flight experiments or we compute it using a method which finds for which speed
+        # the power required for flight is equal to the power available
+
+        if np.isnan(Vh):
+            design_Vc_ms = design_vc * self.kts_to_ms  # [m/s]
+            Vh = self.max_speed(inputs, mass, altitude, design_Vc_ms) / self.kts_to_ms  # [KEAS]
+
         # Initialise the lists in which we will store the data
         velocity_array = []
         load_factor_array = []
@@ -141,6 +147,18 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         Vs_1g_ng = math.sqrt((2. * mass * g) / (atm_0.density * wing_area * abs(cl_min))) / self.kts_to_ms  # [KEAS]
         velocity_array.append(Vs_1g_ps)
         velocity_array.append(Vs_1g_ng)
+
+
+        # As we will consider all the calculated speed to be Vs_1g_ps < V < 1.4*Vh, we will compute cl_alpha for N
+        # points equally spaced on log scale (to take into account the high non-linearity effect).
+
+        v_interp = np.exp(np.linspace(np.log(Vs_1g_ps), np.log(1.4*Vh), MACH_NB_PTS))
+        mach_interp = v_interp * math.sqrt(atm_0.density / atm.density) * self.kts_to_ms / atm.speed_of_sound
+        cl_alpha = np.zeros(np.size(v_interp))
+        for idx in range(len(mach_interp)):
+            cl_alpha[idx] = self.compute_cl_alpha_wing(inputs, outputs, altitude, mach_interp[idx], INPUT_AOA)
+        cl_alpha_fct = lambda x: np.interp(np.log(min(max(x, Vs_1g_ps), 1.4*Vh)), np.log(v_interp), cl_alpha)
+
 
         # We will now establish the minimum limit maneuvering load factors outside of gust load
         # factors. Th designer can take higher load factor if he so wish. As will later be done for the
@@ -165,16 +183,6 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
 
         load_factor_array.append(n_lim_ps)
         load_factor_array.append(n_lim_ng)
-
-        # We can now go back to the computation of the maneuvering speeds, we will first compute it
-        # "traditionally" and should we find out that the line limited by the Cl max is under the gust
-        # line, we will adjust it (see Step 10. of section 16.4.1 of (1)). As for the traditional
-        # computation they can be found in CS 23.335 (c)
-        # https://www.easa.europa.eu/sites/default/files/dfu/CS-23%20Amendment%204.pdf
-        # https://www.astm.org/Standards/F3116.htm
-
-        Va = Vs_1g_ps * math.sqrt(n_lim_ps)  # [KEAS]
-        Vg = Vs_1g_ng * math.sqrt(abs(n_lim_ng))  # [KEAS]
 
         # Starting from there, we need to compute the gust lines as it can have an impact on the choice
         # of the maneuvering speed. We will also compute the maximum intensity gust line for later
@@ -202,46 +210,60 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         # Let us define aeroplane mass ratio formula and alleviation factor formula
         mu_g = lambda x: (2.0 * mass * g / wing_area) / (atm.density * mean_chord * x * g)  # [x = cl_alpha]
         K_g = lambda x: (0.88 * x) / (5.3 + x)  # [x = mu_g]
+        # Now, define the gust function
+        load_factor_gust_p = lambda u_de_v, x: (
+                1 + K_g(mu_g(cl_alpha_fct(x))) * atm_0.density * u_de_v * x * cl_alpha_fct(x)
+                / (weight_lbf / wing_area_sft * self.lbf_to_N / self.ft_to_m**2)
+        )
+        load_factor_gust_n = lambda u_de_v, x: (
+                1 - K_g(mu_g(cl_alpha_fct(x))) * atm_0.density * u_de_v * x * cl_alpha_fct(x)
+                / (weight_lbf / wing_area_sft * self.lbf_to_N / self.ft_to_m ** 2)
+        )
+        load_factor_stall_p = lambda x: (x / Vs_1g_ps) ** 2.0
+        load_factor_stall_n = lambda x: -(x / Vs_1g_ps) ** 2.0
 
+        # We can now go back to the computation of the maneuvering speeds, we will first compute it
+        # "traditionally" and should we find out that the line limited by the Cl max is under the gust
+        # line, we will adjust it (see Step 10. of section 16.4.1 of (1)). As for the traditional
+        # computation they can be found in CS 23.335 (c)
+        # https://www.easa.europa.eu/sites/default/files/dfu/CS-23%20Amendment%204.pdf
+        # https://www.astm.org/Standards/F3116.htm
 
+        Vma_ps = Vs_1g_ps * math.sqrt(n_lim_ps)  # [KEAS]
+        Vma_ng = Vs_1g_ng * math.sqrt(abs(n_lim_ng))  # [KEAS]
 
         # We now need to check if we are in the aforementioned case (usually happens for low design wing
         # loading aircraft and/or mission wing loading)
 
-        coef_Va_gust_line = (K_g(mu_g(cl_alpha_LS)) * U_de_Vc * cl_alpha_LS) \
-                            / (498. * weight_lbf / wing_area_sft)  # [1./KEAS]
-        na_gust = 1. + coef_Va_gust_line * Va
+        n_ma_ps = load_factor_gust_p(U_de_Vc, Vma_ps)
 
-        if na_gust > n_lim_ps:
-            # In case the gust line load factor is above the maneuvering load factor, we need to solve
-            # a polynomial equation to find the new maneuvering speed and load factor
-
-            stall_line_coeff = (0.5 * atm_0.density * self.kts_to_ms ** 2.0 * wing_area * cl_max) / (mass * g)
-            Va = self.maneuver_velocity(stall_line_coeff, coef_Va_gust_line, atm.speed_of_sound, n_lim_ps)  # [KEAS]
-            n_Va = 1. + coef_Va_gust_line * Va  # [-]
+        if n_ma_ps > n_lim_ps:
+            # In case the gust line load factor is above the maneuvering load factor, we need to solve the difference
+            # between both curve to be 0.0 to find intersect
+            delta = lambda x: load_factor_gust_p(U_de_Vc, x) - load_factor_stall_p(x)
+            Vma_ps = max(optimize.fsolve(delta, Vma_ps)[0])
+            n_ma_ps = load_factor_gust_p(U_de_Vc, Vma_ps)  # [-]
         else:
-            n_Va = n_lim_ps  # [-]
+            n_ma_ps = n_lim_ps  # [-]
 
-        velocity_array.append(Va)
-        load_factor_array.append(n_Va)
+        velocity_array.append(Vma_ps)
+        load_factor_array.append(n_ma_ps)
 
         # We now need to do the same thing for the negative maneuvering speed
 
-        coef_Vg_gust_line = (K_g(mu_g(cl_alpha_LS)) * U_de_Vc * cl_alpha_LS) \
-                            / (498. * weight_lbf / wing_area_sft)  # [1./KEAS]
-        ng_gust = 1. - coef_Vg_gust_line * Vg  # [-]
+        n_ma_ng = load_factor_gust_n(U_de_Vc, Vma_ng)  # [-]
 
-        if ng_gust < n_lim_ng:
-            # In case the gust line load factor is below the maneuvering load factor, we need to solve
-            # a polynomial equation to find the new maneuvering speed and load factor
-            stall_line_coeff = (0.5 * atm_0.density * self.kts_to_ms ** 2.0 * wing_area * cl_min) / (mass * g)
-            Vg = self.maneuver_velocity(stall_line_coeff, coef_Vg_gust_line, atm.speed_of_sound, n_lim_ng, -1)  # [KEAS]
-            n_Vg = 1. - coef_Vg_gust_line * Vg  # [-]
+        if n_ma_ng < n_lim_ng:
+            # In case the gust line load factor is above the maneuvering load factor, we need to solve the difference
+            # between both curve to be 0.0 to find intersect
+            delta = lambda x: load_factor_gust_n(U_de_Vc, x) - load_factor_stall_n(x)
+            Vma_ng = max(optimize.fsolve(delta, Vma_ng)[0])
+            n_ma_ng = load_factor_gust_n(U_de_Vc, Vma_ng)  # [-]
         else:
-            n_Vg = n_lim_ng  # [-]
+            n_ma_ng = n_lim_ng  # [-]
 
-        velocity_array.append(Vg)
-        load_factor_array.append(n_Vg)
+        velocity_array.append(Vma_ng)
+        load_factor_array.append(n_ma_ng)
 
         # For the cruise velocity, things will be different since it is an entry choice. As such we will
         # simply check that it complies with the values given in the certification papers and re-adjust
@@ -272,25 +294,16 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
                 k_c = 28.6
 
         Vc_min_1 = k_c * math.sqrt(weight_lbf / wing_area_sft)  # [KEAS]
+
         # This second constraint rather refers to the paragraph on maneuvering speeds, which needs to be chosen
         # so that they are smaller than cruising speeds
-        Vc_min_2 = Va  # [KEAS]
+        Vc_min_2 = Vma_ps  # [KEAS]
         Vc_min = max(Vc_min_1, Vc_min_2)  # [KEAS]
-
-        # Depending on whether or not the maximum Sea Level flight velocity was already demonstrated we either
-        # take the value from flight experiments or we compute it using a method which finds for which speed
-        # the power required for flight is equal to the power available
-
-        if np.isnan(Vh):
-            design_Vc_ms = design_vc * self.kts_to_ms  # [m/s]
-            Vh = self.max_speed(inputs, mass, altitude, design_Vc_ms) / self.kts_to_ms  # [KEAS]
-
-        Vc_threshold = 0.9 * Vh  # [KEAS]
 
         # The certifications specifies that Vc need not be more than 0.9 Vh so we will simply take the
         # minimum value between the Vc_min and this value
 
-        Vc_min_fin = min(Vc_min, Vc_threshold)  # [KEAS]
+        Vc_min_fin = min(Vc_min, 0.9 * Vh)  # [KEAS]
 
         # The constraint regarding the maximum velocity for cruise does not appear in the certifications but
         # from a physics point of view we can easily infer that the cruise speed will never be greater than
@@ -302,16 +315,8 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         # Lets now look at the load factors associated with the Vc, since it is here that the greatest
         # load factors can appear
 
-        mach = Vc * math.sqrt(atm_0.density / atm.density) * self.kts_to_ms / atm.speed_of_sound
-        cl_alpha_local = self.compute_cl_alpha_wing(inputs, outputs, altitude, mach, INPUT_AOA)
-        coef_Vc_gust_line = (K_g(mu_g(cl_alpha_local)) * U_de_Vc * cl_alpha_local) \
-                            / (498. * weight_lbf / wing_area_sft)  # [1./KEAS]
-
-        n_Vc_gust_ps = 1. + coef_Vc_gust_line * Vc  # [-]
-        n_Vc_ps = max(n_Vc_gust_ps, n_lim_ps)  # [-]
-
-        n_Vc_gust_ng = 1. - coef_Vc_gust_line * Vc  # [-]
-        n_Vc_ng = min(n_Vc_gust_ng, n_lim_ng)  # [-]
+        n_Vc_ps = max(load_factor_gust_p(U_de_Vc, Vc), n_lim_ps)  # [-]
+        n_Vc_ng = min(load_factor_gust_n(U_de_Vc, Vc), n_lim_ng)  # [-]
 
         load_factor_array.append(n_Vc_ps)
         load_factor_array.append(n_Vc_ng)
@@ -360,13 +365,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         # associated with the diving speed since gusts are likely to broaden the flight domain around
         # these points
 
-        mach = Vd * math.sqrt(atm_0.density / atm.density) * self.kts_to_ms / atm.speed_of_sound
-        cl_alpha_local = self.compute_cl_alpha_wing(inputs, outputs, altitude, mach, INPUT_AOA)
-        coef_Vd_gust_line = (K_g(mu_g(cl_alpha_local)) * U_de_Vd * cl_alpha_local) \
-                            / (498. * weight_lbf / wing_area_sft)  # [1./KEAS]
-
-        n_Vd_gust_ps = 1. + coef_Vd_gust_line * Vd  # [-]
-        n_Vd_ps = max(n_Vd_gust_ps, n_lim_ps)  # [-]
+        n_Vd_ps = max(load_factor_gust_p(U_de_Vd, Vd), n_lim_ps)  # [-]
 
         # For the negative load factor at the diving speed, it seems that for non_aerobatic airplanes, it is
         # always sized according to the gust lines, regardless of the negative design load factor. For aerobatic
@@ -377,11 +376,9 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         # This way, for non aerobatic airplane, we ensure to be conservative.
 
         if category == 1.0:
-            n_Vd_gust_ng = 1. - coef_Vd_gust_line * Vd  # [-]
-            n_Vd_ng = min(n_Vd_gust_ng, n_lim_ng)  # [-]
+            n_Vd_ng = min(load_factor_gust_n(U_de_Vd, Vd), n_lim_ng)  # [-]
         else:
-            n_Vd_gust_ng = 1. - coef_Vd_gust_line * Vd  # [-]
-            n_Vd_ng = n_Vd_gust_ng  # [-]
+            n_Vd_ng = load_factor_gust_n(U_de_Vd, Vd)  # [-]
 
         load_factor_array.append(n_Vd_ps)
         load_factor_array.append(n_Vd_ng)
@@ -411,18 +408,18 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         # Again we need to make a choice for this speed : what value would be retained. We will take the
         # highest speed acceptable for certification, i.e
 
-        V_no = V_no_max  # [KEAS]
+        V_no = max(V_no_min, V_no_max)  # [KEAS]
 
         velocity_array.append(V_no)
 
         # One additional velocity needs to be computed if we are talking about commuter aircraft. It is
         # the maximum gust intensity velocity. Due to the way we are returning the values, even if we are not
-        # ivestigating a commuter aircraft we need to return a value for Vb so we will put it to 0.0. If we
-        # are invetigating a commuter aircraft, we will compute it according ot the guidleines from CS 23.335 (d)
+        # investigating a commuter aircraft we need to return a value for Vmg so we will put it to 0.0. If we
+        # are investigating a commuter aircraft, we will compute it according ot the guidelines from CS 23.335 (d)
         # https://www.easa.europa.eu/sites/default/files/dfu/CS-23%20Amendment%204.pdf
         # https://www.astm.org/Standards/F3116.htm
         # We decided to put this computation here as we may need the gust load factor in cruise conditions for
-        # one of the possible candidates for the Vb. While writing this program, the writer realized they were
+        # one of the possible candidates for the Vmg. While writing this program, the writer realized they were
         # no paragraph that impeach the Vc from being at a value such that one one of the conditions for the
         # minimum speed was above the Vc creating a problem with point (2). This case may however never appear
         # in practice as it would suppose that the Vc chosen is above the stall line which is more than certainly
@@ -550,33 +547,3 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         drag = 0.5 * atm.density * wing_area * cd * air_speed**2.0
 
         return thrust - drag
-
-    def maneuver_velocity(self, stall_line_coeff, uncor_gust_coeff, sos, design_n, sign=1.):
-
-        # Be sure to give Vc in m/s
-        initial_speed = math.sqrt(design_n / stall_line_coeff)  # [KEAS]
-
-        # We use here the fsolve function from scipy optimize, which solve f(x) = 0.0, here since our
-        # function computes the difference between gust load factor and stall load factor, the value which
-        # solve the equation will be the maneuvering speed
-        # noinspection PyTypeChecker
-        roots = optimize.fsolve(
-            self.maneuver_load_factor_diff,
-            initial_speed,
-            args=(stall_line_coeff, uncor_gust_coeff, sos, sign, self)
-        )[0]
-
-        return np.max(roots[roots > 0.0])
-
-    @staticmethod
-    def maneuver_load_factor_diff(va, stall_line_coeff, uncor_gust_coeff, sos, sign, self):
-
-        n_Va_stall_line = stall_line_coeff * va ** 2.0
-        mach = va * 0.5144 / sos
-
-        Cl_alpha_tmp = 5.0
-        # No importance since we only want the corrective factor
-        cor_gust_coeff = uncor_gust_coeff * self.adjust_Cl_alpha(Cl_alpha_tmp, mach) / Cl_alpha_tmp
-        n_Va_gust_line = 1. + sign * cor_gust_coeff * va
-
-        return n_Va_stall_line - n_Va_gust_line

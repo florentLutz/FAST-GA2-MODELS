@@ -14,11 +14,11 @@ Simple implementation of International Standard Atmosphere.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastoad.utils.physics import Atmosphere
+from fastoad.utils.physics import Atmosphere as Atmos
 import numpy as np
 
 
-class Atmosphere2(Atmosphere):
+class Atmosphere(Atmos):
     """Same as :class:`Atmosphere` except that get_true_airspeed and get_equivalent_airspeed have been corrected to
     integrate the compressibility effect.
 
