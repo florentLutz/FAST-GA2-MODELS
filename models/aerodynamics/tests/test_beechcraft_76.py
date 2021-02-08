@@ -43,6 +43,7 @@ from ..external.xfoil import XfoilPolar
 from ..external.xfoil import resources
 from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp, \
     ComputeHTPCLCMopenvsp
+from ..external.openvsp.compute_vn import ComputeVNopenvsp
 from ..external.openvsp.compute_aero2 import ComputeAEROopenvsp
 from ..components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
 from ..components.compute_cl_max import ComputeMaxCL
@@ -55,7 +56,6 @@ from ..aerodynamics_low_speed import AerodynamicsLowSpeed
 from ...tests.xfoil_exe.get_xfoil import get_xfoil_path
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ...propulsion.propulsion import IPropulsion
-from command.api import generate_block_analysis
 
 
 RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
@@ -778,14 +778,20 @@ def _test_low_speed_connection():
         assert cl_alpha_htp == pytest.approx(0.6760, abs=1e-4)
 
 
-def test_block_analysis():
-    xml_file_path = pth.join(pth.dirname(__file__), "data", XML_FILE)
+def test_v_n_diagram():
+
+    # load all inputs
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
+    reader.path_separator = ":"
+    input_vars = reader.read().to_ivc()
+    input_vars.add_output("data:aerodynamics:aircraft:landing:CL_max", 1.9)
+    input_vars.add_output("data:aerodynamics:wing:low_speed:CL_max_clean", 1.5)
+    input_vars.add_output("data:aerodynamics:wing:low_speed:CL_min_clean", -1.5)
+    input_vars.add_output("data:weight:aircraft:MTOW", 1700.0, units="kg")
+    input_vars.add_output("data:aerodynamics:cruise:mach", 0.4)
+
+    register_wrappers()
+
+    # Run problem with VLM and check obtained value(s) is/(are) correct
     # noinspection PyTypeChecker
-    aerodynamic_function = generate_block_analysis(
-        ComputeAEROopenvsp(low_speed_aero=True),
-        ["data:TLAR:v_approach"],
-        xml_file_path,
-        False,
-    )
-    inputs_dict = {"data:TLAR:v_approach": (42.0, "m/s")}
-    aerodynamic_function(inputs_dict)
+    run_system(ComputeVNopenvsp(propulsion_id=ENGINE_WRAPPER), input_vars, check=True)

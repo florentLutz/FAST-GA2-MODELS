@@ -17,14 +17,13 @@ available through OpenMDAOSystemRegistry
 
 from .models.aerodynamics.aerodynamics_high_speed import AerodynamicsHighSpeed
 from .models.aerodynamics.aerodynamics_low_speed import AerodynamicsLowSpeed
-from .models.geometry import Geometry
+from .models.geometry import GeometryFixedFuselage, GeometryFixedHTPDistance
 from .models.handling_qualities.compute_static_margin import ComputeStaticMargin
 from .models.handling_qualities.tail_sizing.compute_tail_areas import ComputeTailAreas
 from .models.loops.compute_wing_area import ComputeWingArea
 from .models.loops.compute_wing_position import ComputeWingPosition
 from .models.weight.mass_breakdown.update_mtow import UpdateMTOW
 from .models.performances.sizing import Sizing
-from .models.propulsion.fuel_propulsion.basicIC_engine import OMBasicICEngineComponent
 from .models.weight.weight import Weight
 from fastoad.module_management import OpenMDAOSystemRegistry
 from fastoad.module_management.constants import ModelDomain
@@ -50,8 +49,13 @@ OpenMDAOSystemRegistry.register_system(
 
 # Geometry ####################################################################
 OpenMDAOSystemRegistry.register_system(
-    Geometry,
+    GeometryFixedHTPDistance,
     "fastga.geometry.legacy",
+    domain=ModelDomain.GEOMETRY
+)
+OpenMDAOSystemRegistry.register_system(
+    GeometryFixedFuselage,
+    "fastga.geometry.alternate",
     domain=ModelDomain.GEOMETRY
 )
 

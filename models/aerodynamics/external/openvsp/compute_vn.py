@@ -20,8 +20,9 @@ import warnings
 from scipy.constants import g
 import scipy.optimize as optimize
 from scipy.constants import knot, foot, lbf
+import openmdao.api as om
 
-from .openvsp import OPENVSPSimpleGeometry, DEFAULT_WING_AIRFOIL, DEFAULT_HTP_AIRFOIL
+from .openvsp import OPENVSPSimpleGeometry
 from ....propulsion.fuel_propulsion.base import FuelEngineSet
 
 from fastoad import BundleLoader
@@ -34,25 +35,90 @@ MACH_NB_PTS = 5  # number of points for cl_alpha_wing fitting along mach axis
 DOMAIN_PTS_NB = 15  # number of (V,n) calculated for the flight domain
 
 
-class ComputeVNopenvsp(OPENVSPSimpleGeometry):
+class ComputeVNopenvsp(om.Group):
+
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
+    def setup(self):
+        self.add_subsystem("compute_vh", ComputeVh(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
+        self.add_subsystem("compute_vn_diagram", ComputeVNopenvspNoVH(), promotes=["*"])
+
+
+class ComputeVh(om.ExplicitComponent):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._engine_wrapper = None
+
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
+    def setup(self):
+        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
+        self._engine_wrapper.setup(self)
+        self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
+
+        self.add_output("data:TLAR:v_max_sl", units="kn")
+
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+
+        # The maximum Sea Level flight velocity is computed using a method which finds for which speed
+        # the thrust required for flight (drag) is equal to the thrust available
+        design_mass = inputs["data:weight:aircraft:MTOW"]
+        Vh = self.max_speed(inputs, 0.0, design_mass)
+
+        outputs["data:TLAR:v_max_sl"] = Vh
+
+
+    def max_speed(self, inputs, altitude, mass):
+
+        # noinspection PyTypeChecker
+        roots = optimize.fsolve(
+            self.delta_axial_load,
+            0.0,
+            args=(inputs, altitude, mass)
+        )[0]
+
+        return np.max(roots[roots > 0.0])
+
+
+    def delta_axial_load(self, air_speed, inputs, altitude, mass):
+
+        propulsion_model = FuelEngineSet(
+            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
+        )
+        wing_area = inputs["data:geometry:wing:area"]
+        cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
+        coef_k = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
+
+        # Get the available thrust from propulsion system
+        atm = Atmosphere(altitude, altitude_in_feet=False)
+        flight_point = FlightPoint(
+            mach=air_speed/atm.speed_of_sound, altitude=altitude, engine_setting=EngineSetting.TAKEOFF,
+            thrust_rate=1.0
+        )
+        propulsion_model.compute_flight_points(flight_point)
+        thrust = float(flight_point.thrust)
+
+        # Get the necessary thrust to overcome
+        cl = (mass * g) / (0.5 * atm.density * wing_area * air_speed**2.0)
+        cd = cd0 + coef_k * cl ** 2.0
+        drag = 0.5 * atm.density * wing_area * cd * air_speed**2.0
+
+        return thrust - drag
+
+
+class ComputeVNopenvspNoVH(OPENVSPSimpleGeometry):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.kts_to_ms = knot  # Converting from knots to meters per seconds
         self.ft_to_m = foot  # Converting from feet to meters
         self.lbf_to_N = lbf  # Converting from pound force to Newtons
-
-    def initialize(self):
-        self.options.declare("openvsp_exe_path", default="", types=str, allow_none=True)
-        self.options.declare("wing_airfoil_file", default=DEFAULT_WING_AIRFOIL, types=str, allow_none=True)
-        self.options.declare("htp_airfoil_file", default=DEFAULT_HTP_AIRFOIL, types=str, allow_none=True)
-        self.options.declare("propulsion_id", default="", types=str)
         
     def setup(self):
         super().setup()
-        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
-        self._engine_wrapper.setup(self)
         self.add_input("data:TLAR:category", val=3.0)
         self.add_input("data:TLAR:level", val=1.0)
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
@@ -60,6 +126,8 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         self.add_input("data:aerodynamics:aircraft:landing:CL_max", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_min_clean", val=np.nan)
+        self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
+        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="m")
 
         self.add_output("data:flight_domain:velocity", units="kn", shape=DOMAIN_PTS_NB)
         self.add_output("data:flight_domain:load_factor", shape=DOMAIN_PTS_NB)
@@ -109,14 +177,6 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         mean_chord = (root_chord + tip_chord) / 2.0
         atm_0 = Atmosphere(0.0)
         atm = Atmosphere(altitude, altitude_in_feet=False)
-
-        # Depending on whether or not the maximum Sea Level flight velocity was already demonstrated we either
-        # take the value from flight experiments or we compute it using a method which finds for which speed
-        # the power required for flight is equal to the power available
-
-        if np.isnan(Vh):
-            design_Vc_ms = design_vc * self.kts_to_ms  # [m/s]
-            Vh = self.max_speed(inputs, mass, altitude, design_Vc_ms) / self.kts_to_ms  # [KEAS]
 
         # Initialise the lists in which we will store the data
         velocity_array = []
@@ -483,41 +543,3 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         conditions = [mass, altitude]
 
         return velocity_array, load_factor_array, conditions
-
-
-    def max_speed(self, inputs, altitude, mass, v_init):
-
-        # noinspection PyTypeChecker
-        roots = optimize.fsolve(
-            self.delta_axial_load,
-            v_init,
-            args=(inputs, altitude, mass)
-        )[0]
-
-        return np.max(roots[roots > 0.0])
-
-
-    def delta_axial_load(self, air_speed, inputs, altitude, mass):
-
-        propulsion_model = FuelEngineSet(
-            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
-        )
-        wing_area = inputs["data:geometry:wing:area"]
-        cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
-        coef_k = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
-
-        # Get the available thrust from propulsion system
-        atm = Atmosphere(altitude, altitude_in_feet=False)
-        flight_point = FlightPoint(
-            mach=air_speed/atm.speed_of_sound, altitude=altitude, engine_setting=EngineSetting.TAKEOFF,
-            thrust_rate=1.0
-        )
-        propulsion_model.compute_flight_points(flight_point)
-        thrust = float(flight_point.thrust)
-
-        # Get the necessary thrust to overcome
-        cl = (mass * g) / (0.5 * atm.density * wing_area * air_speed**2.0)
-        cd = cd0 + coef_k * cl ** 2.0
-        drag = 0.5 * atm.density * wing_area * cd * air_speed**2.0
-
-        return thrust - drag

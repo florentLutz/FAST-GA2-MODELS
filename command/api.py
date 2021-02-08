@@ -17,7 +17,6 @@ API
 import logging
 import os.path as pth
 import os
-import warnings
 from importlib_resources import path
 from typing import Union, List
 from openmdao.core.explicitcomponent import ExplicitComponent
@@ -92,7 +91,7 @@ def generate_block_analysis(
         raise Exception('The input list contains name(s) out of component/group input list!')
 
     # Perform some tests on the .xml availability and completeness
-    if not(os.path.exists(xml_file_path)) and not(var_inputs.sort() == all_inputs.sort()):
+    if not(os.path.exists(xml_file_path)) and not(set(var_inputs) == set(all_inputs)):
         # If no input file and some inputs are missing, generate it and return None
         if isinstance(system, Group):
             problem = FASTOADProblem(system)
@@ -101,10 +100,11 @@ def generate_block_analysis(
             group.add_subsystem('system', system, promotes=["*"])
             problem = FASTOADProblem(group)
         problem.input_file_path = xml_file_path
+        problem.setup()
         problem.write_needed_inputs(None, VariableXmlStandardFormatter())
-        warnings.warn('Input .xml file not found, a default file has been created with default NaN values, '
-                      'but no function is returned!\nConsider defining proper values before second execution!')
-        return None
+        raise Exception('Input .xml file not found, a default file has been created with default NaN values, '
+                        'but no function is returned!\nConsider defining proper values before second execution!')
+
     elif os.path.exists(xml_file_path):
 
         reader = VariableIO(xml_file_path, VariableXmlStandardFormatter()).read(ignore=(var_inputs + outputs_names))
@@ -118,18 +118,21 @@ def generate_block_analysis(
                 group.add_subsystem('system', system, promotes=["*"])
                 group.add_subsystem('ivc', ivc, promotes=["*"])
                 problem = FASTOADProblem(group)
+                problem.input_file_path = xml_file_path
                 problem.output_file_path = xml_file_path
+                problem.setup()
                 problem.write_outputs()
-                warnings.warn('Some inputs are missing in the given .xml file, they have been added with default NaN, '
-                              'but no function is returned!\nConsider defining proper values before second execution!')
-                return None
+                raise Exception('Some inputs are missing in the given .xml file, they have been added with default NaN,'
+                                ' but no function is returned!\nConsider defining proper values before '
+                                'second execution!')
             else:
                 # Else raise an error mentioning missing inputs
                 missing_inputs = list(
-                    set(xml_inputs + var_inputs).intersection(set(all_inputs)).difference(set(all_inputs))
+                    set(all_inputs).difference(set(xml_inputs + var_inputs).intersection(set(all_inputs)))
                 )
                 message = 'Following inputs are missing in .xml file: '
-                message += ['[' + item + '], ' for item in list(missing_inputs)]
+                for item in list(missing_inputs):
+                    message += '[' + item + '], '
                 raise Exception(message[:-1])
         else:
             # If all inputs addressed either by .xml or var_inputs, construct the function

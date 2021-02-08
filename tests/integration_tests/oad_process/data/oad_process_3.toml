@@ -14,7 +14,7 @@ driver = "om.ScipyOptimizeDriver(tol=1e-2, optimizer='COBYLA')"
     nonlinear_solver = "om.NonlinearBlockGS(maxiter=30, iprint=2, debug_print=True, rtol=1e-5, reraise_child_analysiserror=True)"
     linear_solver = "om.DirectSolver()"
     [model.geometry]
-        id = "fastga.geometry.legacy"
+        id = "fastga.geometry.alternate"
         propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
     [model.aerodynamics_highspeed]
         id = "fastga.aerodynamics.highspeed.legacy"

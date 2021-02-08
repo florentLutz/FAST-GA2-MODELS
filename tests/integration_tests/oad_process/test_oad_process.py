@@ -53,7 +53,7 @@ def test_oad_process(cleanup):
     Test for the overall aircraft design process.
     """
 
-    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_2.toml")).get_problem()
+    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_3.toml")).get_problem()
     recorder = om.SqliteRecorder("cases.sql")
 
     ref_inputs = pth.join(INPUT_FOLDER_PATH, "beechcraft_76.xml")
