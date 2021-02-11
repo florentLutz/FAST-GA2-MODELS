@@ -85,14 +85,15 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         pass
 
 
-    def compute_cl_alpha_wing(self, inputs, outputs, altitude, mach, aoa_angle):
+    def compute_cl_alpha_aircraft(self, inputs, outputs, altitude, mach, aoa_angle):
         """
         Function that perform a complete calculation of aerodynamic parameters under OpenVSP and return only the
-        cl_alpha_wing parameter.
+        cl_alpha_aircraft parameter.
 
         """
-        _, cl_alpha_wing, _, _, _, _, _, _, _, _ = self.compute_aero_coef(inputs, outputs, altitude, mach, aoa_angle)
-        return cl_alpha_wing
+        _, cl_alpha_wing, _, _, _, _, _, _, cl_alpha_htp, _ = self.compute_aero_coef(inputs, outputs, altitude, mach,
+                                                                                     aoa_angle)
+        return float(cl_alpha_wing + cl_alpha_htp)
 
 
     def compute_aero_coef(self, inputs, outputs, altitude, mach, aoa_angle):
@@ -128,7 +129,11 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
 
         # Search if results already exist:
         result_folder_path = self.options["result_folder_path"]
-        result_file_path, saved_area_ratio = self.search_results(result_folder_path, geometry_set)
+        result_file_path = None
+        saved_area_ratio = 1.0
+        if result_folder_path != "":
+            result_file_path, saved_area_ratio = self.search_results(result_folder_path, geometry_set)
+
 
         # If no result saved for that geometry under this mach condition, computation is done
         if result_file_path is None:
@@ -682,29 +687,28 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
     def search_results(result_folder_path, geometry_set):
 
         if os.path.exists(result_folder_path):
-            if result_folder_path != "":
-                geometry_set_labels = ["sweep25_wing", "taper_ratio_wing", "aspect_ratio_wing", "sweep25_htp",
-                                       "taper_ratio_htp", "aspect_ratio_htp", "mach", "area_ratio"]
-                # If some results already stored search for corresponding geometry
-                if pth.exists(pth.join(result_folder_path, "geometry_0.csv")):
-                    idx = 0
-                    while pth.exists(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv")):
-                        if pth.exists(pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")):
-                            data = pd.read_csv(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv"))
-                            values = data.to_numpy()[:, 1].tolist()
-                            labels = data.to_numpy()[:, 0].tolist()
-                            data = pd.DataFrame(values, index=labels)
-                            # noinspection PyBroadException
-                            try:
-                                if np.size(data.loc[geometry_set_labels[0:-1], 0].to_numpy()) == 7:
-                                    saved_set = np.around(data.loc[geometry_set_labels[0:-1], 0].to_numpy(), decimals=6)
-                                    if np.sum(saved_set == geometry_set[0:-1]) == 7:
-                                        result_file_path = pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")
-                                        saved_area_ratio = data.loc["area_ratio", 0]
-                                        return result_file_path, saved_area_ratio
-                            except:
-                                break
-                        idx += 1
+            geometry_set_labels = ["sweep25_wing", "taper_ratio_wing", "aspect_ratio_wing", "sweep25_htp",
+                                   "taper_ratio_htp", "aspect_ratio_htp", "mach", "area_ratio"]
+            # If some results already stored search for corresponding geometry
+            if pth.exists(pth.join(result_folder_path, "geometry_0.csv")):
+                idx = 0
+                while pth.exists(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv")):
+                    if pth.exists(pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")):
+                        data = pd.read_csv(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv"))
+                        values = data.to_numpy()[:, 1].tolist()
+                        labels = data.to_numpy()[:, 0].tolist()
+                        data = pd.DataFrame(values, index=labels)
+                        # noinspection PyBroadException
+                        try:
+                            if np.size(data.loc[geometry_set_labels[0:-1], 0].to_numpy()) == 7:
+                                saved_set = np.around(data.loc[geometry_set_labels[0:-1], 0].to_numpy(), decimals=6)
+                                if np.sum(saved_set == geometry_set[0:-1]) == 7:
+                                    result_file_path = pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")
+                                    saved_area_ratio = data.loc["area_ratio", 0]
+                                    return result_file_path, saved_area_ratio
+                        except:
+                            break
+                    idx += 1
 
         return None, 1.0
 

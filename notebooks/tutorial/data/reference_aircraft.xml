@@ -17,7 +17,9 @@
 	<data>
 		<TLAR>
 			<NPAX>2.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
-			<range units="NM">780.0</range>
+			<category>3.0<!--top-level requirement: aicraft category (Aerobatic = 1.0, Utility = 2.0, Normal = 3.0, Commuter = 4.0)--></category>
+			<level>2.0<!--top-level requirement: aicraft level--></level>
+			<range units="NM">780.0<!--top-level requirement: aircraft range--></range>
 			<v_approach units="kn">78.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">179.0<!--top-level requirement: limit speed--></v_limit>
@@ -67,6 +69,9 @@
 			<vertical_tail>
 				<area units="m**2">2.507<!--vertical tail area--></area>
 				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>
+				<max_thickness>
+					<x_ratio is_input="True">0.3</x_ratio>
+				</max_thickness>
 				<sweep_25 units="deg">10.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
 				<taper_ratio>0.62<!--taper ratio of vertical tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of vertical tail--></thickness_ratio>

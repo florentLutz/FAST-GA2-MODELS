@@ -110,7 +110,14 @@ def generate_block_analysis(
         reader = VariableIO(xml_file_path, VariableXmlStandardFormatter()).read(ignore=(var_inputs + outputs_names))
         xml_inputs = reader.names()
         if not(set(xml_inputs + var_inputs).intersection(set(all_inputs)) == set(all_inputs)):
-            # If some inputs are missing add them to the problem if authorized
+            # If some inputs are missing write an error message and add them to the problem if authorized
+            missing_inputs = list(
+                set(all_inputs).difference(set(xml_inputs + var_inputs).intersection(set(all_inputs)))
+            )
+            message = 'The following inputs are missing in .xml file:'
+            for item in missing_inputs:
+                message += ' [' + item + '],'
+            message = message[:-1] + '.\n'
             if overwrite:
                 reader.path_separator = ":"
                 ivc = reader.to_ivc()
@@ -122,18 +129,11 @@ def generate_block_analysis(
                 problem.output_file_path = xml_file_path
                 problem.setup()
                 problem.write_outputs()
-                raise Exception('Some inputs are missing in the given .xml file, they have been added with default NaN,'
-                                ' but no function is returned!\nConsider defining proper values before '
-                                'second execution!')
+                message += 'Default values have been added to {} file. ' \
+                           'Consider modifying them for a second run!'.format(xml_file_path)
+                raise Exception(message)
             else:
-                # Else raise an error mentioning missing inputs
-                missing_inputs = list(
-                    set(all_inputs).difference(set(xml_inputs + var_inputs).intersection(set(all_inputs)))
-                )
-                message = 'Following inputs are missing in .xml file: '
-                for item in list(missing_inputs):
-                    message += '[' + item + '], '
-                raise Exception(message[:-1])
+                raise Exception(message)
         else:
             # If all inputs addressed either by .xml or var_inputs, construct the function
             def patched_function(inputs_dict: dict) -> dict:

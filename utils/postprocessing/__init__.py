@@ -11,6 +11,3 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .aerodynamics import Aerodynamics
-from .aerodynamics_high_speed import AerodynamicsHighSpeed
-from .aerodynamics_low_speed import AerodynamicsLowSpeed

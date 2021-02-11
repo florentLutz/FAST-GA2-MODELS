@@ -16,11 +16,9 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from openmdao.core.group import Group
-from openmdao.core.explicitcomponent import ExplicitComponent
-import numpy as np
 
 from .components.cd0 import Cd0
-from .components.compute_cl_max import ComputeMaxCL
+from .components.compute_cl_extreme import ComputeExtremeCL
 from .components.high_lift_aero import ComputeDeltaHighLift
 
 from .external.vlm import ComputeAEROvlm
@@ -65,4 +63,4 @@ class AerodynamicsLowSpeed(Group):
                                propulsion_id=self.options["propulsion_id"],
                            ), promotes=["*"])
         self.add_subsystem("high_lift", ComputeDeltaHighLift(), promotes=["*"])
-        self.add_subsystem("Cl_max", ComputeMaxCL(), promotes=["*"])
+        self.add_subsystem("Cl_extreme", ComputeExtremeCL(), promotes=["*"])

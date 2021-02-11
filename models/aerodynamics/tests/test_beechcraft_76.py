@@ -43,10 +43,10 @@ from ..external.xfoil import XfoilPolar
 from ..external.xfoil import resources
 from ..external.openvsp import ComputeOSWALDopenvsp, ComputeWingCLALPHAopenvsp, ComputeHTPCLALPHAopenvsp, \
     ComputeHTPCLCMopenvsp
-from ..external.openvsp.compute_vn import ComputeVNopenvsp
+from ..external.openvsp.compute_vn import ComputeVNopenvspNoVH
 from ..external.openvsp.compute_aero2 import ComputeAEROopenvsp
 from ..components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
-from ..components.compute_cl_max import ComputeMaxCL
+from ..components.compute_cl_extreme import ComputeExtremeCL
 from ..components.high_lift_aero import ComputeDeltaHighLift
 from ..components.compute_L_D_max import ComputeLDMax
 from ..components.compute_reynolds import ComputeUnitReynolds
@@ -56,12 +56,16 @@ from ..aerodynamics_low_speed import AerodynamicsLowSpeed
 from ...tests.xfoil_exe.get_xfoil import get_xfoil_path
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ...propulsion.propulsion import IPropulsion
+from .. import Aerodynamics
+
+from command import api
 
 
 RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
 xfoil_path = None if system() == "Windows" else get_xfoil_path()
 
 XML_FILE = "beechcraft_76.xml"
+TUTORIAL_FILE = 'D:/a.reysset/Documents/Github/FAST-GA2-MODELS/notebooks/tutorial/workdir/geometry_long_wing.xml'
 ENGINE_WRAPPER = "test.wrapper.aerodynamics.beechcraft.dummy_engine"
 
 
@@ -75,7 +79,7 @@ class DummyEngine(AbstractFuelPropulsion):
         super().__init__()
 
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
-        flight_points.thrust = 0.0
+        flight_points.thrust = 1200.0
         flight_points['sfc'] = 0.0
 
     def compute_weight(self) -> float:
@@ -586,12 +590,14 @@ def _test_max_cl():
     # Clear saved polar results (for wing and htp airfoils)
     if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv'))):
         os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv')))
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('.af', '_sym.csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('.af', '_sym.csv')))
     if pth.exists(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv'))):
         os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv')))
 
     with Timer(name="Maximum CL: run"):
         # Research independent input value in .xml file for Openvsp test
-        ivc = get_indep_var_comp(list_inputs(ComputeMaxCL()), __file__, XML_FILE)
+        ivc = get_indep_var_comp(list_inputs(ComputeExtremeCL()), __file__, XML_FILE)
         y_openvsp = np.zeros(SPAN_MESH_POINT_OPENVSP)
         cl_openvsp = np.zeros(SPAN_MESH_POINT_OPENVSP)
         y_openvsp[0:39] = [0.04279, 0.12836, 0.21393, 0.2995, 0.38507, 0.47064, 0.55621,
@@ -615,7 +621,7 @@ def _test_max_cl():
         ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822, units="m**-1")  # correction to ...
 
         # Run problem and check obtained value(s) is/(are) correct
-        problem = run_system(ComputeMaxCL(), ivc)
+        problem = run_system(ComputeExtremeCL(), ivc)
         cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
         assert cl_max_clean == pytest.approx(1.4992, abs=1e-4)
         cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
@@ -624,7 +630,7 @@ def _test_max_cl():
         assert cl_max_landing == pytest.approx(2.0780, abs=1e-2)
 
     # Research independent input value in .xml file for VLM test
-    ivc = get_indep_var_comp(list_inputs(ComputeMaxCL()), __file__, XML_FILE)
+    ivc = get_indep_var_comp(list_inputs(ComputeExtremeCL()), __file__, XML_FILE)
     y_vlm = np.zeros(SPAN_MESH_POINT_OPENVSP)
     cl_vlm = np.zeros(SPAN_MESH_POINT_OPENVSP)
     y_vlm[0:17] = [0.09983333, 0.2995, 0.49916667, 0.918, 1.556,
@@ -644,7 +650,7 @@ def _test_max_cl():
     ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822, units="m**-1")  # correction to ...
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeMaxCL(), ivc)
+    problem = run_system(ComputeExtremeCL(), ivc)
     cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
     assert cl_max_clean == pytest.approx(1.4405, abs=1e-4)
     cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
@@ -732,6 +738,8 @@ def _test_low_speed_connection():
     # Clear saved polar results (for wing and htp airfoils)
     if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv'))):
         os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('af', 'csv')))
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('.af', '_sym.csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('.af', '_sym.csv')))
     if pth.exists(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv'))):
         os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv')))
 
@@ -751,13 +759,23 @@ def _test_low_speed_connection():
         cl_alpha_wing = problem.get_val("data:aerodynamics:wing:low_speed:CL_alpha", units="rad**-1")
         assert cl_alpha_wing == pytest.approx(4.607, abs=1e-3)
         cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-        assert cl_max_clean == pytest.approx(1.4557, abs=1e-4)
+        assert cl_max_clean == pytest.approx(1.3996, abs=1e-4)
+        cl_min_clean = problem["data:aerodynamics:wing:low_speed:CL_min_clean"]
+        assert cl_min_clean == pytest.approx(-1.1101, abs=1e-4)
         cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-        assert cl_max_takeoff == pytest.approx(1.5775, abs=1e-4)
+        assert cl_max_takeoff == pytest.approx(1.5215, abs=1e-4)
         cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-        assert cl_max_landing == pytest.approx(2.0345, abs=1e-4)
+        assert cl_max_landing == pytest.approx(1.9785, abs=1e-4)
         cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
         assert cl_alpha_htp == pytest.approx(0.6202, abs=1e-4)
+
+    # Clear saved polar results (for wing and htp airfoils)
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('.af', '.csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('.af', '.csv')))
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('.af', '_sym.csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('.af', '_sym.csv')))
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('.af', '.csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('.af', '.csv')))
 
     with Timer(name="Low-speed complete [NEW]: apply OPENVSP"):
         # Run problem with OPENVSP and check change(s) is/(are) correct
@@ -769,16 +787,18 @@ def _test_low_speed_connection():
         cl_alpha_wing = problem.get_val("data:aerodynamics:wing:low_speed:CL_alpha", units="rad**-1")
         assert cl_alpha_wing == pytest.approx(4.5091, abs=1e-3)
         cl_max_clean = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-        assert cl_max_clean == pytest.approx(1.5319, abs=1e-4)
+        assert cl_max_clean == pytest.approx(1.4729, abs=1e-4)
+        cl_min_clean = problem["data:aerodynamics:wing:low_speed:CL_min_clean"]
+        assert cl_min_clean == pytest.approx(-1.1682, abs=1e-4)
         cl_max_takeoff = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-        assert cl_max_takeoff == pytest.approx(1.6537, abs=1e-4)
+        assert cl_max_takeoff == pytest.approx(1.5948, abs=1e-4)
         cl_max_landing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-        assert cl_max_landing == pytest.approx(2.1108, abs=1e-4)
+        assert cl_max_landing == pytest.approx(2.0518, abs=1e-4)
         cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
         assert cl_alpha_htp == pytest.approx(0.6760, abs=1e-4)
 
 
-def test_v_n_diagram():
+def _test_v_n_diagram():
 
     # load all inputs
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
@@ -788,10 +808,43 @@ def test_v_n_diagram():
     input_vars.add_output("data:aerodynamics:wing:low_speed:CL_max_clean", 1.5)
     input_vars.add_output("data:aerodynamics:wing:low_speed:CL_min_clean", -1.5)
     input_vars.add_output("data:weight:aircraft:MTOW", 1700.0, units="kg")
-    input_vars.add_output("data:aerodynamics:cruise:mach", 0.4)
+    input_vars.add_output("data:aerodynamics:cruise:mach", 0.21)
+    input_vars.add_output("data:aerodynamics:wing:cruise:induced_drag_coefficient", 0.048)
+    input_vars.add_output("data:aerodynamics:aircraft:cruise:CD0", 0.016)
 
     register_wrappers()
 
     # Run problem with VLM and check obtained value(s) is/(are) correct
     # noinspection PyTypeChecker
-    run_system(ComputeVNopenvsp(propulsion_id=ENGINE_WRAPPER), input_vars, check=True)
+    run_system(ComputeVNopenvspNoVH(propulsion_id=ENGINE_WRAPPER, compute_cl_alpha=True), input_vars, check=True)
+
+
+def _test_wrapper():
+    # noinspection PyTypeChecker
+    compute_aero = api.generate_block_analysis(
+        Aerodynamics(
+            propulsion_id="fastga.wrapper.propulsion.basicIC_engine",
+            use_openvsp=True,
+        ),
+        [],
+        pth.join(pth.dirname(__file__), "data", XML_FILE),
+        True,
+    )
+    compute_aero({})
+
+
+def _test_aero():
+
+    # load all inputs
+    # reader = VariableIO(TUTORIAL_FILE, VariableXmlStandardFormatter())
+    XML_FILE = "geometry_long_wing.xml"
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
+    reader.path_separator = ":"
+    input_vars = reader.read().to_ivc()
+    register_wrappers()
+
+    with Timer(name="Complete aero [NEW]: apply OPENVSP"):
+        # Run problem with OPENVSP and check change(s) is/(are) correct
+        # noinspection PyTypeChecker
+        problem = run_system(AerodynamicsLowSpeed(propulsion_id="fastga.wrapper.propulsion.basicIC_engine", use_openvsp=True), input_vars,
+                             check=True)

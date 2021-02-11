@@ -15,7 +15,7 @@ M
 mach_number
 VISC
 ITER
-50
+100
 PACC
 /polar_result
 

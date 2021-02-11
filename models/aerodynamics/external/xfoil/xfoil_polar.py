@@ -43,6 +43,8 @@ OPTION_ALPHA_START = "alpha_start"
 OPTION_ALPHA_END = "alpha_end"
 OPTION_ITER_LIMIT = "iter_limit"
 DEFAULT_2D_CL_MAX = 1.9
+DEFAULT_2D_CL_MIN = 1.7
+ALPHA_STEP = 0.5
 
 _INPUT_FILE_NAME = "polar_session.txt"
 _STDOUT_FILE_NAME = "polar_calc.log"
@@ -72,8 +74,9 @@ class XfoilPolar(ExternalCodeComp):
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_RESULT_POLAR_FILENAME, default="polar_result.txt", types=str)
         self.options.declare(OPTION_ALPHA_START, default=0.0, types=float)
-        self.options.declare(OPTION_ALPHA_END, default=30.0, types=float)
-        self.options.declare(OPTION_ITER_LIMIT, default=500, types=int)
+        self.options.declare(OPTION_ALPHA_END, default=20.0, types=float)
+        self.options.declare(OPTION_ITER_LIMIT, default=100, types=int)
+        self.options.declare('symmetrical', default=False, types=bool)
 
     def setup(self):
 
@@ -85,6 +88,7 @@ class XfoilPolar(ExternalCodeComp):
         self.add_output("xfoil:CDp", shape=POLAR_POINT_COUNT)
         self.add_output("xfoil:CM", shape=POLAR_POINT_COUNT)
         self.add_output("xfoil:CL_max_2D")
+        self.add_output("xfoil:CL_min_2D")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -103,8 +107,12 @@ class XfoilPolar(ExternalCodeComp):
         no_file = True
         data_saved = None
         interpolated_result = None
-        result_file = pth.join(pth.split(os.path.realpath(__file__))[0], "resources",
-                               self.options["airfoil_file"].replace('.af', '') + '.csv')
+        if self.options['symmetrical']:
+            result_file = pth.join(pth.split(os.path.realpath(__file__))[0], "resources",
+                                   self.options["airfoil_file"].replace('.af', '_sym') + '.csv')
+        else:
+            result_file = pth.join(pth.split(os.path.realpath(__file__))[0], "resources",
+                                   self.options["airfoil_file"].replace('.af', '') + '.csv')
         if pth.exists(result_file):
             no_file = False
             data_saved = pd.read_csv(result_file)
@@ -187,66 +195,66 @@ class XfoilPolar(ExternalCodeComp):
 
             # standard input file
             tmp_result_file_path = pth.join(tmp_directory.name, _TMP_RESULT_FILE_NAME)
-            parser = InputFileGenerator()
-            with path(local_resources, _INPUT_FILE_NAME) as input_template_path:
-                parser.set_template_file(str(input_template_path))
-                parser.set_generated_file(self.stdin)
-                parser.mark_anchor("RE")
-                parser.transfer_var(float(reynolds), 1, 1)
-                parser.mark_anchor("M")
-                parser.transfer_var(float(mach), 1, 1)
-                parser.mark_anchor("ITER")
-                parser.transfer_var(self.options[OPTION_ITER_LIMIT], 1, 1)
-                parser.mark_anchor("ASEQ")
-                parser.transfer_var(self.options[OPTION_ALPHA_START], 1, 1)
-                parser.transfer_var(self.options[OPTION_ALPHA_END], 2, 1)
-                parser.reset_anchor()
-                parser.mark_anchor("/profile")
-                parser.transfer_var(tmp_profile_file_path, 0, 1)
-                parser.mark_anchor("/polar_result")
-                parser.transfer_var(tmp_result_file_path, 0, 1)
-                parser.generate()
+            self._write_script_file(
+                reynolds, mach, tmp_profile_file_path, tmp_result_file_path, self.options[OPTION_ALPHA_START],
+                self.options[OPTION_ALPHA_END], ALPHA_STEP)
 
             # Run XFOIL --------------------------------------------------------------------------------
             self.options["external_input_files"] = [self.stdin, tmp_profile_file_path]
             self.options["external_output_files"] = [tmp_result_file_path]
             super().compute(inputs, outputs)
 
+            if self.options['symmetrical']:
+                result_array_p = self._read_polar(tmp_result_file_path)
+                os.remove(self.stdin)
+                os.remove(self.stdout)
+                os.remove(self.stderr)
+                os.remove(tmp_result_file_path)
+                self._write_script_file(
+                    reynolds, mach, tmp_profile_file_path, tmp_result_file_path, -1*self.options[OPTION_ALPHA_START],
+                    -1*self.options[OPTION_ALPHA_END], -ALPHA_STEP)
+                super().compute(inputs, outputs)
+                result_array_n = self._read_polar(tmp_result_file_path)
+            else:
+                result_array_p = self._read_polar(tmp_result_file_path)
+                result_array_n = result_array_p
+
+
             # Post-processing --------------------------------------------------------------------------
-            result_array = self._read_polar(tmp_result_file_path)
-            cl_max_2d, error = self._get_max_cl(result_array["alpha"], result_array["CL"])
-            if POLAR_POINT_COUNT < len(result_array["alpha"]):
-                alpha = np.linspace(result_array["alpha"][0], result_array["alpha"][-1], POLAR_POINT_COUNT)
-                cl = np.interp(alpha, result_array["alpha"], result_array["CL"])
-                cd = np.interp(alpha, result_array["alpha"], result_array["CD"])
-                cdp = np.interp(alpha, result_array["alpha"], result_array["CDp"])
-                cm = np.interp(alpha, result_array["alpha"], result_array["CM"])
+            cl_max_2d, error = self._get_max_cl(result_array_p["alpha"], result_array_p["CL"])
+            cl_min_2d, error = self._get_min_cl(result_array_n["alpha"], result_array_n["CL"])
+            if POLAR_POINT_COUNT < len(result_array_p["alpha"]):
+                alpha = np.linspace(result_array_p["alpha"][0], result_array_p["alpha"][-1], POLAR_POINT_COUNT)
+                cl = np.interp(alpha, result_array_p["alpha"], result_array_p["CL"])
+                cd = np.interp(alpha, result_array_p["alpha"], result_array_p["CD"])
+                cdp = np.interp(alpha, result_array_p["alpha"], result_array_p["CDp"])
+                cm = np.interp(alpha, result_array_p["alpha"], result_array_p["CM"])
                 warnings.warn("Defined polar point in fast aerodynamics\\constants.py exceeded!")
             else:
-                additional_zeros = list(np.zeros(POLAR_POINT_COUNT - len(result_array["alpha"])))
-                alpha = result_array["alpha"].tolist()
+                additional_zeros = list(np.zeros(POLAR_POINT_COUNT - len(result_array_p["alpha"])))
+                alpha = result_array_p["alpha"].tolist()
                 alpha.extend(additional_zeros)
                 alpha = np.asarray(alpha)
-                cl = result_array["CL"].tolist()
+                cl = result_array_p["CL"].tolist()
                 cl.extend(additional_zeros)
                 cl = np.asarray(cl)
-                cd = result_array["CD"].tolist()
+                cd = result_array_p["CD"].tolist()
                 cd.extend(additional_zeros)
                 cd = np.asarray(cd)
-                cdp = result_array["CDp"].tolist()
+                cdp = result_array_p["CDp"].tolist()
                 cdp.extend(additional_zeros)
                 cdp = np.asarray(cdp)
-                cm = result_array["CM"].tolist()
+                cm = result_array_p["CM"].tolist()
                 cm.extend(additional_zeros)
                 cm = np.asarray(cm)
 
             # Save results to defined path -------------------------------------------------------------
             if not error:
-                results = [np.array(mach), np.array(reynolds), np.array(cl_max_2d),
+                results = [np.array(mach), np.array(reynolds), np.array(cl_max_2d), np.array(cl_min_2d),
                            str(self._reshape(alpha, alpha).tolist()), str(self._reshape(alpha, cl).tolist()),
                            str(self._reshape(alpha, cd).tolist()), str(self._reshape(alpha, cdp).tolist()),
                            str(self._reshape(alpha, cm).tolist())]
-                labels = ["mach", "reynolds", "cl_max_2d", "alpha", "cl", "cd", "cdp", "cm"]
+                labels = ["mach", "reynolds", "cl_max_2d", "cl_min_2d", "alpha", "cl", "cd", "cdp", "cm"]
                 if no_file or (data_saved is None):
                     data = pd.DataFrame(results, index=labels)
                     data.to_csv(result_file)
@@ -275,6 +283,7 @@ class XfoilPolar(ExternalCodeComp):
         else:
             # Extract results
             cl_max_2d = np.array(eval(interpolated_result.loc["cl_max_2d", :].to_numpy()[0]))
+            cl_min_2d = np.array(eval(interpolated_result.loc["cl_min_2d", :].to_numpy()[0]))
             ALPHA = np.array(eval(interpolated_result.loc["alpha", :].to_numpy()[0]))
             CL = np.array(eval(interpolated_result.loc["cl", :].to_numpy()[0]))
             CD = np.array(eval(interpolated_result.loc["cd", :].to_numpy()[0]))
@@ -318,6 +327,31 @@ class XfoilPolar(ExternalCodeComp):
         outputs["xfoil:CDp"] = cdp
         outputs["xfoil:CM"] = cm
         outputs["xfoil:CL_max_2D"] = cl_max_2d
+        outputs["xfoil:CL_min_2D"] = cl_min_2d
+
+
+    def _write_script_file(self, reynolds, mach, tmp_profile_file_path, tmp_result_file_path, alpha_start,
+                           alpha_end, step):
+        parser = InputFileGenerator()
+        with path(local_resources, _INPUT_FILE_NAME) as input_template_path:
+            parser.set_template_file(str(input_template_path))
+            parser.set_generated_file(self.stdin)
+            parser.mark_anchor("RE")
+            parser.transfer_var(float(reynolds), 1, 1)
+            parser.mark_anchor("M")
+            parser.transfer_var(float(mach), 1, 1)
+            parser.mark_anchor("ITER")
+            parser.transfer_var(self.options[OPTION_ITER_LIMIT], 1, 1)
+            parser.mark_anchor("ASEQ")
+            parser.transfer_var(alpha_start, 1, 1)
+            parser.transfer_var(alpha_end, 2, 1)
+            parser.transfer_var(step, 3, 1)
+            parser.reset_anchor()
+            parser.mark_anchor("/profile")
+            parser.transfer_var(tmp_profile_file_path, 0, 1)
+            parser.mark_anchor("/polar_result")
+            parser.transfer_var(tmp_result_file_path, 0, 1)
+            parser.generate()
 
 
     @staticmethod
@@ -334,19 +368,43 @@ class XfoilPolar(ExternalCodeComp):
         _LOGGER.error("XFOIL results file not found")
         return np.array([])
 
-    @staticmethod
-    def _get_max_cl(alpha: np.ndarray, lift_coeff: np.ndarray) -> Tuple[float, bool]:
+
+    def _get_max_cl(self, alpha: np.ndarray, lift_coeff: np.ndarray) -> Tuple[float, bool]:
         """
 
         :param alpha:
         :param lift_coeff: CL
-        :return: max CL if enough alpha computed, or default value otherwise
+        :return: max CL within 90/110% linear zone if enough alpha computed, or default value otherwise
         """
-        if len(alpha) > 0 and max(alpha) >= 5.0:
-            return max(lift_coeff), False
+        alpha_range = self.options[OPTION_ALPHA_END] - self.options[OPTION_ALPHA_START]
+        covered_range = max(alpha) - min(alpha)
+        if len(alpha) > 2 and np.abs(covered_range/alpha_range) >= 0.5:
+            lift_fct = lambda x: (lift_coeff[1]-lift_coeff[0])/(alpha[1]-alpha[0]) * x + lift_coeff[0]
+            delta = np.abs(lift_coeff - lift_fct(alpha))/(lift_coeff + 1e-12 * (lift_coeff == 0.0))
+            return max(lift_coeff[delta <= 0.1]), False
 
-        _LOGGER.warning("2D CL max not found. Using default value (%s)", DEFAULT_2D_CL_MAX)
-        return DEFAULT_2D_CL_MAX, True
+        _LOGGER.warning("2D CL max not found, les than 50% of angle range computed: using default value (%s)",
+                        DEFAULT_2D_CL_MAX)
+        return DEFAULT_2D_CL_MIN, True
+
+
+    def _get_min_cl(self, alpha: np.ndarray, lift_coeff: np.ndarray) -> Tuple[float, bool]:
+        """
+
+        :param alpha:
+        :param lift_coeff: CL
+        :return: min CL within 90/110% linear zone if enough alpha computed, or default value otherwise
+        """
+        alpha_range = self.options[OPTION_ALPHA_END] - self.options[OPTION_ALPHA_START]
+        covered_range = max(alpha) - min(alpha)
+        if len(alpha) > 2 and covered_range/alpha_range >= 0.5:
+            lift_fct = lambda x: (lift_coeff[1] - lift_coeff[0]) / (alpha[1] - alpha[0]) * x + lift_coeff[0]
+            delta = np.abs(lift_coeff - lift_fct(alpha)) / np.abs(lift_coeff + 1e-12 * (lift_coeff == 0.0))
+            return min(lift_coeff[delta <= 0.1]), False
+
+        _LOGGER.warning("2D CL min not found, les than 50% of angle range computed: using default value (%s)",
+                        DEFAULT_2D_CL_MIN)
+        return DEFAULT_2D_CL_MIN, True
 
     @staticmethod
     def _reshape(x: np.ndarray, y: np.ndarray) -> np.ndarray:
