@@ -44,25 +44,24 @@ def evolution_diagram(
     load_factor_array = list(variables["data:flight_domain:load_factor"].value)
 
     # Save maneuver envelope
-    x_maneuver = list(np.linspace(0.0, velocity_array[0], 5))
-    x_maneuver.extend(list(np.linspace(velocity_array[0], velocity_array[2], 5)))
-    y_maneuver = []
-    for idx in range(len(x_maneuver)):
-        y_maneuver.append(load_factor_array[0] * (x_maneuver[idx] / velocity_array[0])**2.0)
-    x_maneuver.append(velocity_array[9])
-    y_maneuver.append(load_factor_array[9])
-    x_maneuver.append(velocity_array[10])
-    y_maneuver.append(load_factor_array[10])
-    x_maneuver.append(velocity_array[6])
-    y_maneuver.append(load_factor_array[6])
-    x_maneuver.append(velocity_array[3])
-    y_maneuver.append(load_factor_array[3])
-    x_local = list(np.linspace(velocity_array[3], velocity_array[1], 5))
-    x_maneuver.extend(x_local)
+    x_maneuver_line = list(np.linspace(velocity_array[0], velocity_array[2], 10))
+    y_maneuver_line = []
+    x_maneuver_pts = [velocity_array[0], velocity_array[2]]
+    y_maneuver_pts = [load_factor_array[0], load_factor_array[2]]
+    for idx in range(len(x_maneuver_line)):
+        y_maneuver_line.append(load_factor_array[0] * (x_maneuver_line[idx] / velocity_array[0])**2.0)
+    x_maneuver_line.extend([velocity_array[9], velocity_array[10], velocity_array[6], velocity_array[3]])
+    y_maneuver_line.extend([load_factor_array[9], load_factor_array[10], load_factor_array[6], load_factor_array[3]])
+    x_local = list(np.linspace(velocity_array[3], velocity_array[1], 10))
+    x_maneuver_line.extend(x_local)
+    x_maneuver_pts.extend([velocity_array[9], velocity_array[10], velocity_array[6], velocity_array[3],
+                           velocity_array[1]])
+    y_maneuver_pts.extend([load_factor_array[9], load_factor_array[10], load_factor_array[6], load_factor_array[3],
+                           load_factor_array[1]])
     for idx in range(len(x_local)):
-        y_maneuver.append(load_factor_array[1] * (x_local[-1] / velocity_array[1])**2.0)
-    x_maneuver.append([x_local[-1], x_maneuver[0], x_maneuver[0]])
-    y_maneuver.append([0.0, 0.0, y_maneuver[0]])
+        y_maneuver_line.append(load_factor_array[1] * (x_local[idx] / x_local[-1])**2.0)
+    x_maneuver_line.extend([x_local[-1], velocity_array[0], velocity_array[0]])
+    y_maneuver_line.extend([0.0, 0.0, load_factor_array[0]])
 
     # Save gust envelope
     x_gust = [0.0]
@@ -84,24 +83,32 @@ def evolution_diagram(
     x_gust.append(0.0)
     y_gust.append(0.0)
 
-    # pylint: disable=invalid-name # that's a common naming
-    x = np.concatenate((np.array(x_maneuver), np.array(x_gust)))
-    y = np.concatenate((np.array(y_maneuver), np.array(y_gust)))
-
 
     if fig is None:
         fig = go.Figure()
 
-    scatter = go.Scatter(x=x, y=y, mode="lines+markers", name=name)
+    scatter = go.Scatter(x=x_maneuver_line, y=y_maneuver_line, mode="lines", name=name + ' - maneuver')
 
     fig.add_trace(scatter)
 
-    fig.layout = go.Layout(yaxis=dict(scaleanchor="x", scaleratio=1))
+    scatter = go.Scatter(x=x_maneuver_pts, y=y_maneuver_pts, mode="markers", name=name + ' - maneuver [points]')
+
+    fig.add_trace(scatter)
+
+    scatter = go.Scatter(x=x_gust, y=y_gust, mode="lines+markers", name=name + ' - gust')
+
+    fig.add_trace(scatter)
 
     fig = go.FigureWidget(fig)
 
     fig.update_layout(
-        title_text="Evolution Diagram", title_x=0.5, xaxis_title="speed [m/s]", yaxis_title="load [g]",
+        title_text="Evolution Diagram",
+        title_x=0.5,
+        xaxis=dict(range=[0.0, max(max(x_maneuver_line), max(x_gust)) * 1.1]),
+        xaxis_title="speed [m/s]",
+        yaxis=dict(range=[min(min(y_maneuver_line), min(y_gust)) * 1.1, max(max(y_maneuver_line), max(y_gust)) * 1.1]),
+        yaxis_title="load [g]",
     )
+
 
     return fig

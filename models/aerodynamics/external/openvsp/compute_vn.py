@@ -194,7 +194,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         tip_chord = inputs["data:geometry:wing:tip:chord"]
         cl_max_flaps = inputs["data:aerodynamics:aircraft:landing:CL_max"]
         cl_max = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
-        cl_min = -1*inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]  # FIXME: change definition
+        cl_min = inputs["data:aerodynamics:wing:low_speed:CL_min_clean"]
         mean_chord = (root_chord + tip_chord) / 2.0
         atm_0 = Atmosphere(0.0)
         atm = Atmosphere(altitude, altitude_in_feet=False)
@@ -457,13 +457,13 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         velocity_array.append(Vd)
         load_factor_array.append(n_lim_ps)
         velocity_array.append(Vd)
-        load_factor_array.append(n_lim_ng)
+        load_factor_array.append(0.0)
 
         # Similarly to what was done for the design cruising speed we will explore the load factors
         # associated with the diving speed since gusts are likely to broaden the flight domain around
         # these points
 
-        n_Vd_ps = max(load_factor_gust_p(U_de_Vd, Vd), n_lim_ps)  # [-]
+        n_Vd_ps = load_factor_gust_p(U_de_Vd, Vd)  # [-]
 
         # For the negative load factor at the diving speed, it seems that for non_aerobatic airplanes, it is
         # always sized according to the gust lines, regardless of the negative design load factor. For aerobatic
@@ -473,10 +473,8 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         # design load factor or the load factor given by the gust, whichever is the greatest (most negative).
         # This way, for non aerobatic airplane, we ensure to be conservative.
 
-        if category == 1.0:
-            n_Vd_ng = min(load_factor_gust_n(U_de_Vd, Vd), n_lim_ng)  # [-]
-        else:
-            n_Vd_ng = load_factor_gust_n(U_de_Vd, Vd)  # [-]
+
+        n_Vd_ng = load_factor_gust_n(U_de_Vd, Vd)  # [-]
 
         velocity_array.append(Vd)
         load_factor_array.append(n_Vd_ps)
