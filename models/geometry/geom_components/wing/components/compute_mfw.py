@@ -53,19 +53,21 @@ class ComputeMFW(ExplicitComponent):
         tip_thickness_ratio = inputs["data:geometry:wing:tip:thickness_ratio"]
         
         if fuel_type == 1.0:
-            m_vol_fuel = 730  # gasoline volume-mass [kg/m**3], cold worst case
+            m_vol_fuel = 718.9  # gasoline volume-mass [kg/m**3], cold worst case, Avgas
         elif fuel_type == 2.0:
-            m_vol_fuel = 860  # gasoil volume-mass [kg/m**3], cold worst case
+            m_vol_fuel = 860.  # Diesel volume-mass [kg/m**3], cold worst case
+        elif fuel_type == 3.0:
+            m_vol_fuel = 804.  # Jet-A1 volume mass [kg/m**3], cold worst case
         else:
-            m_vol_fuel = 730
+            m_vol_fuel = 718.9
             warnings.warn("Fuel type {} does not exist, replaced by type 1!".format(fuel_type))
 
         # Tanks are between 1st (30% MAC) and 3rd (60% MAC) longeron: 30% of the wing
-        ave_thichness = 0.7 * (
+        ave_thickness = 0.7 * (
                 root_chord * root_thickness_ratio
                 + tip_chord * tip_thickness_ratio
         ) / 2.0
-        mfv = 0.3 * wing_area * ave_thichness
+        mfv = 0.3 * wing_area * ave_thickness
         mfw = mfv * m_vol_fuel
 
         outputs["data:weight:aircraft:MFW"] = mfw

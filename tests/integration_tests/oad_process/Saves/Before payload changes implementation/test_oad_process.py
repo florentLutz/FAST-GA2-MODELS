@@ -46,7 +46,6 @@ XML_NAME = "cirrus_sr22.xml"
 @pytest.fixture(scope="module")
 def cleanup():
     rmtree(RESULTS_FOLDER_PATH, ignore_errors=True)
-    rmtree("D:/tmp", ignore_errors=True)
 
 
 def test_oad_process(cleanup):
@@ -54,16 +53,13 @@ def test_oad_process(cleanup):
     Test for the overall aircraft design process.
     """
 
-    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_3.toml")).get_problem()
-    recorder = om.SqliteRecorder("cases.sql")
-
-    ref_inputs = pth.join(INPUT_FOLDER_PATH, "beechcraft_76.xml")
+    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process.toml")).get_problem()
+    problem.model.aicraft.set_input_defaults('data:geometry:horizontal_tail:sweep_25', val=10., units='deg')
+    ref_inputs = pth.join(INPUT_FOLDER_PATH, XML_NAME)
     get_problem_after_setup(problem).write_needed_inputs(ref_inputs, VariableXmlStandardFormatter())
     problem.read_inputs()
     print('\n')
     problem.setup(check=True)
-    solver = problem.model.nonlinear_solver
-    solver.add_recorder(recorder)
     problem.set_solver_print(level=2)
     with Timer(name="Mass-performance loop:"):
         problem.run_model()
@@ -75,10 +71,6 @@ def test_oad_process(cleanup):
         problem, outfile=pth.join(RESULTS_FOLDER_PATH, "connections.html"), show_browser=False
     )
     om.n2(problem, outfile=pth.join(RESULTS_FOLDER_PATH, "n2.html"), show_browser=False)
-
-    # Print recorded data
-    cr = om.CaseReader("cases.sql")
-    solver_cases = cr.list_cases('root.nonlinear_solver')
 
     # Check that weight-performances loop correctly converged
     assert_allclose(
@@ -97,18 +89,24 @@ def test_oad_process(cleanup):
     assert_allclose(
         problem["data:weight:aircraft:MTOW"],
         problem["data:weight:aircraft:OWE"]
-        + problem["data:weight:aircraft:payload"]
+        + problem["data:weight:aircraft:max_payload"]
         + problem["data:mission:sizing:fuel"],
         rtol=5e-2,
     )
 
-    assert_allclose(problem["data:handling_qualities:static_margin"], 0.10, atol=1e-2)
+    assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 203.65, atol=1)
     # noinspection PyTypeChecker
-    assert_allclose(problem["data:handling_qualities:static_margin"], 0.192, atol=1e-2)
+    assert_allclose(problem.get_val("data:weight:aircraft:max_payload", units="kg"), 400.0, atol=1)
     # noinspection PyTypeChecker
-    assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1643.58, atol=1)
+    assert_allclose(problem["data:handling_qualities:static_margin"], 0.08515, atol=1e-2)
     # noinspection PyTypeChecker
-    assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1035.71, atol=1)
+    assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1650.24, atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:weight:aircraft:payload", units="kg"), 360., atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1046.61, atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg"), 166.405, atol=1)
 
 
 def est_api(cleanup):

@@ -74,6 +74,10 @@ class FuelEngineSet(AbstractFuelPropulsion):
 
         return self.engine.compute_weight()*self.engine_count
 
+    def compute_sl_thrust(self):
+
+        return self.engine.compute_sl_thrust()*self.engine_count
+
     def compute_dimensions(self):
 
         return self.engine.compute_dimensions()

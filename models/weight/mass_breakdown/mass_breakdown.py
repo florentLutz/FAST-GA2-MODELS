@@ -27,6 +27,7 @@ from .a_airframe import (
 from .b_propulsion import (
     ComputeEngineWeight,
     ComputeFuelLinesWeight,
+    ComputeUnusableFuelWeight,
 )
 from .c_systems import (
     ComputePowerSystemsWeight,
@@ -105,6 +106,8 @@ class ComputeOperatingWeightEmpty(om.Group):
         self.add_subsystem("landing_gear_weight", ComputeLandingGearWeight(), promotes=["*"])
         self.add_subsystem("engine_weight", ComputeEngineWeight(propulsion_id=self.options["propulsion_id"]),
                            promotes=["*"])
+        self.add_subsystem("unusable_fuel", ComputeUnusableFuelWeight(propulsion_id=self.options["propulsion_id"]),
+                           promotes=["*"])
         self.add_subsystem("fuel_lines_weight", ComputeFuelLinesWeight(), promotes=["*"])
         self.add_subsystem("navigation_systems_weight", ComputeNavigationSystemsWeight(), promotes=["*"])
         self.add_subsystem("power_systems_weight", ComputePowerSystemsWeight(), promotes=["*"])
@@ -153,6 +156,12 @@ class ComputeOperatingWeightEmpty(om.Group):
                 "data:weight:systems:power:electric_systems:mass",
                 "data:weight:systems:power:hydraulic_systems:mass",
                 "data:weight:systems:life_support:air_conditioning:mass",
+                "data:weight:systems:life_support:insulation:mass",
+                "data:weight:systems:life_support:de_icing:mass",
+                "data:weight:systems:life_support:internal_lighting:mass",
+                "data:weight:systems:life_support:seat_installation:mass",
+                "data:weight:systems:life_support:fixed_oxygen:mass",
+                "data:weight:systems:life_support:security_kits:mass",
                 "data:weight:systems:navigation:mass",
             ],
             units="kg",

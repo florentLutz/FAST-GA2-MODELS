@@ -28,7 +28,8 @@ class ComputeCGLoadCase(ExplicitComponent):
     
     def setup(self):
 
-        self.add_input("data:TLAR:NPAX", val=np.nan)
+        self.add_input("data:geometry:cabin:seats:passenger:NPAX_max", val=np.nan)
+        self.add_input("data:geometry:cabin:luggage:max_luggage_weight", val=np.nan, units="kg")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:weight:payload:PAX:CG:x", val=np.nan, units="m")
@@ -77,7 +78,8 @@ class ComputeCGLoadCase(ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
          
-        npax = inputs["data:TLAR:NPAX"]
+        npax_max = inputs["data:geometry:cabin:seats:passenger:NPAX_max"]
+        max_luggage_weight = inputs["data:geometry:cabin:luggage:max_luggage_weight"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         cg_pax = inputs["data:weight:payload:PAX:CG:x"]
@@ -94,20 +96,20 @@ class ComputeCGLoadCase(ExplicitComponent):
         max_mass_p_pax = inputs["settings:weight:aircraft:payload:max_mass_per_passenger"]
 
         if self.options['load_case'] == 1:  # all passengers, max fuel but no luggage
-            weight_pax = (npax+2) * design_mass_p_pax
+            weight_pax = (npax_max+2) * design_mass_p_pax
             weight_rear_fret = 0.0
             weight_front_fret = 0.0
-        elif self.options['load_case'] == 2:  # all passengers, max fuel and 20kg luggage per pax
-            weight_pax = (npax+2) * design_mass_p_pax
-            weight_rear_fret = npax * 20.0
+        elif self.options['load_case'] == 2:  # all passengers, max fuel and max luggage weight
+            weight_pax = (npax_max+2) * design_mass_p_pax
+            weight_rear_fret = max_luggage_weight
             weight_front_fret = 0.0
-        elif self.options['load_case'] == 3:  # all passengers, no fuel and 20kg luggage per pax
-            weight_pax = (npax+2) * design_mass_p_pax
-            weight_rear_fret = npax * 20.0
+        elif self.options['load_case'] == 3:  # all passengers, no fuel and max luggage weight
+            weight_pax = (npax_max+2) * design_mass_p_pax
+            weight_rear_fret = max_luggage_weight
             weight_front_fret = 0.0
             mfw = 0.0
         elif self.options['load_case'] == 4:  # all passengers (max mass), max fuel but no luggage
-            weight_pax = (npax+2) * max_mass_p_pax
+            weight_pax = (npax_max+2) * max_mass_p_pax
             weight_rear_fret = 0.0
             weight_front_fret = 0.0
         elif self.options['load_case'] == 5:  # only 1 pilot (over-write pax-CG), max fuel, no luggage
@@ -137,6 +139,5 @@ class ComputeCGLoadCase(ExplicitComponent):
                         + weight_pl * x_cg_pl
         ) / (m_empty + mfw + weight_pl)  # forward
         cg_ratio_pl = (x_cg_plane_pl - fa_length + 0.25 * l0_wing) / l0_wing
-        
-        
+
         outputs["data:weight:aircraft:load_case_"+str(self.options['load_case'])+":CG:MAC_position"] = cg_ratio_pl

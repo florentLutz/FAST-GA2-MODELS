@@ -22,21 +22,34 @@ class ComputeFlightControlsWeight(om.ExplicitComponent):
     """
     Flight controls weight estimation
 
-    # TODO: Based on :????????????
+    Based on : Raymer, Daniel. Aircraft design: a conceptual approach. American Institute of Aeronautics and
+    Astronautics, Inc., 2012. Equation 15.54
+
+    Can also be found in : Gudmundsson, Snorri. General aviation aircraft design: Applied Methods and Procedures.
+    Butterworth-Heinemann, 2013. Equation (6-33)
     """
 
     def setup(self):
-        
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
-        
+        self.add_input("data:mission:sizing:cs23:sizing_factor_ultimate", val=np.nan)
+        self.add_input("data:geometry:wing:span", val=np.nan, units="ft")
+        self.add_input("data:geometry:fuselage:length", val=np.nan, units="ft")
+
         self.add_output("data:weight:airframe:flight_controls:mass", units="lb")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        
         mtow = inputs["data:weight:aircraft:MTOW"]
-        
-        a4 = 1.066*mtow**0.626  # mass formula in lb
+        n_ult = inputs["data:mission:sizing:cs23:sizing_factor_ultimate"]
+        span = inputs["data:geometry:wing:span"]
+        fus_length = inputs["data:geometry:fuselage:length"]
+
+        a4 = 0.053 * (
+                fus_length ** 1.536 *
+                span ** 0.371 *
+                (n_ult * mtow * 1e-4) ** 0.80
+        )
+        # mass formula in lb
 
         outputs["data:weight:airframe:flight_controls:mass"] = a4

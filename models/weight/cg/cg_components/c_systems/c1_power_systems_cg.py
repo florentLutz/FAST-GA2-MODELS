@@ -25,7 +25,9 @@ class ComputePowerSystemsCG(ExplicitComponent):
 
     def setup(self):
 
+        self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
+        self.add_input("data:geometry:fuselage:rear_length", val=np.nan, units="m")
 
         self.add_output("data:weight:systems:power:electric_systems:CG:x", units="m")
         self.add_output("data:weight:systems:power:hydraulic_systems:CG:x", units="m")
@@ -34,12 +36,15 @@ class ComputePowerSystemsCG(ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
+        fus_length = inputs["data:geometry:fuselage:length"]
         lav = inputs["data:geometry:fuselage:front_length"]
+        lar = inputs["data:geometry:fuselage:rear_length"]
 
-        # Electric system gravity center
-        x_cg_c12 = 0 * lav
+        # Electric system gravity center, formula based on the fact that on a Cirrus SR22, one battery is in front of
+        # the firewall while the other one is behind the pressure bulkhead
+        x_cg_c12 = lav + 0.5 * (fus_length - (lav + lar))
         # Hydraulic system gravity center
-        x_cg_c13 = 0 * lav
+        x_cg_c13 = lav + 0.5 * (fus_length - (lav + lar))
 
         outputs["data:weight:systems:power:electric_systems:CG:x"] = x_cg_c12
         outputs["data:weight:systems:power:hydraulic_systems:CG:x"] = x_cg_c13

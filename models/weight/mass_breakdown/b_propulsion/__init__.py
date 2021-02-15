@@ -13,3 +13,4 @@
 
 from .b1_engine_weight import ComputeEngineWeight
 from .b2_fuel_lines_weight import ComputeFuelLinesWeight
+from .b3_unusable_fuel_weight import ComputeUnusableFuelWeight

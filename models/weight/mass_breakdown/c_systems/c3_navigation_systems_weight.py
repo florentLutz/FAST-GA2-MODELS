@@ -22,12 +22,15 @@ class ComputeNavigationSystemsWeight(ExplicitComponent):
     """
     Weight estimation for navigation systems
 
-    # TODO: Based on :????????????
+    Based on : Roskam, Jan. Airplane Design: Part 5-Component Weight Estimation. DARcorporation, 1985.
+    Equation (7.21) and (7.22)
     """
 
     def setup(self):
         
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
+        self.add_input("data:geometry:propulsion:count", val=np.nan)
+        self.add_input("data:geometry:cabin:seats:passenger:NPAX_max", val=np.nan)
         
         self.add_output("data:weight:systems:navigation:mass", units="lb")
 
@@ -36,7 +39,16 @@ class ComputeNavigationSystemsWeight(ExplicitComponent):
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         mtow = inputs["data:weight:aircraft:MTOW"]
-        
-        c3 = 40 + 0.008 * mtow  # mass formula in lb
+        n_eng = inputs["data:geometry:propulsion:count"]
+        n_pax = inputs["data:geometry:cabin:seats:passenger:NPAX_max"]
+
+        n_occ = n_pax + 2.
+        # The formula differs depending on the number of propeller on the engine
+
+        if n_eng == 1.0:
+            c3 = 33.0 * n_occ
+
+        else:
+            c3 = 40 + 0.008 * mtow  # mass formula in lb
 
         outputs["data:weight:systems:navigation:mass"] = c3

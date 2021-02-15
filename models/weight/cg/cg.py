@@ -23,12 +23,15 @@ from .cg_components.b_propulsion import ComputeEngineCG, ComputeFuelLinesCG, Com
 from .cg_components.c_systems import ComputePowerSystemsCG, ComputeLifeSupportCG, ComputeNavigationSystemsCG
 from .cg_components.d_furniture import ComputePassengerSeatsCG
 from .cg_components.payload import ComputePayloadCG
-from .cg_components.global_cg import ComputeGlobalCG
+from .cg_components.global_cg import ComputeGlobalCG, ComputeGlobalCGnew
 from .cg_components.update_mlg import UpdateMLG
 
 
 class CG(om.Group):
     """ Model that computes the global center of gravity """
+
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
 
@@ -45,7 +48,8 @@ class CG(om.Group):
         self.add_subsystem("navigation_systems_cg", ComputeNavigationSystemsCG(), promotes=["*"])
         self.add_subsystem("passenger_seats_cg", ComputePassengerSeatsCG(), promotes=["*"])
         self.add_subsystem("payload_cg", ComputePayloadCG(), promotes=["*"])
-        self.add_subsystem("compute_cg", ComputeGlobalCG(), promotes=["*"])
+        # self.add_subsystem("compute_cg", ComputeGlobalCG(propulsion_id=self.options['propulsion_id']), promotes=["*"])
+        self.add_subsystem("compute_cg", ComputeGlobalCGnew(propulsion_id=self.options['propulsion_id']), promotes=["*"])
         self.add_subsystem("update_mlg", UpdateMLG(), promotes=["*"])
         self.add_subsystem("aircraft", ComputeAircraftCG(), promotes=["*"])
 
@@ -73,19 +77,26 @@ class ComputeAircraftCG(om.ExplicitComponent):
     def setup(self):
     
         self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan)
+        self.add_input("data:weight:aircraft:CG:fwd:MAC_position", val=np.nan)
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
 
         self.add_output("data:weight:aircraft:CG:aft:x", units="m")
+        self.add_output("data:weight:aircraft:CG:fwd:x", units="m")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
     
-        cg_ratio = inputs["data:weight:aircraft:CG:aft:MAC_position"]
+        cg_aft_ratio = inputs["data:weight:aircraft:CG:aft:MAC_position"]
+        cg_fwd_ratio = inputs["data:weight:aircraft:CG:fwd:MAC_position"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         mac_position = inputs["data:geometry:wing:MAC:at25percent:x"]
 
         outputs["data:weight:aircraft:CG:aft:x"] = (
-            mac_position - 0.25 * l0_wing + cg_ratio * l0_wing
+            mac_position - 0.25 * l0_wing + cg_aft_ratio * l0_wing
+        )
+        # Comment this line if ComputeGlobalCG is used
+        outputs["data:weight:aircraft:CG:fwd:x"] = (
+            mac_position - 0.25 * l0_wing + cg_fwd_ratio * l0_wing
         )

@@ -72,6 +72,7 @@ class OMBasicICEngineWrapper(IOMPropulsionWrapper):
         component.add_input("data:propulsion:IC_engine:strokes_nb", np.nan)
         component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
         component.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
+        component.add_input("data:geometry:propulsion:layout", np.nan)
 
     @staticmethod
     def get_model(inputs) -> IPropulsion:
@@ -85,6 +86,7 @@ class OMBasicICEngineWrapper(IOMPropulsionWrapper):
             "design_speed": inputs["data:TLAR:v_cruise"],
             "fuel_type": inputs["data:propulsion:IC_engine:fuel_type"],
             "strokes_nb": inputs["data:propulsion:IC_engine:strokes_nb"],
+            "prop_layout": inputs["data:geometry:propulsion:layout"]
         }
 
         return BasicICEngine(**engine_params)

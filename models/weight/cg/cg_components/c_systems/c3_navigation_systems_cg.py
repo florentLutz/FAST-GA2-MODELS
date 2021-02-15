@@ -37,6 +37,6 @@ class ComputeNavigationSystemsCG(ExplicitComponent):
 
         # Instruments length
         l_instr = 0.7
-        x_cg_c3 = lav + l_instr
+        x_cg_c3 = lav + l_instr / 2.
 
         outputs["data:weight:systems:navigation:CG:x"] = x_cg_c3

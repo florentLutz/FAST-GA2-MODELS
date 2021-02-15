@@ -22,7 +22,10 @@ class ComputePayload(om.ExplicitComponent):
     """ Computes payload from NPAX """
 
     def setup(self):
-        self.add_input("data:TLAR:NPAX", val=np.nan)
+        self.add_input("data:TLAR:NPAX_des", val=np.nan)
+        self.add_input("data:geometry:cabin:seats:passenger:NPAX_max", val=np.nan)
+        self.add_input("data:geometry:cabin:luggage:max_luggage_weight", val=np.nan, units="kg")
+        self.add_input("data:TLAR:m_lug_des", val=np.nan, units="kg")
         self.add_input(
             "settings:weight:aircraft:payload:design_mass_per_passenger",
             val=80.0,
@@ -42,9 +45,12 @@ class ComputePayload(om.ExplicitComponent):
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        npax = inputs["data:TLAR:NPAX"] + 2.0  # addition of 2 pilots
+        npax_des = inputs["data:TLAR:NPAX_des"] + 2.0  # addition of 2 pilots
+        npax_max = inputs["data:geometry:cabin:seats:passenger:NPAX_max"] + 2.0  # addition of 2 pilots
         mass_per_pax = inputs["settings:weight:aircraft:payload:design_mass_per_passenger"]
         max_mass_per_pax = inputs["settings:weight:aircraft:payload:max_mass_per_passenger"]
+        luggage_weight_des = inputs["data:TLAR:m_lug_des"]
+        max_luggage_weight = inputs["data:geometry:cabin:luggage:max_luggage_weight"]
 
-        outputs["data:weight:aircraft:payload"] = npax * mass_per_pax
-        outputs["data:weight:aircraft:max_payload"] = npax * max_mass_per_pax
+        outputs["data:weight:aircraft:payload"] = npax_des * mass_per_pax + (npax_des - 2.0) * luggage_weight_des
+        outputs["data:weight:aircraft:max_payload"] = npax_max * max_mass_per_pax + max_luggage_weight

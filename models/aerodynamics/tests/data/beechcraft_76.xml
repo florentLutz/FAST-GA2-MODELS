@@ -17,7 +17,7 @@
 	<data>
 		<TLAR>
 		  	<v_approach units="kn">78.0!--top-level requirement: approach speed--></v_approach>
-			<v_cruise units="kn">158.0!--top-level requirement: cruise speed--></v_cruise>
+			<v_cruise units="kn">164.0!--top-level requirement: cruise speed--></v_cruise>
 		</TLAR>
 		<geometry>
 			<flap>

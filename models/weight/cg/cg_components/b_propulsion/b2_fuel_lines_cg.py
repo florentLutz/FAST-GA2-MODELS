@@ -26,6 +26,7 @@ class ComputeFuelLinesCG(ExplicitComponent):
     def setup(self):
 
         self.add_input("data:weight:propulsion:engine:CG:x", val=np.nan, units="m")
+        self.add_input("data:weight:propulsion:tank:CG:x", val=np.nan, units="m")
 
         self.add_output("data:weight:propulsion:fuel_lines:CG:x", units="m")
 
@@ -34,7 +35,8 @@ class ComputeFuelLinesCG(ExplicitComponent):
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         cg_b1 = inputs["data:weight:propulsion:engine:CG:x"]
+        cg_b3 = inputs["data:weight:propulsion:tank:CG:x"]
 
-        cg_b2 = cg_b1
+        cg_b2 = (cg_b1 + cg_b3) / 2.
 
         outputs["data:weight:propulsion:fuel_lines:CG:x"] = cg_b2

@@ -21,6 +21,7 @@ from .components.cd0 import Cd0
 from .components.compute_L_D_max import ComputeLDMax
 from .components.compute_cnbeta_fuselage import ComputeCnBetaFuselage
 from .components.clalpha_vt import ComputeClalphaVT
+from .components.hinge_moments_elevator import Compute2DHingeMomentsTail, Compute3DHingeMomentsTail
 
 from .external.vlm import ComputeAEROvlm
 from .external.openvsp.compute_aero2 import ComputeAEROopenvsp
@@ -66,3 +67,5 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("L_D_max", ComputeLDMax(), promotes=["*"])
         self.add_subsystem("cnBeta_fuse", ComputeCnBetaFuselage(), promotes=["*"])
         self.add_subsystem("clAlpha_vt", ComputeClalphaVT(), promotes=["*"])
+        self.add_subsystem("ch_ht_2d", Compute2DHingeMomentsTail(), promotes=["*"])
+        self.add_subsystem("ch_ht_3d", Compute3DHingeMomentsTail(), promotes=["*"])

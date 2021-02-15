@@ -35,7 +35,8 @@ class ComputeLifeSupportCG(ExplicitComponent):
 
         lav = inputs["data:geometry:fuselage:front_length"]
 
-        # Air conditioning system gravity center
-        x_cg_c22 = 0 * lav
+        # Air conditioning system gravity center, this formula was chosen based on the fact that both for the SR22
+        # and the BE76 the main heat exchnager seems to be located at the firewall (SR22) or in the nose cone (BE76)
+        x_cg_c22 = lav
 
         outputs["data:weight:systems:life_support:air_conditioning:CG:x"] = x_cg_c22

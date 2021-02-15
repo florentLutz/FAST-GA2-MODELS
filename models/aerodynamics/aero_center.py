@@ -16,7 +16,10 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+import math
 from openmdao.core.explicitcomponent import ExplicitComponent
+
+from fastoad.utils.physics import Atmosphere
 
 
 class ComputeAeroCenter(ExplicitComponent):
@@ -31,13 +34,21 @@ class ComputeAeroCenter(ExplicitComponent):
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
         self.add_input(
             "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m"
         )
         self.add_input("data:aerodynamics:wing:cruise:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:horizontal_tail:cruise:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:elevator:low_speed:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:AOA", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:elevator", val=np.nan, units="rad**-1")
+        self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
+        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
 
-        self.add_output("data:aerodynamics:cruise:neutral_point:x")
+        self.add_output("data:aerodynamics:cruise:neutral_point:stick_fixed:x")
+        self.add_output("data:aerodynamics:cruise:neutral_point:stick_free:x")
+        self.add_output("data:aerodynamics:cruise:neutral_point:free_elevator_factor")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -50,10 +61,16 @@ class ComputeAeroCenter(ExplicitComponent):
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         fus_length = inputs["data:geometry:fuselage:length"]
         wing_area = inputs["data:geometry:wing:area"]
+        aspect_ratio = inputs["data:geometry:wing:aspect_ratio"]
         lp_ht = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
         cl_alpha_wing = inputs["data:aerodynamics:wing:cruise:CL_alpha"]
         cl_alpha_ht = inputs["data:aerodynamics:horizontal_tail:cruise:CL_alpha"]
-        
+        cl_delta_ht = inputs["data:aerodynamics:elevator:low_speed:CL_alpha"]
+        ch_alpha_3d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:AOA"]
+        ch_delta_3d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:elevator"]
+        v_cruise = inputs["data:TLAR:v_cruise"]
+        alt_cruise = inputs["data:mission:sizing:main_route:cruise:altitude"]
+
         # TODO: make variable name in computation sequence more english
         x0_25 = fa_length - 0.25 * l0_wing - x0_wing + 0.25 * l1_wing
         ratio_x025 = x0_25 / fus_length
@@ -62,7 +79,28 @@ class ComputeAeroCenter(ExplicitComponent):
         # equation from Raymer book, eqn 16.22
         # FIXME: introduce cm_alpha_wing to the equation (non-symmetrical profile)
         cm_alpha_fus = k_h * width_max ** 2 * fus_length / (l0_wing * wing_area) * 180.0 / np.pi
-        x_ca_plane = (cl_alpha_ht * lp_ht - cm_alpha_fus * l0_wing) / (cl_alpha_wing + cl_alpha_ht)
+        x_ca_plane = (cl_alpha_ht * lp_ht - cm_alpha_fus * l0_wing) / (cl_alpha_wing+cl_alpha_ht)
         x_aero_center = x_ca_plane / l0_wing + 0.25
 
-        outputs["data:aerodynamics:cruise:neutral_point:x"] = x_aero_center
+        outputs["data:aerodynamics:cruise:neutral_point:stick_fixed:x"] = x_aero_center
+
+        sos = Atmosphere(alt_cruise).speed_of_sound
+        mach = v_cruise / sos
+        beta = math.sqrt(1. - mach ** 2.0)
+        cl_delta_ht_cruise = cl_delta_ht / beta
+
+        # The cl_alpha_ht in the formula for the free_elevator_factor is defined with respect to the tail angle of
+        # attack, the one we compute is wth respect to the plane so it includes downwash, as a consequence we must
+        # correct it influence for this specific calculation. We will use the formula for elliptical wing as it is well
+        # known
+        downwash_effect = (1. - 2. * cl_alpha_wing / (math.pi * aspect_ratio))
+        cl_alpha_ht_ht = cl_alpha_ht / downwash_effect
+        free_elevator_factor = 1. - (cl_delta_ht_cruise/cl_alpha_ht_ht)*(ch_alpha_3d/ch_delta_3d)
+
+        outputs["data:aerodynamics:cruise:neutral_point:free_elevator_factor"] = free_elevator_factor
+
+        x_ca_plane_free = (free_elevator_factor * cl_alpha_ht * lp_ht - cm_alpha_fus * l0_wing) / \
+                          (cl_alpha_wing + free_elevator_factor * cl_alpha_ht)
+        x_aero_center_free = x_ca_plane_free / l0_wing + 0.25
+
+        outputs["data:aerodynamics:cruise:neutral_point:stick_free:x"] = x_aero_center_free

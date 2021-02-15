@@ -153,9 +153,9 @@ def _test_compute_reynolds():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeUnitReynolds(), ivc)
     mach = problem["data:aerodynamics:cruise:mach"]
-    assert mach == pytest.approx(0.2457, abs=1e-4)
+    assert mach == pytest.approx(0.255041, abs=1e-4)
     reynolds = problem.get_val("data:aerodynamics:cruise:unit_reynolds", units="m**-1")
-    assert reynolds == pytest.approx(4571770, abs=1)
+    assert reynolds == pytest.approx(4745380, abs=1)
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(ComputeUnitReynolds(low_speed_aero=True)), __file__, XML_FILE)
@@ -571,7 +571,7 @@ def _test_high_lift():
     delta_cm_landing = problem["data:aerodynamics:flaps:landing:CM"]
     assert delta_cm_landing == pytest.approx(-0.0988, abs=1e-4)
     delta_cd_landing = problem["data:aerodynamics:flaps:landing:CD"]
-    assert delta_cd_landing == pytest.approx(0.0196, abs=1e-4)
+    assert delta_cd_landing == pytest.approx(0.01383, abs=1e-4)
     delta_cl0_takeoff = problem["data:aerodynamics:flaps:takeoff:CL"]
     assert delta_cl0_takeoff == pytest.approx(0.2805, abs=1e-4)
     delta_clmax_takeoff = problem["data:aerodynamics:flaps:takeoff:CL_max"]
@@ -579,7 +579,7 @@ def _test_high_lift():
     delta_cm_takeoff = problem["data:aerodynamics:flaps:takeoff:CM"]
     assert delta_cm_takeoff == pytest.approx(-0.0378, abs=1e-4)
     delta_cd_takeoff = problem["data:aerodynamics:flaps:takeoff:CD"]
-    assert delta_cd_takeoff == pytest.approx(0.0034, abs=1e-4)
+    assert delta_cd_takeoff == pytest.approx(0.00111811, abs=1e-4)
     cl_alpha_elev = problem.get_val("data:aerodynamics:elevator:low_speed:CL_alpha", units="rad**-1")
     assert cl_alpha_elev == pytest.approx(0.6167, abs=1e-4)
 
@@ -711,11 +711,11 @@ def _test_high_speed_connection():
         coef_k = problem["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
         assert coef_k == pytest.approx(0.0530, abs=1e-4)
         cl_alpha_wing = problem.get_val("data:aerodynamics:wing:cruise:CL_alpha", units="rad**-1")
-        assert cl_alpha_wing == pytest.approx(4.719, abs=1e-3)
+        assert cl_alpha_wing == pytest.approx(4.7312, abs=1e-3)
         cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
-        assert cl_alpha_htp == pytest.approx(0.6260, abs=1e-4)
+        assert cl_alpha_htp == pytest.approx(0.62660351, abs=1e-4)
         cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
-        assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
+        assert cl_alpha_vtp == pytest.approx(2.85887458, abs=1e-4)
 
     with Timer(name="High-speed complete [NEW]: apply OPENVSP"):
         # Run problem with OPENVSP and check change(s) is/(are) correct
@@ -725,11 +725,11 @@ def _test_high_speed_connection():
         coef_k = problem["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
         assert coef_k == pytest.approx(0.04822, abs=1e-4)
         cl_alpha_wing = problem.get_val("data:aerodynamics:wing:cruise:CL_alpha", units="rad**-1")
-        assert cl_alpha_wing == pytest.approx(4.587, abs=1e-3)
+        assert cl_alpha_wing == pytest.approx(4.59518345, abs=1e-3)
         cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
-        assert cl_alpha_htp == pytest.approx(0.6820, abs=1e-4)
+        assert cl_alpha_htp == pytest.approx(0.68262192, abs=1e-4)
         cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
-        assert cl_alpha_vtp == pytest.approx(2.8553, abs=1e-4)
+        assert cl_alpha_vtp == pytest.approx(2.85887458, abs=1e-4)
 
 
 def _test_low_speed_connection():

@@ -21,14 +21,19 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 
 
 class ComputeFuselageCG(ExplicitComponent):
-    # TODO: Document equations. Cite sources
-    """ Fuselage center of gravity estimation """
+    """
+    Wing center of gravity estimation
+
+    Based on : Roskam, Jan. Airplane Design: Part 5-Component Weight Estimation. DARcorporation, 1985.
+    Table 8.1 Center of Gravity Location of Structural Components
+    """
 
     def setup(self):
 
         self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
-        
+        self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
+
         self.add_output("data:weight:airframe:fuselage:CG:x", units="m")
 
         self.declare_partials("data:weight:airframe:fuselage:CG:x", "data:geometry:fuselage:length", method="fd")
@@ -37,14 +42,14 @@ class ComputeFuselageCG(ExplicitComponent):
 
         prop_layout = inputs["data:geometry:propulsion:layout"]
         fus_length = inputs["data:geometry:fuselage:length"]
+        lav = inputs["data:geometry:fuselage:front_length"]
         
         # Fuselage gravity center
         if prop_layout == 1.0:
-            x_cg_a2 = 0.45 * fus_length
+            x_cg_a2 = 0.39 * fus_length
         elif prop_layout == 3.0:  # nose mount
-            x_cg_a2 = 0.33 * fus_length
-        else:  # FIXME: no equation for configuration 2.0
-            x_cg_a2 = 0.45 * fus_length
-            warnings.warn('Propulsion layout {} not implemented in model, replaced by layout 1!'.format(prop_layout))
+            x_cg_a2 = lav + 0.33 * (fus_length - lav)
+        else:
+            x_cg_a2 = lav + 0.47 * (fus_length - lav)
         
         outputs["data:weight:airframe:fuselage:CG:x"] = x_cg_a2
