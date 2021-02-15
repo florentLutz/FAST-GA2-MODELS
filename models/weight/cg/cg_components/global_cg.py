@@ -16,8 +16,9 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from ..cg_components.loadcase import ComputeCGLoadCase
+from ..cg_components.loadcase_test import ComputeGroundCGCase, ComputeFlightCGCase
 from ..cg_components.ratio_aft import ComputeCGRatioAft
-from ..cg_components.max_cg_ratio import ComputeMaxCGratio
+from ..cg_components.max_cg_ratio import ComputeMaxCGratio, ComputeMaxMinCGratio
 
 from openmdao.api import Group
 
@@ -25,6 +26,9 @@ from openmdao.api import Group
 class ComputeGlobalCG(Group):
     # TODO: Document equations. Cite sources
     """ Global center of gravity estimation """
+
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
         self.add_subsystem("cg_ratio_aft", ComputeCGRatioAft(), promotes=["*"])
@@ -35,3 +39,19 @@ class ComputeGlobalCG(Group):
         self.add_subsystem("cg_ratio_lc5", ComputeCGLoadCase(load_case=5), promotes=["*"])
         self.add_subsystem("cg_ratio_lc6", ComputeCGLoadCase(load_case=6), promotes=["*"])
         self.add_subsystem("cg_ratio_max", ComputeMaxCGratio(), promotes=["*"])
+
+
+class ComputeGlobalCGnew(Group):
+    # TODO: Document equations. Cite sources
+    """ Global center of gravity estimation """
+
+    def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
+
+    def setup(self):
+        self.add_subsystem("cg_ratio_aft", ComputeCGRatioAft(), promotes=["*"])
+        self.add_subsystem("cg_ratio_lc_ground", ComputeGroundCGCase(), promotes=["*"])
+        self.add_subsystem("cg_ratio_lc_flight",
+                           ComputeFlightCGCase(propulsion_id=self.options["propulsion_id"]),
+                           promotes=["*"])
+        self.add_subsystem("cg_ratio_extrema", ComputeMaxMinCGratio(), promotes=["*"])

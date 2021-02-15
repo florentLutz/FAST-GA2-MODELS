@@ -25,7 +25,7 @@ class ComputePassengerSeatsCG(ExplicitComponent):
 
     def setup(self):
         self.add_input("data:TLAR:NPAX", val=np.nan)
-        self.add_input("data:geometry:cabin:NPAX", val=np.nan)
+        self.add_input("data:geometry:cabin:seats:passenger:NPAX_max", val=np.nan)
         self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
         self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
         self.add_input("data:geometry:cabin:seats:pilot:length", val=np.nan, units="m")
@@ -37,8 +37,7 @@ class ComputePassengerSeatsCG(ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        npax = inputs["data:TLAR:NPAX"]
-        npax1 = inputs["data:geometry:cabin:NPAX"]
+        npax_max = inputs["data:geometry:cabin:seats:passenger:NPAX_max"]
         lav = inputs["data:geometry:fuselage:front_length"]
         count_by_row = inputs["data:geometry:cabin:seats:passenger:count_by_row"]
         l_pilot_seat = inputs["data:geometry:cabin:seats:pilot:length"]
@@ -47,11 +46,11 @@ class ComputePassengerSeatsCG(ExplicitComponent):
         # Instruments length
         l_instr = 0.7
         # Seats and passengers gravity center (hypothesis of 2 pilots)
-        nrows = int(npax1/count_by_row)
-        x_cg_d2 = lav + l_instr + l_pilot_seat * 2./(npax + 2.)
+        nrows = int(npax_max/count_by_row)
+        x_cg_d2 = lav + l_instr + l_pilot_seat * 2./(npax_max + 2.)
         for idx in range(nrows):
             length = l_pilot_seat + (idx + 0.5)*l_pass_seat
-            nb_pers = min(count_by_row, npax-idx*count_by_row)
-            x_cg_d2 = x_cg_d2 + length*nb_pers/(npax + 2.)
+            nb_pers = min(count_by_row, npax_max-idx*count_by_row)
+            x_cg_d2 = x_cg_d2 + length*nb_pers/(npax_max + 2.)
 
         outputs["data:weight:furniture:passenger_seats:CG:x"] = x_cg_d2

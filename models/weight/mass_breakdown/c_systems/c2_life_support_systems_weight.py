@@ -35,7 +35,7 @@ class ComputeLifeSupportSystemsWeight(ExplicitComponent):
     def setup(self):
         
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
-        self.add_input("data:TLAR:NPAX", val=np.nan)
+        self.add_input("data:geometry:cabin:seats:passenger:NPAX_max", val=np.nan)
         self.add_input("data:weight:systems:navigation:mass", val=np.nan, units="lb")
         self.add_input("data:TLAR:v_limit", val=np.nan, units="m/s")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
@@ -53,7 +53,7 @@ class ComputeLifeSupportSystemsWeight(ExplicitComponent):
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         
         mtow = inputs["data:weight:aircraft:MTOW"]
-        n_pax = inputs["data:TLAR:NPAX"]
+        n_pax = inputs["data:geometry:cabin:seats:passenger:NPAX_max"]
         m_iae = inputs["data:weight:systems:navigation:mass"]
         limit_speed = inputs["data:TLAR:v_limit"]
         cruise_alt = inputs["data:mission:sizing:main_route:cruise:altitude"]

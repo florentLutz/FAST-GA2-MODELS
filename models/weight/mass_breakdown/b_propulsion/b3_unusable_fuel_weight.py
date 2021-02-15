@@ -20,13 +20,12 @@ from ....propulsion.fuel_propulsion.base import FuelEngineSet
 from fastoad import BundleLoader
 
 
-class ComputeEngineWeight(ExplicitComponent):
+class ComputeUnusableFuelWeight(ExplicitComponent):
     """
-    Engine weight estimation calling wrapper
+    Weight estimation for motor oil
 
-    Based on : Raymer Daniel. Aircraft Design: A Conceptual Approach. AIAA
-    Education Series 1996 for installed engine weight, table 15.2
-
+    Based on : Wells, Douglas P., Bryce L. Horvath, and Linwood A. McCullers. "The Flight Optimization System Weights
+    Estimation Method." (2017). Equation 121
     """
 
     def __init__(self, **kwargs):
@@ -39,22 +38,28 @@ class ComputeEngineWeight(ExplicitComponent):
     def setup(self):
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
-        
-        self.add_input("data:geometry:propulsion:count", val=np.nan)
-        
-        self.add_output("data:weight:propulsion:engine:mass", units="lb")
 
-        self.declare_partials("*", "*", method="fd")
+        self.add_input("data:geometry:propulsion:count", val=np.nan)
+        self.add_input("data:geometry:wing:area", val=np.nan, units="ft**2")
+        self.add_input("data:weight:aircraft:MFW", val=np.nan, units="lb")
+
+        self.add_output("data:weight:propulsion:unusable_fuel:mass", units="lb")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        propulsion_model = FuelEngineSet(
-            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
-        )
+        n_eng = inputs["data:geometry:propulsion:count"]
+        wing_area = inputs["data:geometry:wing:area"]
+        mfw = inputs["data:weight:aircraft:MFW"]
+        n_tank = 2.0
 
-        # This should give the UNINSTALLED weight
-        uninstalled_engine_weight = propulsion_model.compute_weight()
+        propulsion_model = FuelEngineSet(self._engine_wrapper.get_model(inputs), n_eng)
 
-        b1 = 1.4 * uninstalled_engine_weight
+        sl_thrust_newton = propulsion_model.compute_sl_thrust()
+        sl_thrust_lbs = sl_thrust_newton * 0.224809
+        sl_thrust_lbs_per_engine = sl_thrust_lbs / n_eng
 
-        outputs["data:weight:propulsion:engine:mass"] = b1
+        b3 = 11.5 * n_eng * sl_thrust_lbs_per_engine ** 0.2 + \
+            0.07 * wing_area + \
+            1.6 * n_tank * mfw ** 0.28
+
+        outputs["data:weight:propulsion:unusable_fuel:mass"] = b3

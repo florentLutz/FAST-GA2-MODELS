@@ -89,18 +89,24 @@ def test_oad_process(cleanup):
     assert_allclose(
         problem["data:weight:aircraft:MTOW"],
         problem["data:weight:aircraft:OWE"]
-        + problem["data:weight:aircraft:payload"]
+        + problem["data:weight:aircraft:max_payload"]
         + problem["data:mission:sizing:fuel"],
         rtol=5e-2,
     )
 
-    assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 267.882, atol=1)
+    assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 203.65, atol=1)
     # noinspection PyTypeChecker
-    assert_allclose(problem["data:handling_qualities:static_margin"], 0.192, atol=1e-2)
+    assert_allclose(problem.get_val("data:weight:aircraft:max_payload", units="kg"), 400.0, atol=1)
     # noinspection PyTypeChecker
-    assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1643.58, atol=1)
+    assert_allclose(problem["data:handling_qualities:static_margin"], 0.08515, atol=1e-2)
     # noinspection PyTypeChecker
-    assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1035.71, atol=1)
+    assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1650.24, atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:weight:aircraft:payload", units="kg"), 360., atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1046.61, atol=1)
+    # noinspection PyTypeChecker
+    assert_allclose(problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg"), 166.405, atol=1)
 
 
 def est_api(cleanup):

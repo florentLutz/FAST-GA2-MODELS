@@ -90,7 +90,15 @@ class IPropulsion(ABC):
         """
         Computes total propulsion mass.
 
-        :return: the total installed mass in kg
+        :return: the total uninstalled mass in kg
+        """
+
+    @abstractmethod
+    def compute_sl_thrust(self) -> float:
+        """
+        Computes the total thrust provided at SL for a static aircraft
+
+        :return: the total thrust at sea level in N
         """
 
     @abstractmethod

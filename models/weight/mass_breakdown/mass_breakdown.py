@@ -27,6 +27,7 @@ from .a_airframe import (
 from .b_propulsion import (
     ComputeEngineWeight,
     ComputeFuelLinesWeight,
+    ComputeUnusableFuelWeight,
 )
 from .c_systems import (
     ComputePowerSystemsWeight,
@@ -104,6 +105,8 @@ class ComputeOperatingWeightEmpty(om.Group):
         self.add_subsystem("flight_controls_weight", ComputeFlightControlsWeight(), promotes=["*"])
         self.add_subsystem("landing_gear_weight", ComputeLandingGearWeight(), promotes=["*"])
         self.add_subsystem("engine_weight", ComputeEngineWeight(propulsion_id=self.options["propulsion_id"]),
+                           promotes=["*"])
+        self.add_subsystem("unusable_fuel", ComputeUnusableFuelWeight(propulsion_id=self.options["propulsion_id"]),
                            promotes=["*"])
         self.add_subsystem("fuel_lines_weight", ComputeFuelLinesWeight(), promotes=["*"])
         self.add_subsystem("navigation_systems_weight", ComputeNavigationSystemsWeight(), promotes=["*"])

@@ -52,6 +52,9 @@ class aircraft_equilibrium(om.ExplicitComponent):
         self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CM0_clean", np.nan)
         self.add_input("data:weight:aircraft:CG:aft:x", np.nan, units="m")
+        self.add_input("data:weight:aircraft:in_flight_variation:C1", np.nan)
+        self.add_input("data:weight:aircraft:in_flight_variation:C2", np.nan)
+        self.add_input("data:weight:aircraft:in_flight_variation:C3", np.nan)
 
 
     @staticmethod
@@ -73,7 +76,12 @@ class aircraft_equilibrium(om.ExplicitComponent):
             cl_alpha_wing = inputs["data:aerodynamics:wing:cruise:CL_alpha"]
             cl0_wing = inputs["data:aerodynamics:wing:cruise:CL0_clean"]
             cm0_wing = inputs["data:aerodynamics:wing:cruise:CM0_clean"]
-        x_cg = inputs["data:weight:aircraft:CG:aft:x"]
+
+        c1 = inputs["data:weight:aircraft:in_flight_variation:C1"]
+        c2 = inputs["data:weight:aircraft:in_flight_variation:C2"]
+        c3 = inputs["data:weight:aircraft:in_flight_variation:C3"]
+        fuel_mass = mass - c3
+        x_cg = (c1 + c2 * fuel_mass) / (c3 + fuel_mass)
 
         # Calculate cm_alpha_fus from Raymer equations (figure 16.14, eqn 16.22)
         x0_25 = x_wing - 0.25 * l0_wing - x0_wing + 0.25 * l1_wing

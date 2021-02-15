@@ -31,7 +31,7 @@ from fastoad.base.dict import DynamicAttributeDict, AddKeyAttributes
 # Logger for this module
 _LOGGER = logging.getLogger(__name__)
 
-PROPELLER_EFFICIENCY = 0.85  # Used to be 0.8 maybe make it an xml parameter
+PROPELLER_EFFICIENCY = 0.83  # Used to be 0.8 maybe make it an xml parameter
 
 # Set of dictionary keys that are mapped to instance attributes.
 ENGINE_LABELS = {
@@ -438,6 +438,17 @@ class BasicICEngine(AbstractFuelPropulsion):
 
         return self.nacelle["height"], self.nacelle["width"], self.nacelle["length"], self.nacelle[
             "wet_area"], d, propeller_depth
+
+    def compute_sl_thrust(self) -> (float):
+
+        """
+        Computes the thrust at sea level for a single engine + propeller assembly
+        """
+
+        _, _, _, _, _, _ = self.compute_dimensions()
+        sl_thrust = self.propeller.thrust_SL * 9.81
+
+        return sl_thrust
 
     def compute_drag(self, mach, unit_reynolds, wing_mac):
         """

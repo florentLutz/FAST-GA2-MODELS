@@ -71,7 +71,7 @@ class ComputeTailWeight(om.ExplicitComponent):
         taper_ht = inputs["data:geometry:horizontal_tail:taper_ratio"]
 
         rho_cruise = Atmosphere(cruise_alt).density
-        dynamic_pressure = 1./2.*rho_cruise*(v_cruise_ktas*0.5144)**2.*0.208854
+        dynamic_pressure = 1./2.*rho_cruise*(v_cruise_ktas*0.5144)**2.*0.0208854
         # In lb/ft2
 
         a31 = 0.016 * (

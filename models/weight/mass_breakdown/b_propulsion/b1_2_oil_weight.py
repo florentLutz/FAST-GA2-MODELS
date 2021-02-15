@@ -20,13 +20,14 @@ from ....propulsion.fuel_propulsion.base import FuelEngineSet
 from fastoad import BundleLoader
 
 
-class ComputeEngineWeight(ExplicitComponent):
+class ComputeOilWeight(ExplicitComponent):
     """
-    Engine weight estimation calling wrapper
+    Weight estimation for motor oil
 
-    Based on : Raymer Daniel. Aircraft Design: A Conceptual Approach. AIAA
-    Education Series 1996 for installed engine weight, table 15.2
+    Based on : Wells, Douglas P., Bryce L. Horvath, and Linwood A. McCullers. "The Flight Optimization System Weights
+    Estimation Method." (2017). Equation 123
 
+    Not used since already included in the engine installed weight but left there in case
     """
 
     def __init__(self, **kwargs):
@@ -39,22 +40,20 @@ class ComputeEngineWeight(ExplicitComponent):
     def setup(self):
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
-        
-        self.add_input("data:geometry:propulsion:count", val=np.nan)
-        
-        self.add_output("data:weight:propulsion:engine:mass", units="lb")
 
-        self.declare_partials("*", "*", method="fd")
+        self.add_input("data:geometry:propulsion:count", val=np.nan)
+
+        self.add_output("data:weight:propulsion:engine_oil:mass", units="lb")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        propulsion_model = FuelEngineSet(
-            self._engine_wrapper.get_model(inputs), inputs["data:geometry:propulsion:count"]
-        )
+        propulsion_model = FuelEngineSet(self._engine_wrapper.get_model(inputs),
+                                         inputs["data:geometry:propulsion:count"])
 
         # This should give the UNINSTALLED weight
-        uninstalled_engine_weight = propulsion_model.compute_weight()
+        sl_thrust_newton = propulsion_model.compute_sl_thrust()
+        sl_thrust_lbs = sl_thrust_newton * 0.224809
 
-        b1 = 1.4 * uninstalled_engine_weight
+        b1_2 = 0.082 * inputs["data:geometry:propulsion:count"] * sl_thrust_lbs ** 0.65
 
-        outputs["data:weight:propulsion:engine:mass"] = b1
+        outputs["data:weight:propulsion:engine_oil:mass"] = b1_2
