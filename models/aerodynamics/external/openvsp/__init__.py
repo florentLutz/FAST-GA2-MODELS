@@ -12,9 +12,5 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .compute_ht_cl_alpha import ComputeHTPCLALPHAopenvsp
-from .compute_ht_cl_cm import ComputeHTPCLCMopenvsp
-from .compute_oswald import ComputeOSWALDopenvsp
-from .compute_wing_cl_alpha import ComputeWingCLALPHAopenvsp
 from .compute_aero import ComputeAEROopenvsp
 from .compute_vn import ComputeVNopenvspNoVH, ComputeVNopenvsp

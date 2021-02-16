@@ -15,8 +15,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import math
-
 import numpy as np
 import warnings
 from openmdao.core.explicitcomponent import ExplicitComponent
@@ -39,7 +37,7 @@ class Cd0Nacelle(ExplicitComponent):
         self._engine_wrapper.setup(self)
 
         self.add_input("data:geometry:propulsion:count", val=np.nan)
-        # self.add_input("data:geometry:propulsion:layout", val=np.nan), in the engine
+        self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         if self.options["low_speed_aero"]:

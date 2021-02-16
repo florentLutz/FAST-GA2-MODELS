@@ -11,8 +11,5 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .compute_oswald import ComputeOSWALDvlm
-from .compute_wing_cl_alpha import ComputeWingCLALPHAvlm
-from .compute_ht_cl_alpha import ComputeHTPCLALPHAvlm
-from .compute_ht_cl_cm import ComputeHTPCLCMvlm
 from .compute_aero import ComputeAEROvlm
+from .compute_vn import ComputeVNvlmNoVH, ComputeVNvlm

@@ -24,7 +24,7 @@ from .components.clalpha_vt import ComputeClalphaVT
 from .components.hinge_moments_elevator import Compute2DHingeMomentsTail, Compute3DHingeMomentsTail
 
 from .external.vlm import ComputeAEROvlm
-from .external.openvsp.compute_aero2 import ComputeAEROopenvsp
+from .external.openvsp import ComputeAEROopenvsp
 
 
 class AerodynamicsHighSpeed(Group):

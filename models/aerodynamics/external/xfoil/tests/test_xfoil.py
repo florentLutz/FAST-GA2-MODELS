@@ -17,6 +17,7 @@ Test module for XFOIL component
 # pylint: disable=redefined-outer-name  # needed for fixtures
 
 import os.path as pth
+import os
 import shutil
 from platform import system
 import warnings
@@ -26,7 +27,8 @@ from openmdao.core.indepvarcomp import IndepVarComp
 
 from .....tests.testing_utilities import run_system
 from .....tests.xfoil_exe.get_xfoil import get_xfoil_path
-from ..xfoil_polar import XfoilPolar, DEFAULT_2D_CL_MAX
+from ..xfoil_polar import XfoilPolar, DEFAULT_2D_CL_MAX, DEFAULT_2D_CL_MIN, _DEFAULT_AIRFOIL_FILE
+from .. import resources
 
 XFOIL_RESULTS = pth.join(pth.dirname(__file__), "results")
 
@@ -43,31 +45,26 @@ def test_compute():
         shutil.rmtree(XFOIL_RESULTS)
 
     ivc = IndepVarComp()
-    ivc.add_output("xfoil:reynolds", 18000000, units="m**-1")
-    ivc.add_output("xfoil:mach", 0.80)
+    ivc.add_output("xfoil:reynolds", 1e6, units="m**-1")
+    ivc.add_output("xfoil:mach", 0.60)
 
     xfoil_comp = XfoilPolar(
-        alpha_start=15.0, alpha_end=25.0, iter_limit=20, xfoil_exe_path=xfoil_path
+        alpha_start=0.0, alpha_end=15.0, iter_limit=100, symmetrical=True, xfoil_exe_path=xfoil_path
     )
     problem = run_system(xfoil_comp, ivc)
-    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.9, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.31, 1e-2)
+    assert problem["xfoil:CL_min_2D"] == pytest.approx(-0.59, 1e-2)
     assert not pth.exists(XFOIL_RESULTS)
 
     # Deactivate warnings for wished crash of xfoil
     warnings.simplefilter("ignore")
 
     xfoil_comp = XfoilPolar(
-        alpha_start=12.0, alpha_end=20.0, iter_limit=20, xfoil_exe_path=xfoil_path
-    )  # will stop before real max CL
-    problem = run_system(xfoil_comp, ivc)
-    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.9, 1e-2)
-    assert not pth.exists(XFOIL_RESULTS)
-
-    xfoil_comp = XfoilPolar(
-        alpha_start=50.0, alpha_end=55.0, iter_limit=2, xfoil_exe_path=xfoil_path
+        alpha_start=50.0, alpha_end=60.0, iter_limit=2, xfoil_exe_path=xfoil_path
     )  # will not converge
     problem = run_system(xfoil_comp, ivc)
     assert problem["xfoil:CL_max_2D"] == pytest.approx(DEFAULT_2D_CL_MAX, 1e-2)
+    assert problem["xfoil:CL_min_2D"] == pytest.approx(DEFAULT_2D_CL_MIN, 1e-2)
     assert not pth.exists(XFOIL_RESULTS)
 
     # Reactivate warnings
@@ -76,8 +73,7 @@ def test_compute():
     xfoil_comp = XfoilPolar(
         iter_limit=20, result_folder_path=XFOIL_RESULTS, xfoil_exe_path=xfoil_path
     )
-    problem = run_system(xfoil_comp, ivc)
-    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.9, 1e-2)
+    run_system(xfoil_comp, ivc)
     assert pth.exists(XFOIL_RESULTS)
     assert pth.exists(pth.join(XFOIL_RESULTS, "polar_result.txt"))
     
@@ -92,10 +88,16 @@ def test_compute():
 def test_compute_with_provided_path():
     """ Test that option "use_exe_path" works """
     ivc = IndepVarComp()
-    ivc.add_output("xfoil:reynolds", 18000000)
+    ivc.add_output("xfoil:reynolds", 1e6)
     ivc.add_output("xfoil:mach", 0.20)
 
-    xfoil_comp = XfoilPolar(alpha_start=18.0, alpha_end=21.0, iter_limit=20)
+    # Clear saved polar results
+    if pth.exists(pth.join(resources.__path__[0], _DEFAULT_AIRFOIL_FILE.replace('af', 'csv'))):
+        os.remove(pth.join(resources.__path__[0], _DEFAULT_AIRFOIL_FILE.replace('af', 'csv')))
+    if pth.exists(pth.join(resources.__path__[0], _DEFAULT_AIRFOIL_FILE.replace('.af', '_sym.csv'))):
+        os.remove(pth.join(resources.__path__[0], _DEFAULT_AIRFOIL_FILE.replace('.af', '_sym.csv')))
+
+    xfoil_comp = XfoilPolar(alpha_start=0.0, alpha_end=20.0, iter_limit=20)
     xfoil_comp.options["xfoil_exe_path"] = "Dummy"  # bad name
     with pytest.raises(ValueError):
         _ = run_system(xfoil_comp, ivc)
@@ -106,4 +108,4 @@ def test_compute_with_provided_path():
         else pth.join(pth.dirname(__file__), pth.pardir, "xfoil699", "xfoil.exe")
     )
     problem = run_system(xfoil_comp, ivc)
-    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.85, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.48, 1e-2)

@@ -43,7 +43,7 @@ OPTION_ALPHA_START = "alpha_start"
 OPTION_ALPHA_END = "alpha_end"
 OPTION_ITER_LIMIT = "iter_limit"
 DEFAULT_2D_CL_MAX = 1.9
-DEFAULT_2D_CL_MIN = 1.7
+DEFAULT_2D_CL_MIN = -1.7
 ALPHA_STEP = 0.5
 
 _INPUT_FILE_NAME = "polar_session.txt"
@@ -377,15 +377,17 @@ class XfoilPolar(ExternalCodeComp):
         :return: max CL within 90/110% linear zone if enough alpha computed, or default value otherwise
         """
         alpha_range = self.options[OPTION_ALPHA_END] - self.options[OPTION_ALPHA_START]
-        covered_range = max(alpha) - min(alpha)
-        if len(alpha) > 2 and np.abs(covered_range/alpha_range) >= 0.5:
-            lift_fct = lambda x: (lift_coeff[1]-lift_coeff[0])/(alpha[1]-alpha[0]) * x + lift_coeff[0]
-            delta = np.abs(lift_coeff - lift_fct(alpha))/(lift_coeff + 1e-12 * (lift_coeff == 0.0))
-            return max(lift_coeff[delta <= 0.1]), False
+        if len(alpha) > 2:
+            covered_range = max(alpha) - min(alpha)
+            if np.abs(covered_range/alpha_range) >= 0.5:
+                lift_fct = lambda x: (lift_coeff[1] - lift_coeff[0]) / (alpha[1] - alpha[0]) * (x - alpha[0]) \
+                                     + lift_coeff[0]
+                delta = np.abs((lift_coeff - lift_fct(alpha))/(lift_coeff + 1e-12 * (lift_coeff == 0.0)))
+                return max(lift_coeff[delta <= 0.1]), False
 
-        _LOGGER.warning("2D CL max not found, les than 50% of angle range computed: using default value (%s)",
-                        DEFAULT_2D_CL_MAX)
-        return DEFAULT_2D_CL_MIN, True
+        _LOGGER.warning("2D CL max not found, les than 50% of angle range computed: using default value {}".format(
+            DEFAULT_2D_CL_MAX))
+        return DEFAULT_2D_CL_MAX, True
 
 
     def _get_min_cl(self, alpha: np.ndarray, lift_coeff: np.ndarray) -> Tuple[float, bool]:
@@ -396,14 +398,16 @@ class XfoilPolar(ExternalCodeComp):
         :return: min CL within 90/110% linear zone if enough alpha computed, or default value otherwise
         """
         alpha_range = self.options[OPTION_ALPHA_END] - self.options[OPTION_ALPHA_START]
-        covered_range = max(alpha) - min(alpha)
-        if len(alpha) > 2 and covered_range/alpha_range >= 0.5:
-            lift_fct = lambda x: (lift_coeff[1] - lift_coeff[0]) / (alpha[1] - alpha[0]) * x + lift_coeff[0]
-            delta = np.abs(lift_coeff - lift_fct(alpha)) / np.abs(lift_coeff + 1e-12 * (lift_coeff == 0.0))
-            return min(lift_coeff[delta <= 0.1]), False
+        if len(alpha) > 2:
+            covered_range = max(alpha) - min(alpha)
+            if covered_range/alpha_range >= 0.5:
+                lift_fct = lambda x: (lift_coeff[1] - lift_coeff[0]) / (alpha[1] - alpha[0]) * (x - alpha[0]) \
+                                     + lift_coeff[0]
+                delta = np.abs(lift_coeff - lift_fct(alpha)) / np.abs(lift_coeff + 1e-12 * (lift_coeff == 0.0))
+                return min(lift_coeff[delta <= 0.1]), False
 
-        _LOGGER.warning("2D CL min not found, les than 50% of angle range computed: using default value (%s)",
-                        DEFAULT_2D_CL_MIN)
+        _LOGGER.warning("2D CL min not found, les than 50% of angle range computed: using default value {}".format(
+            DEFAULT_2D_CL_MIN))
         return DEFAULT_2D_CL_MIN, True
 
     @staticmethod

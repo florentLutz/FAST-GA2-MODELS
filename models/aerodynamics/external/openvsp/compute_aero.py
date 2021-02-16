@@ -1,5 +1,5 @@
 """
-    Estimation of cl/cm/oswald aero coefficients using OPENVSP
+    Estimation of aero coefficients using OPENVSP
 """
 #  This file is part of FAST : A framework for rapid Overall Aircraft Design
 #  Copyright (C) 2020  ONERA & ISAE-SUPAERO
@@ -14,47 +14,24 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from importlib_resources import path
-import math
+
 import numpy as np
-import pandas as pd
-from openmdao.components.external_code_comp import ExternalCodeComp
-from openmdao.utils.file_wrap import InputFileGenerator
-import os
-import os.path as pth
-from pathlib import Path
-import shutil
-import tempfile
-from tempfile import TemporaryDirectory
-import warnings
-from typing import Tuple, List
 from openmdao.core.group import Group
 
-from fastoad.utils.physics import Atmosphere
-from fastoad.utils.resource_management.copy import copy_resource, copy_resource_folder
-
-from ... import resources
-from . import resources as local_resources
-from . import openvsp3201
-from ...constants import SPAN_MESH_POINT_OPENVSP
+from .openvsp import OPENVSPSimpleGeometry, DEFAULT_WING_AIRFOIL, DEFAULT_HTP_AIRFOIL
+from ...constants import SPAN_MESH_POINT
 from ...components.compute_reynolds import ComputeUnitReynolds
 
-DEFAULT_WING_AIRFOIL = "naca23012.af"
-DEFAULT_HTP_AIRFOIL = "naca0012.af"
 INPUT_AOA = 10.0  # only one value given since calculation is done by default around 0.0!
-INPUT_SCRIPT_FILE_NAME_1 = "wing_openvsp.vspscript"
-INPUT_SCRIPT_FILE_NAME_2 = "wing_ht_openvsp.vspscript"
-STDERR_FILE_NAME = "vspaero_calc.err"
-VSPSCRIPT_EXE_NAME = "vspscript.exe"
-VSPAERO_EXE_NAME = "vspaero.exe"
 
 
 class ComputeAEROopenvsp(Group):
     def initialize(self):
         self.options.declare("low_speed_aero", default=False, types=bool)
         self.options.declare("result_folder_path", default="", types=str)
-        self.options.declare('wing_airfoil_file', default=DEFAULT_WING_AIRFOIL, types=str, allow_none=True)
-        self.options.declare('htp_airfoil_file', default=DEFAULT_HTP_AIRFOIL, types=str, allow_none=True)
+        self.options.declare("openvsp_exe_path", default="", types=str, allow_none=True)
+        self.options.declare("wing_airfoil_file", default=DEFAULT_WING_AIRFOIL, types=str, allow_none=True)
+        self.options.declare("htp_airfoil_file", default=DEFAULT_HTP_AIRFOIL, types=str, allow_none=True)
 
     def setup(self):
         self.add_subsystem("comp_unit_reynolds", ComputeUnitReynolds(low_speed_aero=self.options["low_speed_aero"]),
@@ -68,61 +45,29 @@ class ComputeAEROopenvsp(Group):
                            ), promotes=["*"])
 
 
-class _ComputeAEROopenvsp(ExternalCodeComp):
+class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
 
     def initialize(self):
+        super().initialize()
         self.options.declare("low_speed_aero", default=False, types=bool)
-        self.options.declare("result_folder_path", default="", types=str)
-        self.options.declare("openvsp_exe_path", default="", types=str, allow_none=True)
-        self.options.declare("wing_airfoil_file", default=DEFAULT_WING_AIRFOIL, types=str, allow_none=True)
-        self.options.declare("htp_airfoil_file", default=DEFAULT_HTP_AIRFOIL, types=str, allow_none=True)
-        
-    def setup(self):
 
-        self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="deg")
-        self.add_input("data:geometry:wing:taper_ratio", val=np.nan)
-        self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
-        self.add_input("data:geometry:wing:MAC:leading_edge:x:local", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:tip:y", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:sweep_0", val=np.nan, units="deg")
-        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:wing:span", val=np.nan, units="m")
-        self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
-        self.add_input("data:geometry:horizontal_tail:taper_ratio", val=np.nan)
-        self.add_input("data:geometry:horizontal_tail:aspect_ratio", val=np.nan)
-        self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:tip:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:MAC:length", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:local", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:z:from_wingMAC25", val=np.nan, units="m")
+    def setup(self):
+        super().setup()
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-            self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units='ft')
+            self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units='m')
 
         if self.options["low_speed_aero"]:
             self.add_output("data:aerodynamics:wing:low_speed:CL0_clean")
             self.add_output("data:aerodynamics:wing:low_speed:CL_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:wing:low_speed:CM0_clean")
-            self.add_output("data:aerodynamics:wing:low_speed:CM_alpha", units="rad**-1")
-            self.add_output("data:aerodynamics:wing:low_speed:Y_vector", shape=SPAN_MESH_POINT_OPENVSP, units="m")
-            self.add_output("data:aerodynamics:wing:low_speed:CL_vector", shape=SPAN_MESH_POINT_OPENVSP)
+            self.add_output("data:aerodynamics:wing:low_speed:Y_vector", shape=SPAN_MESH_POINT, units="m")
+            self.add_output("data:aerodynamics:wing:low_speed:CL_vector", shape=SPAN_MESH_POINT)
             self.add_output("data:aerodynamics:wing:low_speed:induced_drag_coefficient")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL0")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
-            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CM0")
-            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CM_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:induced_drag_coefficient")
         else:
             self.add_output("data:aerodynamics:wing:cruise:CL0_clean")
@@ -132,465 +77,46 @@ class _ComputeAEROopenvsp(ExternalCodeComp):
             self.add_output("data:aerodynamics:wing:cruise:induced_drag_coefficient")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL0")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
-            self.add_output("data:aerodynamics:horizontal_tail:cruise:CM0")
-            self.add_output("data:aerodynamics:horizontal_tail:cruise:CM_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient")
-        
+
         self.declare_partials("*", "*", method="fd")
 
     def check_config(self, logger):
         # let void to avoid logger error on "The command cannot be empty"
         pass
-    
+
     def compute(self, inputs, outputs):
 
-        # Check AOA input length to be =2
+        # Check AOA input is float
         if not (type(INPUT_AOA) == float):
             raise TypeError('INPUT_AOA should be a float!')
-        else:
-            INPUT_AOAList = [0.0, INPUT_AOA]
 
-        # Get inputs
-        sref_wing = float(inputs['data:geometry:wing:area'])
-        sref_htp = float(inputs['data:geometry:horizontal_tail:area'])
-        area_ratio = sref_htp / sref_wing
         if self.options["low_speed_aero"]:
             altitude = 0.0
-            atm = Atmosphere(altitude)
-            mach = round(float(inputs["data:aerodynamics:low_speed:mach"])*1e6)/1e6
+            mach = inputs["data:aerodynamics:low_speed:mach"]
         else:
             altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
-            atm = Atmosphere(altitude)
-            mach = round(float(inputs["data:aerodynamics:cruise:mach"])*1e6)/1e6
+            mach = inputs["data:aerodynamics:cruise:mach"]
 
-        # Create result folder first (if it must fail, let it fail as soon as possible)
-        result_folder_path = self.options["result_folder_path"]
-        if result_folder_path != "":
-            if not os.path.exists(result_folder_path):
-                os.makedirs(pth.join(result_folder_path), exist_ok=True)
-
-        # Get the primary form factors for wing/htp and store it to geometryX.csv file (to avoid re-computation)
-        # or save result file path if geometry already computed (to load results afterwards)
-        already_computed = False
-        result_file_path = None
-        saved_area_ratio = 1.0
-        if result_folder_path != "":
-            sweep25_wing = float(inputs["data:geometry:wing:sweep_25"])
-            taper_ratio_wing = float(inputs["data:geometry:wing:taper_ratio"])
-            aspect_ratio_wing = float(inputs["data:geometry:wing:aspect_ratio"])
-            sweep25_htp = float(inputs["data:geometry:horizontal_tail:sweep_25"])
-            aspect_ratio_htp = float(inputs["data:geometry:horizontal_tail:aspect_ratio"])
-            taper_ratio_htp = float(inputs["data:geometry:horizontal_tail:taper_ratio"])
-            geometry_set = np.around(np.array(
-                [sweep25_wing, taper_ratio_wing, aspect_ratio_wing, sweep25_htp, taper_ratio_htp,
-                 aspect_ratio_htp, mach, area_ratio]), decimals=6)
-            geometry_set_labels = ["sweep25_wing", "taper_ratio_wing", "aspect_ratio_wing", "sweep25_htp",
-                                   "taper_ratio_htp", "aspect_ratio_htp", "mach", "area_ratio"]
-            # If some results already stored search for corresponding geometry
-            if pth.exists(pth.join(result_folder_path, "geometry_0.csv")):
-                idx = 0
-                while pth.exists(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv")):
-                    if pth.exists(pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")):
-                        data = pd.read_csv(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv"))
-                        values = data.to_numpy()[:, 1].tolist()
-                        labels = data.to_numpy()[:, 0].tolist()
-                        data = pd.DataFrame(values, index=labels)
-                        # noinspection PyBroadException
-                        try:
-                            if np.size(data.loc[geometry_set_labels[0:-1], 0].to_numpy()) == 7:
-                                saved_set = np.around(data.loc[geometry_set_labels[0:-1], 0].to_numpy(), decimals=6)
-                                if np.sum(saved_set == geometry_set[0:-1]) == 7:
-                                    result_file_path = pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")
-                                    saved_area_ratio = data.loc["area_ratio", 0]
-                                    already_computed = True
-                                    break
-                        except:
-                            break
-                    idx += 1
-            # Save geometry if not already computed
-            if not already_computed:
-                data = pd.DataFrame(geometry_set, index=geometry_set_labels)
-                # Find available index
-                idx = 0
-                while pth.exists(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv")):
-                    idx += 1
-                data.to_csv(pth.join(result_folder_path, "geometry_" + str(idx) + ".csv"))
-                result_file_path = pth.join(result_folder_path, "openvsp_" + str(idx) + ".csv")
-
-        if not already_computed:
-            # Get inputs (and calculate missing ones)
-            x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
-            l0_wing = inputs["data:geometry:wing:MAC:length"]
-            width_max = inputs["data:geometry:fuselage:maximum_width"]
-            y1_wing = width_max/2.0
-            y2_wing = inputs["data:geometry:wing:root:y"]
-            l2_wing = inputs["data:geometry:wing:root:chord"]
-            y4_wing = inputs["data:geometry:wing:tip:y"]
-            l4_wing = inputs["data:geometry:wing:tip:chord"]
-            sweep_0_wing = inputs["data:geometry:wing:sweep_0"]
-            fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
-            span_wing = inputs['data:geometry:wing:span']
-            height_max = inputs["data:geometry:fuselage:maximum_height"]
-            sweep_25_htp = inputs["data:geometry:horizontal_tail:sweep_25"]
-            span_htp = inputs["data:geometry:horizontal_tail:span"]/2.0
-            root_chord_htp = inputs["data:geometry:horizontal_tail:root:chord"]
-            tip_chord_htp = inputs["data:geometry:horizontal_tail:tip:chord"]
-            lp_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
-            l0_htp = inputs["data:geometry:horizontal_tail:MAC:length"]
-            x0_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"]
-            height_htp = inputs["data:geometry:horizontal_tail:z:from_wingMAC25"]
-
-            # Compute remaining inputs
-            x_wing = fa_length-x0_wing-0.25*l0_wing
-            z_wing = -(height_max - 0.12*l2_wing)*0.5
-            span2_wing = y4_wing - y2_wing
-            distance_htp = fa_length + lp_htp - 0.25 * l0_htp - x0_htp
-            speed_of_sound = atm.speed_of_sound
-            viscosity = atm.kinematic_viscosity
-            rho = atm.density
-            v_inf = max(speed_of_sound * mach, 0.01)  # avoid V=0 m/s crashes
-            reynolds = v_inf * l0_wing / viscosity
-
-            # OPENVSP-SCRIPT: Geometry generation ######################################################
-
-            # I/O files --------------------------------------------------------------------------------
-            tmp_directory = self._create_tmp_directory()
-            # avoid to dump void xternal_code_comp_error.out error file
-            self.stderr = pth.join(tmp_directory.name, STDERR_FILE_NAME)
-            if self.options["openvsp_exe_path"]:
-                target_directory = pth.abspath(self.options["openvsp_exe_path"])
-            else:
-                target_directory = tmp_directory.name
-            input_file_list = [pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_1),  # wing script
-                               pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_2),  # wing+htp script
-                               pth.join(target_directory, self.options['wing_airfoil_file']),
-                               pth.join(target_directory, self.options['htp_airfoil_file'])]
-            self.options["external_input_files"] = input_file_list
-
-
-            # Pre-processing (populating temp directory) -----------------------------------------------
-            # Copy resource in temp directory if needed
-            if not (self.options["openvsp_exe_path"]):
-                # noinspection PyTypeChecker
-                copy_resource_folder(openvsp3201, target_directory)
-                # noinspection PyTypeChecker
-                copy_resource(resources, self.options['wing_airfoil_file'], target_directory)
-                # noinspection PyTypeChecker
-                copy_resource(resources, self.options['htp_airfoil_file'], target_directory)
-            # Create corresponding .bat files (one for each geometry configuration)
-            self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
-            batch_file = open(self.options["command"][0], "w+")
-            batch_file.write("@echo off\n")
-            for idx in range(2):
-                if idx == 0:
-                    input_script = INPUT_SCRIPT_FILE_NAME_1  # create wing geometry file
-                else:
-                    input_script = INPUT_SCRIPT_FILE_NAME_2  # create wing+htp geometry file
-                command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' \
-                          + pth.join(target_directory, input_script) + ' >nul 2>nul\n'
-                batch_file.write(command)
-            batch_file.close()
-
-            # standard SCRIPT input file ----------------------------------------------------------------
-            output_file_list = []
-            for idx in range(2):
-                if idx == 0:
-                    input_script = INPUT_SCRIPT_FILE_NAME_1  # create wing geometry file
-                else:
-                    input_script = INPUT_SCRIPT_FILE_NAME_2  # create wing+htp geometry file
-                tmp_result_file_path = (pth.join(target_directory, input_script[0:-9] + 'csv'))
-                output_file_list.append(tmp_result_file_path)
-                parser = InputFileGenerator()
-                with path(local_resources, input_script) as input_template_path:
-                    parser.set_template_file(str(input_template_path))
-                    parser.set_generated_file(input_file_list[idx])
-                    parser.mark_anchor("x_wing")
-                    parser.transfer_var(float(x_wing), 0, 5)
-                    parser.mark_anchor("z_wing")
-                    parser.transfer_var(float(z_wing), 0, 5)
-                    parser.mark_anchor("y1_wing")
-                    parser.transfer_var(float(y1_wing), 0, 5)
-                    for i in range(3):
-                        parser.mark_anchor("l2_wing")
-                        parser.transfer_var(float(l2_wing), 0, 5)
-                    parser.reset_anchor()
-                    parser.mark_anchor("span2_wing")
-                    parser.transfer_var(float(span2_wing), 0, 5)
-                    parser.mark_anchor("l4_wing")
-                    parser.transfer_var(float(l4_wing), 0, 5)
-                    parser.mark_anchor("sweep_0_wing")
-                    parser.transfer_var(float(sweep_0_wing), 0, 5)
-                    parser.mark_anchor("airfoil_0_file")
-                    parser.transfer_var('\"' + input_file_list[-2].replace('\\', '/') + '\"', 0, 3)
-                    parser.mark_anchor("airfoil_1_file")
-                    parser.transfer_var('\"' + input_file_list[-2].replace('\\', '/') + '\"', 0, 3)
-                    parser.mark_anchor("airfoil_2_file")
-                    parser.transfer_var('\"' + input_file_list[-2].replace('\\', '/') + '\"', 0, 3)
-                    if idx == 1:
-                        parser.mark_anchor("distance_htp")
-                        parser.transfer_var(float(distance_htp), 0, 5)
-                        parser.mark_anchor("height_htp")
-                        parser.transfer_var(float(height_htp), 0, 5)
-                        parser.mark_anchor("span_htp")
-                        parser.transfer_var(float(span_htp), 0, 5)
-                        parser.mark_anchor("root_chord_htp")
-                        parser.transfer_var(float(root_chord_htp), 0, 5)
-                        parser.mark_anchor("tip_chord_htp")
-                        parser.transfer_var(float(tip_chord_htp), 0, 5)
-                        parser.mark_anchor("sweep_25_htp")
-                        parser.transfer_var(float(sweep_25_htp), 0, 5)
-                        parser.mark_anchor("airfoil_3_file")
-                        parser.transfer_var('\"' + input_file_list[-1].replace('\\', '/') + '\"', 0, 3)
-                        parser.mark_anchor("airfoil_4_file")
-                        parser.transfer_var('\"' + input_file_list[-1].replace('\\', '/') + '\"', 0, 3)
-                    parser.mark_anchor("csv_file")
-                    csv_name = input_file_list[idx].replace('vspscript', 'csv')
-                    parser.transfer_var('\"' + csv_name.replace('\\', '/') + '\"',  0, 3)
-                    parser.generate()
-
-            # Run SCRIPT --------------------------------------------------------------------------------
-            self.options["external_output_files"] = output_file_list
-            super().compute(inputs, outputs)
-
-            # OPENVSP-AERO: aero calculation ############################################################
-
-            # I/O files --------------------------------------------------------------------------------
-            # Duplicate .csv file for 2nd AOA run
-            input_file_list = output_file_list
-            shutil.copy(input_file_list[0], pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_1[0:-10]
-                                                     + '_DegenGeom0.csv'))
-            input_file_list.append(pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_1[0:-10] + '_DegenGeom0.csv'))
-            shutil.copy(input_file_list[0], pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_1[0:-10]
-                                                     + '_DegenGeom1.csv'))
-            input_file_list.append(pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_1[0:-10] + '_DegenGeom1.csv'))
-            os.remove(input_file_list[0])
-            input_file_list.pop(0)
-            shutil.copy(input_file_list[0], pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_2[0:-10]
-                                                     + '_DegenGeom0.csv'))
-            input_file_list.append(pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_2[0:-10] + '_DegenGeom0.csv'))
-            shutil.copy(input_file_list[0], pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_2[0:-10]
-                                                     + '_DegenGeom1.csv'))
-            input_file_list.append(pth.join(target_directory, INPUT_SCRIPT_FILE_NAME_2[0:-10] + '_DegenGeom1.csv'))
-            os.remove(input_file_list[0])
-            input_file_list.pop(0)
-            output_file_list = []
-            for idx in range(4):
-                input_file_list.append(input_file_list[idx].replace('csv', 'vspaero'))
-                output_file_list.append(input_file_list[idx].replace('csv', 'lod'))
-            self.options["external_input_files"] = input_file_list
-            self.options["external_output_files"] = output_file_list
-
-            # Pre-processing (populating temp directory) -----------------------------------------------
-            self.options["command"] = [pth.join(target_directory, 'vspaero.bat')]
-            batch_file = open(self.options["command"][0], "w+")
-            batch_file.write("@echo off\n")
-            for idx in range(4):
-                command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' \
-                          + input_file_list[4+idx].replace('.vspaero', '') + ' >nul 2>nul\n'
-                batch_file.write(command)
-            batch_file.close()
-
-            # standard AERO input file -----------------------------------------------------------------
-            parser = InputFileGenerator()
-            for idx in range(4):
-                template_file = pth.split(input_file_list[4+idx])[1].replace(str(idx % 2), '')
-                with path(local_resources, template_file) as input_template_path:
-                    parser.set_template_file(str(input_template_path))
-                    parser.set_generated_file(input_file_list[4+idx])
-                    parser.reset_anchor()
-                    parser.mark_anchor("Sref")
-                    parser.transfer_var(float(sref_wing), 0, 3)
-                    parser.mark_anchor("Cref")
-                    parser.transfer_var(float(l0_wing), 0, 3)
-                    parser.mark_anchor("Bref")
-                    parser.transfer_var(float(span_wing), 0, 3)
-                    parser.mark_anchor("X_cg")
-                    parser.transfer_var(float(fa_length), 0, 3)
-                    parser.mark_anchor("Mach")
-                    parser.transfer_var(float(mach), 0, 3)
-                    parser.mark_anchor("AOA")
-                    parser.transfer_var(float(INPUT_AOAList[idx % 2]), 0, 3)
-                    parser.mark_anchor("Vinf")
-                    parser.transfer_var(float(v_inf), 0, 3)
-                    parser.mark_anchor("Rho")
-                    parser.transfer_var(float(rho), 0, 3)
-                    parser.mark_anchor("ReCref")
-                    parser.transfer_var(float(reynolds), 0, 3)
-                    parser.generate()
-
-            # Run AERO --------------------------------------------------------------------------------
-            super().compute(inputs, outputs)
-
-            # Post-processing: STEP1/2 - wing coefficients ---------------------------------------------
-            cl_0_wing, _, cm_0_wing, y_vector, cl_vector, _, _, _ = self._read_lod_file(output_file_list[0])
-            cl_1_wing, _, cm_1_wing, _, _, _, _, _ = self._read_lod_file(output_file_list[1])
-            cl_wing_vect = [cl_0_wing, cl_1_wing]
-            cm_wing_vect = [cm_0_wing, cm_1_wing]
-            # Fuselage correction
-            k_fus = 1 + 0.025 * width_max / span_wing - 0.025 * (width_max / span_wing) ** 2
-            cl_0_wing = float(cl_wing_vect[0] * k_fus)
-            cl_1_wing = float(cl_wing_vect[1] * k_fus)
-            cm_0_wing = float(cm_wing_vect[0] * k_fus)
-            cm_1_wing = float(cm_wing_vect[1] * k_fus)
-            cl_vector = (np.array(cl_vector) * k_fus).tolist()
-            # Calculate derivative
-            cl_alpha_wing = (cl_1_wing - cl_0_wing) / (INPUT_AOAList[1] * math.pi / 180)
-            cm_alpha_wing = (cm_1_wing - cm_0_wing) / (INPUT_AOAList[1] * math.pi / 180)
-            if SPAN_MESH_POINT_OPENVSP < len(y_vector):
-                y_interp = np.linspace(y_vector[0], y_vector[-1], SPAN_MESH_POINT_OPENVSP)
-                cl_vector = np.interp(y_interp, y_vector, cl_vector)
-                y_vector = y_interp
-                warnings.warn("Defined maximum span mesh in fast aerodynamics\\constants.py exceeded!")
-            else:
-                additional_zeros = list(np.zeros(SPAN_MESH_POINT_OPENVSP-len(y_vector)))
-                y_vector.extend(additional_zeros)
-                cl_vector.extend(additional_zeros)
-            # Calculate oswald
-            oswald, _ = self._read_polar_file(output_file_list[1].replace('lod', 'polar'))
-            k_fus = 1 - 2 * (width_max / span_wing) ** 2  # Fuselage correction
-            # Full aircraft correction: Wing lift is 105% of total lift.
-            # This means CDind = (CL*1.05)^2/(piAe) -> e' = e/1.05^2
-            coef_e = float(oswald * k_fus / 1.05 ** 2)
-            coef_k_wing = float(1. / (math.pi * span_wing ** 2 / sref_wing * coef_e))
-
-            # Post-processing: STEP2/2 - HTP coefficients ----------------------------------------------
-            cl_htp_vect = []
-            cm_htp_vect = []
-            for idx in range(2, 4):
-                _, _, _, _, _, cl_htp, _, cm_htp = self._read_lod_file(output_file_list[idx])
-                # correct htp CM
-                cm_htp = cm_htp + cl_htp * lp_htp
-                cl_htp_vect.append(cl_htp)
-                cm_htp_vect.append(cm_htp)
-            cl_0_htp = float(cl_htp_vect[0])
-            cm_0_htp = float(cm_htp_vect[0])
-            # Calculate derivative
-            cl_alpha_htp = float((cl_htp_vect[1] - cl_htp_vect[0]) / (INPUT_AOAList[1] * math.pi/180))
-            cm_alpha_htp = float((cm_htp_vect[1] - cm_htp_vect[0]) / (INPUT_AOAList[1] * math.pi / 180))
-            # Read oswald
-            _, _, _, _, _, cl_htp, cdi_htp, _ = self._read_lod_file(output_file_list[3])  # wing+htp
-            coef_k_htp = cdi_htp / cl_htp**2
-
-            # Save results to defined path -------------------------------------------------------------
-            if self.options["result_folder_path"] != "":
-                results = [cl_0_wing, cl_alpha_wing, cm_0_wing, cm_alpha_wing, y_vector, cl_vector, cl_0_htp,
-                           cl_alpha_htp, cm_0_htp, cm_alpha_htp, coef_k_wing, coef_k_htp]
-                labels = ["cl_0_wing", "cl_alpha_wing", "cm_0_wing", "cm_alpha_wing", "y_vector", "cl_vector",
-                          "cl_0_htp", "cl_alpha_htp", "cm_0_htp", "cm_alpha_htp", "coef_k_wing", "coef_k_htp"]
-                data = pd.DataFrame(results, index=labels)
-                data.to_csv(result_file_path)
-
-            # Delete temporary directory
-            tmp_directory.cleanup()
-
-        else:
-            # Read values from result file -------------------------------------------------------------
-            data = pd.read_csv(result_file_path)
-            values = data.to_numpy()[:, 1].tolist()
-            labels = data.to_numpy()[:, 0].tolist()
-            data = pd.DataFrame(values, index=labels)
-            cl_0_wing = float(data.loc["cl_0_wing", 0])
-            cl_alpha_wing = float(data.loc["cl_alpha_wing", 0])
-            cm_0_wing = float(data.loc["cm_0_wing", 0])
-            cm_alpha_wing = float(data.loc["cm_alpha_wing", 0])
-            y_vector = np.array([float(i) for i in data.loc["y_vector", 0][1:-2].split(',')])
-            cl_vector = np.array([float(i) for i in data.loc["cl_vector", 0][1:-2].split(',')])
-            coef_k_wing = float(data.loc["coef_k_wing", 0])
-            cl_0_htp = float(data.loc["cl_0_htp", 0]) * (area_ratio/saved_area_ratio)
-            cl_alpha_htp = float(data.loc["cl_alpha_htp", 0]) * (area_ratio/saved_area_ratio)
-            cm_0_htp = float(data.loc["cm_0_htp", 0]) * (area_ratio/saved_area_ratio)
-            cm_alpha_htp = float(data.loc["cm_alpha_htp", 0]) * (area_ratio/saved_area_ratio)
-            coef_k_htp = float(data.loc["coef_k_htp", 0]) * (area_ratio/saved_area_ratio)
+        cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_vector, coef_k_wing, cl_0_htp, \
+        cl_alpha_htp, coef_k_htp = self.compute_aero_coef(inputs, outputs, altitude, mach, INPUT_AOA)
 
         # Defining outputs -----------------------------------------------------------------------------
         if self.options["low_speed_aero"]:
             outputs['data:aerodynamics:wing:low_speed:CL0_clean'] = cl_0_wing
             outputs['data:aerodynamics:wing:low_speed:CL_alpha'] = cl_alpha_wing
             outputs['data:aerodynamics:wing:low_speed:CM0_clean'] = cm_0_wing
-            outputs['data:aerodynamics:wing:low_speed:CM_alpha'] = cm_alpha_wing
             outputs['data:aerodynamics:wing:low_speed:Y_vector'] = y_vector
             outputs['data:aerodynamics:wing:low_speed:CL_vector'] = cl_vector
             outputs["data:aerodynamics:wing:low_speed:induced_drag_coefficient"] = coef_k_wing
             outputs['data:aerodynamics:horizontal_tail:low_speed:CL0'] = cl_0_htp
             outputs['data:aerodynamics:horizontal_tail:low_speed:CL_alpha'] = cl_alpha_htp
-            outputs['data:aerodynamics:horizontal_tail:low_speed:CM0'] = cm_0_htp
-            outputs['data:aerodynamics:horizontal_tail:low_speed:CM_alpha'] = cm_alpha_htp
             outputs["data:aerodynamics:horizontal_tail:low_speed:induced_drag_coefficient"] = coef_k_htp
         else:
             outputs['data:aerodynamics:wing:cruise:CL0_clean'] = cl_0_wing
             outputs['data:aerodynamics:wing:cruise:CL_alpha'] = cl_alpha_wing
             outputs['data:aerodynamics:wing:cruise:CM0_clean'] = cm_0_wing
-            outputs['data:aerodynamics:wing:cruise:CM_alpha'] = cm_alpha_wing
             outputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"] = coef_k_wing
             outputs['data:aerodynamics:horizontal_tail:cruise:CL0'] = cl_0_htp
             outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha'] = cl_alpha_htp
-            outputs['data:aerodynamics:horizontal_tail:cruise:CM0'] = cm_0_htp
-            outputs['data:aerodynamics:horizontal_tail:cruise:CM_alpha'] = cm_alpha_htp
             outputs["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"] = coef_k_htp
-
-
-    @staticmethod
-    def _read_lod_file(tmp_result_file_path: str) -> Tuple[float, float, float, List, List, float, float, float]:
-        """
-        Collect data from .lod file
-        """
-        totals = False
-        cl_wing = 0.0
-        cdi_wing = 0.0
-        cm_wing = 0.0
-        y_vector = []
-        cl_vector = []
-        cl_htp = 0.0
-        cdi_htp = 0.0
-        cm_htp = 0.0
-        with open(tmp_result_file_path, 'r') as lf:
-            data = lf.readlines()
-            for i in range(len(data)):
-                line = data[i].split()
-                line.append('**')
-                if line[0] == '1':
-                    y_vector.append(float(line[2]))
-                    cl_vector.append(float(line[5]))
-                if line[0] == 'Comp':
-                    totals = True
-                if totals:
-                    cl_wing = float(data[i + 1].split()[5]) + float(data[i + 2].split()[5])  # sum CL left/right
-                    cdi_wing = float(data[i + 1].split()[6]) + float(data[i + 2].split()[6])  # sum CDi left/right
-                    cm_wing = float(data[i + 1].split()[12]) + float(data[i + 2].split()[12])  # sum CM left/right
-                    # noinspection PyBroadException
-                    try:
-                        cl_htp = float(data[i + 3].split()[5]) + float(data[i + 4].split()[5])  # sum CL left/right
-                        cdi_htp = float(data[i + 3].split()[6]) + float(data[i + 4].split()[6])  # sum CDi left/right
-                        cm_htp = float(data[i + 3].split()[12]) + float(data[i + 4].split()[12])  # sum CM left/right
-                    except:
-                        pass
-                    break
-
-        return cl_wing, cdi_wing, cm_wing, y_vector, cl_vector, cl_htp, cdi_htp, cm_htp
-
-    @staticmethod
-    def _read_polar_file(tmp_result_file_path: str) -> Tuple[float, float]:
-        """
-        Collect oswald from .polar file
-        """
-
-        with open(tmp_result_file_path, 'r') as lf:
-            data = lf.readlines()
-            oswald = float(data[1].split()[10])
-            cl = float(data[1].split()[4])
-
-        return oswald, cl
-
-
-    @staticmethod
-    def _create_tmp_directory() -> TemporaryDirectory:
-        
-        """Provide temporary directory for calculation."""
-        
-        for tmp_base_path in [None, pth.join(str(Path.home()), ".fast")]:
-            if tmp_base_path is not None:
-                os.makedirs(tmp_base_path, exist_ok=True)
-            tmp_directory = tempfile.TemporaryDirectory(prefix="x", dir=tmp_base_path)
-            break
-            
-        return tmp_directory

@@ -10,3 +10,10 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+from .compute_cl_extreme import ComputeExtremeCL
+from .compute_reynolds import ComputeUnitReynolds
+from .compute_cnbeta_fuselage import ComputeCnBetaFuselage
+from .compute_L_D_max import ComputeLDMax
+from .high_lift_aero import ComputeDeltaHighLift
+from .hinge_moments_elevator import Compute2DHingeMomentsTail, Compute3DHingeMomentsTail

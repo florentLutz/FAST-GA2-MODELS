@@ -46,6 +46,7 @@
 				</MAC>
 				<area units="m**2">4.422<!--horizontal_tail area--></area>
 				<aspect_ratio>5.871<!--aspect ratio of horizontal tail--></aspect_ratio>
+				<elevator_chord_ratio>0.30<!--ratio between elevator chord and tail chord--></elevator_chord_ratio>
 				<root>
 					<chord units="m">0.868<!--chord length at root of horizontal tail--></chord>
 				</root>

@@ -27,7 +27,7 @@ from fastoad.utils.physics import Atmosphere
 class Compute2DHingeMomentsTail(ExplicitComponent):
     """
     Based on : Roskam, Jan. Airplane Design: Part 6-Preliminary Calculation of Aerodynamic, Thrust and Power
-    Characteristics. DARcorporation, 1985. Section 10.4.1, 10.4.2
+    Characteristics. DAR corporation, 1985. Section 10.4.1, 10.4.2
     """
 
     def setup(self):
@@ -269,7 +269,7 @@ class Compute2DHingeMomentsTail(ExplicitComponent):
 class Compute3DHingeMomentsTail(ExplicitComponent):
     """
     Based on : Roskam, Jan. Airplane Design: Part 6-Preliminary Calculation of Aerodynamic, Thrust and Power
-    Characteristics. DARcorporation, 1985. Section 10.4.1
+    Characteristics. DAR corporation, 1985. Section 10.4.1
     """
 
     def setup(self):

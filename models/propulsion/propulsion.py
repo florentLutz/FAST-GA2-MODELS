@@ -94,14 +94,6 @@ class IPropulsion(ABC):
         """
 
     @abstractmethod
-    def compute_sl_thrust(self) -> float:
-        """
-        Computes the total thrust provided at SL for a static aircraft
-
-        :return: the total thrust at sea level in N
-        """
-
-    @abstractmethod
     def compute_dimensions(self) -> (float, float, float, float):
         """
         Computes propulsion dimensions.

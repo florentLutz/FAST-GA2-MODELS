@@ -23,7 +23,7 @@ from scipy import interpolate
 from scipy.constants import knot, foot, lbf
 import openmdao.api as om
 
-from .openvsp import OPENVSPSimpleGeometry
+from .vlm import VLMSimpleGeometry
 from ....propulsion.fuel_propulsion.base import FuelEngineSet
 
 from fastoad import BundleLoader
@@ -36,7 +36,7 @@ MACH_NB_PTS = 5  # number of points for cl_alpha_aircraft fitting along mach axi
 DOMAIN_PTS_NB = 19  # number of (V,n) calculated for the flight domain
 
 
-class ComputeVNopenvspNoVH(om.Group):
+class ComputeVNvlmNoVH(om.Group):
 
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
@@ -45,7 +45,7 @@ class ComputeVNopenvspNoVH(om.Group):
     def setup(self):
         self.add_subsystem("compute_vh", ComputeVh(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
         self.add_subsystem("compute_vn_diagram",
-                           ComputeVNopenvsp(compute_cl_alpha=self.options["compute_cl_alpha"]), promotes=["*"])
+                           ComputeVNvlm(compute_cl_alpha=self.options["compute_cl_alpha"]), promotes=["*"])
 
 
 class ComputeVh(om.ExplicitComponent):
@@ -119,7 +119,7 @@ class ComputeVh(om.ExplicitComponent):
         return thrust - drag
 
 
-class ComputeVNopenvsp(OPENVSPSimpleGeometry):
+class ComputeVNvlm(VLMSimpleGeometry):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -158,14 +158,13 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         # let void to avoid logger error on "The command cannot be empty"
         pass
     
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         v_tas = inputs["data:TLAR:v_cruise"]
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
         design_mass = inputs["data:weight:aircraft:MTOW"]
 
         design_vc = Atmosphere(cruise_altitude, altitude_in_feet=False).get_equivalent_airspeed(v_tas)
-        velocity_array, load_factor_array, _ = self.flight_domain(inputs, outputs, design_mass,
-                                                                           cruise_altitude, design_vc,
+        velocity_array, load_factor_array, _ = self.flight_domain(inputs, design_mass, cruise_altitude, design_vc,
                                                                            design_n_ps=0.0, design_n_ng=0.0)
 
         if DOMAIN_PTS_NB < len(velocity_array):
@@ -181,7 +180,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         outputs["data:flight_domain:load_factor"] = np.array(load_factor_array)
 
 
-    def flight_domain(self, inputs, outputs, mass, altitude, design_vc, design_n_ps=0.0, design_n_ng=0.0):
+    def flight_domain(self, inputs, mass, altitude, design_vc, design_n_ps=0.0, design_n_ng=0.0):
 
         # Get necessary inputs
         wing_area = inputs["data:geometry:wing:area"]
@@ -233,8 +232,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
             mach_interp = v_interp * math.sqrt(atm_0.density / atm.density) / atm.speed_of_sound
             cl_alpha_interp = np.zeros(np.size(v_interp))
             for idx in range(len(mach_interp)):
-                cl_alpha_interp[idx] = self.compute_cl_alpha_aircraft(inputs, outputs, altitude, mach_interp[idx],
-                                                                      INPUT_AOA)
+                cl_alpha_interp[idx] = self.compute_cl_alpha_aircraft(inputs, altitude, mach_interp[idx], INPUT_AOA)
             cl_alpha_fct = interpolate.interp1d(v_interp, cl_alpha_interp, fill_value="extrapolate", kind="quadratic")
         else:
             v_interp = np.array([float(inputs["data:TLAR:v_approach"]), float(inputs["data:TLAR:v_cruise"])])

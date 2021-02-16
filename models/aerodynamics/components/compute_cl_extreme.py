@@ -20,7 +20,7 @@ from openmdao.core.group import Group
 from openmdao.core.explicitcomponent import ExplicitComponent
 
 from ..external.xfoil import XfoilPolar
-from ..constants import SPAN_MESH_POINT_OPENVSP
+from ..constants import SPAN_MESH_POINT
 
         
 class ComputeExtremeCL(Group):
@@ -100,7 +100,7 @@ class Compute3DExtremeCL(ExplicitComponent):
     
     def setup(self):
 
-        nans_array = np.full(SPAN_MESH_POINT_OPENVSP, np.nan)
+        nans_array = np.full(SPAN_MESH_POINT, np.nan)
         self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
         self.add_input("data:geometry:wing:tip:y", val=np.nan, units="m")
         self.add_input("data:aerodynamics:wing:low_speed:root:CL_max_2D", val=np.nan)
@@ -129,7 +129,7 @@ class Compute3DExtremeCL(ExplicitComponent):
         cl_interp = inputs["data:aerodynamics:wing:low_speed:CL_vector"]
 
         y_interp, cl_interp = self._reshape_curve(y_interp, cl_interp)
-        y_vect = np.linspace(max(y_root, min(y_interp)), min(y_tip, max(y_interp)), SPAN_MESH_POINT_OPENVSP)
+        y_vect = np.linspace(max(y_root, min(y_interp)), min(y_tip, max(y_interp)), SPAN_MESH_POINT)
         cl_xfoil_max = np.interp(y_vect, np.array([y_root, y_tip]), np.array([cl_max_2d_root, cl_max_2d_tip]))
         cl_xfoil_min = np.interp(y_vect, np.array([y_root, y_tip]), np.array([cl_min_2d_root, cl_min_2d_tip]))
         cl_curve = np.interp(y_vect, y_interp, cl_interp)

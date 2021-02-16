@@ -33,7 +33,7 @@ from fastoad.utils.resource_management.copy import copy_resource, copy_resource_
 from ... import resources
 from . import resources as local_resources
 from . import openvsp3201
-from ...constants import SPAN_MESH_POINT_OPENVSP
+from ...constants import SPAN_MESH_POINT
 
 DEFAULT_WING_AIRFOIL = "naca23012.af"
 DEFAULT_HTP_AIRFOIL = "naca0012.af"
@@ -87,7 +87,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
 
     def compute_cl_alpha_aircraft(self, inputs, outputs, altitude, mach, aoa_angle):
         """
-        Function that perform a complete calculation of aerodynamic parameters under OpenVSP and return only the
+        Function that perform a complete calculation of aerodynamic parameters under OpenVSP and returns only the
         cl_alpha_aircraft parameter.
 
         """
@@ -151,6 +151,10 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             wing_0 = self.compute_wing(inputs, outputs, altitude, mach, 0.0)
             wing_X = self.compute_wing(inputs, outputs, altitude, mach, aoa_angle)
 
+            # Compute complete aircraft @ 0°/X° angle of attack
+            _, htp_0, _ = self.compute_aircraft(inputs, outputs, altitude, mach, 0.0)
+            _, htp_X, _ = self.compute_aircraft(inputs, outputs, altitude, mach, aoa_angle)
+
             # Post-process wing data -----------------------------------------------------------------------------------
             width_max = inputs["data:geometry:fuselage:maximum_width"]
             span_wing = inputs['data:geometry:wing:span']
@@ -167,21 +171,19 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             coef_k_wing = float(1. / (math.pi * span_wing ** 2 / sref_wing * coef_e))
 
             # Post-process HTP data ------------------------------------------------------------------------------------
-            _, htp_0, aircraft_0 = self.compute_aircraft(inputs, outputs, altitude, mach, 0.0)
-            _, htp_X, _ = self.compute_aircraft(inputs, outputs, altitude, mach, aoa_angle)
             cl_0_htp = float(htp_0["cl"])
             cl_X_htp = float(htp_X["cl"])
             cl_alpha_htp = float((cl_X_htp - cl_0_htp) / (aoa_angle * math.pi / 180))
-            coef_k_htp = float(htp_0["cdi"]) / cl_0_htp ** 2
+            coef_k_htp = float(htp_X["cdi"]) / cl_X_htp ** 2
 
             # Resize vectors -------------------------------------------------------------------------------------------
-            if SPAN_MESH_POINT_OPENVSP < len(y_vector):
-                y_interp = np.linspace(y_vector[0], y_vector[-1], SPAN_MESH_POINT_OPENVSP)
+            if SPAN_MESH_POINT < len(y_vector):
+                y_interp = np.linspace(y_vector[0], y_vector[-1], SPAN_MESH_POINT)
                 cl_vector = np.interp(y_interp, y_vector, cl_vector)
                 y_vector = y_interp
                 warnings.warn("Defined maximum span mesh in fast aerodynamics\\constants.py exceeded!")
             else:
-                additional_zeros = list(np.zeros(SPAN_MESH_POINT_OPENVSP - len(y_vector)))
+                additional_zeros = list(np.zeros(SPAN_MESH_POINT - len(y_vector)))
                 y_vector.extend(additional_zeros)
                 cl_vector.extend(additional_zeros)
 
@@ -216,7 +218,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         @param outputs: outputs parameters defined within FAST-OAD-GA
         @param altitude: altitude for aerodynamic calculation in meters
         @param mach: air speed expressed in mach
-        @param aoa_angle: air speed angle of attack with respect to aircraft
+        @param aoa_angle: air speed angle of attack with respect to aircraft (degree)
         @return: wing dictionary including aero parameters as keys: y_vector, cl_vector, cd_vector, cm_vector, cl
         cdi, cm, coef_e
         """
@@ -735,7 +737,6 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
                   "coef_k_wing", "coef_k_htp"]
         data = pd.DataFrame(results, index=labels)
         data.to_csv(result_file_path)
-
 
     @staticmethod
     def read_results(result_file_path):

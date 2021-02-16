@@ -442,17 +442,6 @@ class BasicICEngine(AbstractFuelPropulsion):
         return self.nacelle["height"], self.nacelle["width"], self.nacelle["length"], self.nacelle[
             "wet_area"], d, propeller_depth
 
-    def compute_sl_thrust(self) -> (float):
-
-        """
-        Computes the thrust at sea level for a single engine + propeller assembly
-        """
-
-        _, _, _, _, _, _ = self.compute_dimensions()
-        sl_thrust = self.propeller.thrust_SL * 9.81
-
-        return sl_thrust
-
     def compute_drag(self, mach, unit_reynolds, wing_mac):
         """
         Compute nacelle drag coefficient cd0.
