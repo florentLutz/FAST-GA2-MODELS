@@ -16,14 +16,13 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-			<NPAX>2.0<!--top-level requirement: number of passengers, assuming a classic eco/business class repartition--></NPAX>
 			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
 		</TLAR>
 		<geometry>
 			<cabin>
 				<aisle_width units="m">0.0<!--cabin aisle width--></aisle_width>
 				<luggage>
-					<max_luggage_weight units="kg">50.0<!--maximum luggage weight to carry--></max_luggage_weight>
+					<luggage_mass_max units="kg">50.0<!--maximum luggage mass to carry--></luggage_mass_max>
 				</luggage>
 				<seats>
 					<pilot>

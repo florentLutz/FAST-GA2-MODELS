@@ -36,7 +36,7 @@ class ComputeLandingGearWeight(om.ExplicitComponent):
 
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="lb")
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
-        self.add_input("data:geometry:landing_gear:height", val=np.nan, units="ft")
+        self.add_input("data:geometry:landing_gear:height", val=np.nan, units="inch")
         self.add_input("data:geometry:landing_gear:type", val=np.nan)
 
         self.add_output("data:weight:airframe:landing_gear:main:mass", units="lb")
@@ -48,8 +48,7 @@ class ComputeLandingGearWeight(om.ExplicitComponent):
 
         mlw = inputs["data:weight:aircraft:MLW"]
         mtow = inputs["data:weight:aircraft:MTOW"]
-        lg_height = inputs["data:geometry:landing_gear:height"] * 12.
-        # Ft to inches
+        lg_height = inputs["data:geometry:landing_gear:height"]
         is_retractable = inputs["data:geometry:landing_gear:type"]
 
         carbas = 0.0
@@ -61,14 +60,8 @@ class ComputeLandingGearWeight(om.ExplicitComponent):
         if not is_retractable:
             weight_reduction = 1.4 * mtow / 100.
             weight_reduction_factor = (mlg_weight + nlg_weight - weight_reduction) / (mlg_weight + nlg_weight)
-
-            a51 = mlg_weight * weight_reduction_factor
-            a52 = nlg_weight * weight_reduction_factor
-
         else:
+            weight_reduction_factor = 1.0
 
-            a51 = mlg_weight
-            a52 = nlg_weight
-
-        outputs["data:weight:airframe:landing_gear:main:mass"] = a51
-        outputs["data:weight:airframe:landing_gear:front:mass"] = a52
+        outputs["data:weight:airframe:landing_gear:main:mass"] = mlg_weight * weight_reduction_factor
+        outputs["data:weight:airframe:landing_gear:front:mass"] = nlg_weight * weight_reduction_factor

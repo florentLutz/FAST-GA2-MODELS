@@ -87,8 +87,7 @@ class ComputeFuselageGeometryCabinSizingFD(ExplicitComponent):
         self.add_input("data:geometry:cabin:seats:passenger:width", val=np.nan, units="m")
         self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
         self.add_input("data:geometry:cabin:aisle_width", val=np.nan, units="m")
-        self.add_input("data:geometry:cabin:luggage:max_luggage_weight", val=np.nan, units="kg")
-        self.add_input("data:geometry:propulsion:layout", val=np.nan)
+        self.add_input("data:geometry:cabin:luggage:luggage_mass_max", val=np.nan, units="kg")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
@@ -123,7 +122,7 @@ class ComputeFuselageGeometryCabinSizingFD(ExplicitComponent):
         w_pass_seats = inputs["data:geometry:cabin:seats:passenger:width"]
         seats_p_row = inputs["data:geometry:cabin:seats:passenger:count_by_row"]
         w_aisle = inputs["data:geometry:cabin:aisle_width"]
-        max_luggage_weight = inputs["data:geometry:cabin:luggage:max_luggage_weight"]
+        luggage_mass_max = inputs["data:geometry:cabin:luggage:luggage_mass_max"]
         prop_layout = inputs["data:geometry:propulsion:layout"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         ht_lp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
@@ -151,7 +150,7 @@ class ComputeFuselageGeometryCabinSizingFD(ExplicitComponent):
         h_f = b_f + 0.14
         # Luggage length (80% of internal radius section can be filled with luggage)
         luggage_density = 161.0  # In kg/m3
-        l_lug = (max_luggage_weight / luggage_density) / (0.8 * math.pi * r_i ** 2)
+        l_lug = (luggage_mass_max / luggage_density) / (0.8 * math.pi * r_i ** 2)
         # Cabin total length
         cabin_length = l_instr + lpax + l_lug
         # Calculate nose length
@@ -212,8 +211,7 @@ class ComputeFuselageGeometryCabinSizingFL(ExplicitComponent):
         self.add_input("data:geometry:cabin:seats:passenger:width", val=np.nan, units="m")
         self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
         self.add_input("data:geometry:cabin:aisle_width", val=np.nan, units="m")
-        self.add_input("data:geometry:cabin:luggage:max_luggage_weight", val=np.nan, units="kg")
-        self.add_input("data:geometry:propulsion:layout", val=np.nan)
+        self.add_input("data:geometry:cabin:luggage:luggage_mass_max", val=np.nan, units="kg")
         self.add_input("data:geometry:fuselage:rear_length", units="m")
 
         self.add_output("data:geometry:cabin:NPAX")
@@ -238,7 +236,7 @@ class ComputeFuselageGeometryCabinSizingFL(ExplicitComponent):
         w_pass_seats = inputs["data:geometry:cabin:seats:passenger:width"]
         seats_p_row = inputs["data:geometry:cabin:seats:passenger:count_by_row"]
         w_aisle = inputs["data:geometry:cabin:aisle_width"]
-        max_luggage_weight = inputs["data:geometry:cabin:luggage:max_luggage_weight"]
+        luggage_mass_max = inputs["data:geometry:cabin:luggage:luggage_mass_max"]
         prop_layout = inputs["data:geometry:propulsion:layout"]
         lar = inputs["data:geometry:fuselage:rear_length"]
 
@@ -259,7 +257,7 @@ class ComputeFuselageGeometryCabinSizingFL(ExplicitComponent):
         h_f = b_f + 0.14
         # Luggage length (80% of internal radius section can be filled with luggage)
         luggage_density = 161.0  # In kg/m3
-        l_lug = (max_luggage_weight / luggage_density) / (0.8 * math.pi * r_i ** 2)
+        l_lug = (luggage_mass_max / luggage_density) / (0.8 * math.pi * r_i ** 2)
         # Cabin total length
         cabin_length = l_instr + lpax + l_lug
         # Calculate nose length

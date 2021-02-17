@@ -19,6 +19,7 @@ import pandas as pd
 from openmdao.core.component import Component
 import pytest
 from typing import Union
+import numpy as np
 
 from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad import BundleLoader
@@ -68,12 +69,25 @@ ENGINE_WRAPPER = "test.wrapper.geometry.beechcraft.dummy_engine"
 
 class DummyEngine(AbstractFuelPropulsion):
 
-    def __init__(self):
+    def __init__(self,
+                 max_power: float,
+                 design_altitude: float,
+                 design_speed: float,
+                 fuel_type: float,
+                 strokes_nb: float,
+                 prop_layout: float,
+                 ):
         """
         Dummy engine model returning nacelle dimensions height-width-length-wet_area.
 
         """
         super().__init__()
+        self.prop_layout = prop_layout
+        self.max_power = max_power
+        self.design_altitude = design_altitude
+        self.design_speed = design_speed
+        self.fuel_type = fuel_type
+        self.strokes_nb = strokes_nb
 
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
         flight_points.thrust = 0.0
@@ -95,11 +109,25 @@ class DummyEngine(AbstractFuelPropulsion):
 @RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
-        pass
+        component.add_input("data:propulsion:IC_engine:max_power", np.nan, units="W")
+        component.add_input("data:propulsion:IC_engine:fuel_type", np.nan)
+        component.add_input("data:propulsion:IC_engine:strokes_nb", np.nan)
+        component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
+        component.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
+        component.add_input("data:geometry:propulsion:layout", np.nan)
 
     @staticmethod
     def get_model(inputs) -> IPropulsion:
-        return DummyEngine()
+        engine_params = {
+            "max_power": inputs["data:propulsion:IC_engine:max_power"],
+            "design_altitude": inputs["data:mission:sizing:main_route:cruise:altitude"],
+            "design_speed": inputs["data:TLAR:v_cruise"],
+            "fuel_type": inputs["data:propulsion:IC_engine:fuel_type"],
+            "strokes_nb": inputs["data:propulsion:IC_engine:strokes_nb"],
+            "prop_layout": inputs["data:geometry:propulsion:layout"]
+        }
+
+        return DummyEngine(**engine_params)
 
 
 BundleLoader().context.install_bundle(__name__).start()

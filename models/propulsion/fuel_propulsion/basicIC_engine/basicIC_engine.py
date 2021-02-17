@@ -80,6 +80,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         :param design_speed: design altitude for cruise (units=m/s)
         :param fuel_type: 1.0 for gasoline and 2.0 for diesel engine and 3.0 for Jet Fuel
         :param strokes_nb: can be either 2-strockes (=2.0) or 4-strockes (=4.0)
+        :param prop_layout: propulsion position in nose (=3.0) or wing (=1.0)
         """
         if fuel_type == 1.0:
             self.ref = {

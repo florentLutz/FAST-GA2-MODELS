@@ -28,7 +28,7 @@ from fastoad import BundleLoader
 from fastoad.base.flight_point import FlightPoint
 from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
-from ....tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs, Timer
+from ....tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 from ..a_airframe import (
     ComputeTailWeight,
     ComputeFlightControlsWeight,
@@ -61,12 +61,25 @@ ENGINE_WRAPPER = "test.wrapper.mass_breakdown.beechcraft.dummy_engine"
 
 class DummyEngine(AbstractFuelPropulsion):
 
-    def __init__(self):
+    def __init__(self,
+                 max_power: float,
+                 design_altitude: float,
+                 design_speed: float,
+                 fuel_type: float,
+                 strokes_nb: float,
+                 prop_layout: float,
+                 ):
         """
         Dummy engine model returning thrust in particular conditions defined for htp/vtp areas.
 
         """
         super().__init__()
+        self.prop_layout = prop_layout
+        self.max_power = max_power
+        self.design_altitude = design_altitude
+        self.design_speed = design_speed
+        self.fuel_type = fuel_type
+        self.strokes_nb = strokes_nb
 
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
         flight_points.thrust = 0.0
@@ -88,33 +101,47 @@ class DummyEngine(AbstractFuelPropulsion):
 @RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
+        component.add_input("data:propulsion:IC_engine:max_power", np.nan, units="W")
+        component.add_input("data:propulsion:IC_engine:fuel_type", np.nan)
+        component.add_input("data:propulsion:IC_engine:strokes_nb", np.nan)
         component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
         component.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
+        component.add_input("data:geometry:propulsion:layout", np.nan)
 
     @staticmethod
     def get_model(inputs) -> IPropulsion:
-        return DummyEngine()
+        engine_params = {
+            "max_power": inputs["data:propulsion:IC_engine:max_power"],
+            "design_altitude": inputs["data:mission:sizing:main_route:cruise:altitude"],
+            "design_speed": inputs["data:TLAR:v_cruise"],
+            "fuel_type": inputs["data:propulsion:IC_engine:fuel_type"],
+            "strokes_nb": inputs["data:propulsion:IC_engine:strokes_nb"],
+            "prop_layout": inputs["data:geometry:propulsion:layout"]
+        }
+
+        return DummyEngine(**engine_params)
 
 
 BundleLoader().context.install_bundle(__name__).start()
 
 
 def test_compute_payload():
-    # Run problem and check obtained value(s) is/(are) correct
-    ivc = om.IndepVarComp()
-    ivc.add_output("data:TLAR:NPAX", val=2.0)
-    problem = run_system(ComputePayload(), ivc)
-    assert problem["data:weight:aircraft:payload"] == pytest.approx(320.0, abs=1e-2)
-    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(360.0, abs=1e-2)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputePayload()), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
-    ivc = om.IndepVarComp()
-    ivc.add_output("data:TLAR:NPAX", val=10.0)
+    problem = run_system(ComputePayload(), ivc)
+    assert problem["data:weight:aircraft:payload"] == pytest.approx(350.0, abs=1e-2)
+    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(410.0, abs=1e-2)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    ivc = get_indep_var_comp(list_inputs(ComputePayload()), __file__, XML_FILE)
     ivc.add_output("settings:weight:aircraft:payload:design_mass_per_passenger", 1.0, units="kg")
     ivc.add_output("settings:weight:aircraft:payload:max_mass_per_passenger", 2.0, units="kg")
     problem = run_system(ComputePayload(), ivc)
-    assert problem["data:weight:aircraft:payload"] == pytest.approx(12.0, abs=0.1)
-    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(24.0, abs=0.1)
+    assert problem["data:weight:aircraft:payload"] == pytest.approx(34.0, abs=0.1)
+    assert problem["data:weight:aircraft:max_payload"] == pytest.approx(58.0, abs=0.1)
 
 
 def test_compute_wing_weight():
@@ -162,9 +189,9 @@ def test_compute_empennage_weight():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeTailWeight(), ivc)
     weight_a31 = problem.get_val("data:weight:airframe:horizontal_tail:mass", units="kg")
-    assert weight_a31 == pytest.approx(36.72, abs=1e-2)
+    assert weight_a31 == pytest.approx(24.94, abs=1e-2)
     weight_a32 = problem.get_val("data:weight:airframe:vertical_tail:mass", units="kg")
-    assert weight_a32 == pytest.approx(25.478, abs=1e-2)
+    assert weight_a32 == pytest.approx(19.24, abs=1e-2)
 
 
 def test_compute_flight_controls_weight():
@@ -294,13 +321,13 @@ def test_evaluate_owe():
     mass_computation = run_system(ComputeOperatingWeightEmpty(propulsion_id=ENGINE_WRAPPER), input_vars)
 
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1204.0159, abs=1e-2)
+    assert oew == pytest.approx(1185, abs=1)
 
 
 def test_loop_compute_owe():
     """ Tests a weight computation loop matching the max payload criterion. """
 
-    # with payload computed from NPAX
+    # Payload is computed from NPAX_design
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read(
@@ -311,30 +338,11 @@ def test_loop_compute_owe():
     ).to_ivc()
     input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
 
-    with Timer(name="Mass-breakdown loop"):
-        # noinspection PyTypeChecker
-        mass_computation_1 = run_system(
-            MassBreakdown(propulsion_id=ENGINE_WRAPPER, payload_from_npax=True),
-            input_vars,
-            check=True,
-        )
-        oew = mass_computation_1.get_val("data:weight:aircraft:OWE", units="kg")
-        assert oew == pytest.approx(1120.7867, abs=1e-2)  # 1026.20 (with MTOW local loop)
-
-    # with payload as input
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
-    reader.path_separator = ":"
-    input_vars = reader.read(
-        ignore=[
-            "data:weight:aircraft:MLW",
-        ]
-    ).to_ivc()
-    input_vars.add_output("data:mission:sizing:fuel", 0.0, units="kg")
     # noinspection PyTypeChecker
-    mass_computation_2 = run_system(
-        MassBreakdown(propulsion_id=ENGINE_WRAPPER, payload_from_npax=False),
+    mass_computation = run_system(
+        MassBreakdown(propulsion_id=ENGINE_WRAPPER, payload_from_npax=True),
         input_vars,
-        check=False,
+        check=True,
     )
-    oew = mass_computation_2.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1120.7867, abs=1e-2)  # 1009.19 (with MTOW local loop)
+    oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
+    assert oew == pytest.approx(1193, abs=1)

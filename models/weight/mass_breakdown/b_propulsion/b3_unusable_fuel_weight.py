@@ -15,9 +15,14 @@ Estimation of engine and associated component weight
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+from scipy.constants import lbf
 from openmdao.core.explicitcomponent import ExplicitComponent
+
 from ....propulsion.fuel_propulsion.base import FuelEngineSet
+
 from fastoad import BundleLoader
+from fastoad.base.flight_point import FlightPoint
+from fastoad.constants import EngineSetting
 
 
 class ComputeUnusableFuelWeight(ExplicitComponent):
@@ -54,8 +59,14 @@ class ComputeUnusableFuelWeight(ExplicitComponent):
 
         propulsion_model = FuelEngineSet(self._engine_wrapper.get_model(inputs), n_eng)
 
-        sl_thrust_newton = propulsion_model.compute_sl_thrust()
-        sl_thrust_lbs = sl_thrust_newton * 0.224809
+        flight_point = FlightPoint(
+            mach=0.0, altitude=0.0, engine_setting=EngineSetting.TAKEOFF,
+            thrust_rate=1.0
+        )  # with engine_setting as EngineSetting
+        propulsion_model.compute_flight_points(flight_point)
+
+        sl_thrust_newton = float(flight_point.thrust)
+        sl_thrust_lbs = sl_thrust_newton / lbf
         sl_thrust_lbs_per_engine = sl_thrust_lbs / n_eng
 
         b3 = 11.5 * n_eng * sl_thrust_lbs_per_engine ** 0.2 + \

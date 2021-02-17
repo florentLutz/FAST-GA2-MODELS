@@ -30,7 +30,7 @@ def test_OMBasicICEngineComponent():
     machs = [0, 0.3, 0.3, 0.8, 0.8]
     altitudes = [0, 0, 0, 10000, 13000]
     thrust_rates = [0.8, 0.5, 0.5, 0.4, 0.7]
-    thrusts = [2826.08695652,  509.36166623,  509.36166623,   43.25042365, 34.84163089]
+    thrusts = [2813.473364,  528.462639,  528.462639,   44.872307, 36.148186]
     phases = [
         EngineSetting.TAKEOFF,
         EngineSetting.TAKEOFF,
@@ -38,7 +38,7 @@ def test_OMBasicICEngineComponent():
         EngineSetting.IDLE,
         EngineSetting.CRUISE,
     ]  # mix EngineSetting with integers
-    expected_sfc = [3.24815793e-17, 7.61134545e-06, 7.61134545e-06, 1.53774038e-05, 2.02232638e-05]
+    expected_sfc = [3.130755e-17, 7.336238e-06, 7.336238e-06, 1.482160e-05, 1.949231e-05]
 
     ivc = om.IndepVarComp()
     ivc.add_output("data:propulsion:IC_engine:max_power", 130000, units="W")
@@ -46,6 +46,7 @@ def test_OMBasicICEngineComponent():
     ivc.add_output("data:propulsion:IC_engine:strokes_nb", 4)
     ivc.add_output("data:TLAR:v_cruise", 158.0, units="kn")
     ivc.add_output("data:mission:sizing:main_route:cruise:altitude", 8000.0, units="ft")
+    ivc.add_output("data:geometry:propulsion:layout", 1.0)
 
     ivc.add_output("data:propulsion:mach", [machs, machs])
     ivc.add_output("data:propulsion:altitude", [altitudes, altitudes], units="m")
