@@ -22,12 +22,16 @@
 		<geometry>
 			<cabin>
 				<aisle_width units="m">0.0<!--cabin aisle width--></aisle_width>
+				<luggage>
+					<max_luggage_weight units="kg">50.0<!--maximum luggage weight to carry--></max_luggage_weight>
+				</luggage>
 				<seats>
 					<pilot>
 						<length units="m">0.75<!--pilot seats length--></length>
 						<width units="m">0.565<!--pilot seats width--></width>
 					</pilot>
 					<passenger>
+						<NPAX_max>2.0<!--maximum number of passengers in cabin (2 pilots seats not included)--></NPAX_max>
 						<count_by_row>2.0<!--passenger seats per row--></count_by_row>
 						<length units="m">0.8<!--passenger seats length--></length>
 						<width units="m">0.565<!--passenger seats width--></width>
@@ -51,7 +55,6 @@
 				<taper_ratio>1.0<!--taper ratio of horizontal tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>
 			</horizontal_tail>
-			<has_T_tail>1.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>
 			<propulsion>
 				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
 				<count>2.0<!--number of engines--></count>

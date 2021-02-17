@@ -37,6 +37,7 @@ class ComputeNacelleGeometry(om.ExplicitComponent):
         self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
         self._engine_wrapper.setup(self)
 
+        self.add_input("data:geometry:propulsion:layout", val=np.nan)
         self.add_input("data:geometry:wing:span", val=np.nan, units="m")
         self.add_input("data:geometry:propulsion:y_ratio", val=np.nan)
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")

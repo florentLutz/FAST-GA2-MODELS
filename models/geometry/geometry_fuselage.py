@@ -17,18 +17,8 @@
 
 import openmdao.api as om
 
-from .geom_components import ComputeTotalArea
-from .geom_components.fuselage.compute_fuselage import (
-    ComputeFuselageGeometryBasic,
-    ComputeFuselageGeometryCabinSizing,
-    ComputeFuselageGeometryCabinSizing2,
-)
-from .geom_components.ht.compute_horizontal_tail import ComputeHorizontalTailGeometry, ComputeHorizontalTailGeometry2
-from .geom_components.nacelle.compute_nacelle import (
-    ComputeNacelleGeometry,
-)
-from .geom_components.vt.compute_vertical_tail import ComputeVerticalTailGeometry, ComputeVerticalTailGeometry2
-from .geom_components.wing.compute_wing import ComputeWingGeometry
+from .geom_components import ComputeTotalArea, ComputeFuselageGeometryBasic, ComputeFuselageGeometryCabinSizingFL, \
+    ComputeHorizontalTailGeometryFL, ComputeNacelleGeometry, ComputeVerticalTailGeometryFL, ComputeWingGeometry
 from ..options import CABIN_SIZING_OPTION
 
 
@@ -39,7 +29,9 @@ class GeometryFixedFuselage(om.Group):
       - wing dimensions are computed from global parameters (area, taper ratio...)
       - tail planes are dimensioned from HQ requirements
 
-    This module also computes centers of gravity and static margin
+    The hypothesis done is a fixed rear_length that fixes fuselage length leading to tail-wing distance changes when
+    wing position change. This results in a mainly-linear behaviour on the static margin derivative relative to wing
+    position.
     """
 
     def initialize(self):
@@ -50,13 +42,13 @@ class GeometryFixedFuselage(om.Group):
 
         if self.options[CABIN_SIZING_OPTION] == 1.0:
             self.add_subsystem(
-                "compute_fuselage", ComputeFuselageGeometryCabinSizing2(propulsion_id=self.options["propulsion_id"]),
+                "compute_fuselage", ComputeFuselageGeometryCabinSizingFL(propulsion_id=self.options["propulsion_id"]),
                 promotes=["*"]
             )
         else:
             self.add_subsystem("compute_fuselage", ComputeFuselageGeometryBasic(), promotes=["*"])
-        self.add_subsystem("compute_vt", ComputeVerticalTailGeometry2(), promotes=["*"])
-        self.add_subsystem("compute_ht", ComputeHorizontalTailGeometry2(), promotes=["*"])
+        self.add_subsystem("compute_vt", ComputeVerticalTailGeometryFL(), promotes=["*"])
+        self.add_subsystem("compute_ht", ComputeHorizontalTailGeometryFL(), promotes=["*"])
         self.add_subsystem("compute_wing", ComputeWingGeometry(), promotes=["*"])
         self.add_subsystem(
             "compute_engine_nacelle", ComputeNacelleGeometry(propulsion_id=self.options["propulsion_id"]),

@@ -21,9 +21,11 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 
 
 # TODO: it would be good to have a function to compute MAC for HT, VT and WING
-class ComputeHTMAC(ExplicitComponent):
+class ComputeHTmacFD(ExplicitComponent):
     # TODO: Document equations. Cite sources
-    """ Horizontal tail mean aerodynamic chord estimation """
+    """
+    Horizontal tail mean aerodynamic chord estimation based on (F)ixed tail (D)istance
+    """
 
     def setup(self):
         self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")
@@ -84,9 +86,11 @@ class ComputeHTMAC(ExplicitComponent):
         outputs["data:geometry:horizontal_tail:MAC:y"] = y0_ht
 
 
-class ComputeHTMAC2(ExplicitComponent):
+class ComputeHTmacFL(ExplicitComponent):
     # TODO: Document equations. Cite sources
-    """ Horizontal tail mean aerodynamic chord estimation """
+    """
+    Horizontal tail mean aerodynamic chord estimation based on (F)ixed fuselage (L)ength (HTP distance computed)
+    """
 
     def setup(self):
         self.add_input("data:geometry:horizontal_tail:root:chord", val=np.nan, units="m")

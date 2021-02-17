@@ -16,30 +16,27 @@
 
 import openmdao.api as om
 
-from .components import ComputeHTChord
-from .components import ComputeHTDistance
-from .components.compute_ht_mac import ComputeHTMAC, ComputeHTMAC2
-from .components import ComputeHTSweep
-from .components import ComputeHTWetArea
+from .components import ComputeHTChord, ComputeHTDistance, ComputeHTmacFD, ComputeHTmacFL, ComputeHTSweep, \
+    ComputeHTWetArea
 
 
-class ComputeHorizontalTailGeometry(om.Group):
-    """ Horizontal tail geometry estimation """
+class ComputeHorizontalTailGeometryFD(om.Group):
+    """ Horizontal tail geometry estimation based on fixed HTP/VTP distance """
 
     def setup(self):
         self.add_subsystem("ht_chord", ComputeHTChord(), promotes=["*"])
-        self.add_subsystem("ht_mac", ComputeHTMAC(), promotes=["*"])
+        self.add_subsystem("ht_mac", ComputeHTmacFD(), promotes=["*"])
         self.add_subsystem("ht_sweep", ComputeHTSweep(), promotes=["*"])
         self.add_subsystem("ht_wet_area", ComputeHTWetArea(), promotes=["*"])
         self.add_subsystem("ht_distance", ComputeHTDistance(), promotes=["*"])
 
 
-class ComputeHorizontalTailGeometry2(om.Group):
-    """ Horizontal tail geometry estimation """
+class ComputeHorizontalTailGeometryFL(om.Group):
+    """ Horizontal tail geometry estimation based on fixed fuselage length """
 
     def setup(self):
         self.add_subsystem("ht_chord", ComputeHTChord(), promotes=["*"])
-        self.add_subsystem("ht_mac", ComputeHTMAC2(), promotes=["*"])
+        self.add_subsystem("ht_mac", ComputeHTmacFL(), promotes=["*"])
         self.add_subsystem("ht_sweep", ComputeHTSweep(), promotes=["*"])
         self.add_subsystem("ht_wet_area", ComputeHTWetArea(), promotes=["*"])
         self.add_subsystem("ht_distance", ComputeHTDistance(), promotes=["*"])

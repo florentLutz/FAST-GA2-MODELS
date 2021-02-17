@@ -13,4 +13,11 @@ Estimation of geometry components
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 from .compute_total_area import ComputeTotalArea
+from .fuselage import ComputeFuselageGeometryBasic, ComputeFuselageGeometryCabinSizingFD, \
+    ComputeFuselageGeometryCabinSizingFL
+from .ht import ComputeHorizontalTailGeometryFD, ComputeHorizontalTailGeometryFL
+from .nacelle import ComputeNacelleGeometry
+from .vt import ComputeVerticalTailGeometryFD, ComputeVerticalTailGeometryFL
+from .wing import ComputeWingGeometry

@@ -17,28 +17,25 @@
 
 import openmdao.api as om
 
-from .components import ComputeVTChords
-from .components.compute_vt_mac import ComputeVTMAC, ComputeVTMAC2
-from .components import ComputeVTSweep
-from .components import ComputeVTWetArea
+from .components import ComputeVTChords, ComputeVTmacFD, ComputeVTmacFL, ComputeVTSweep, ComputeVTWetArea
 
 
-class ComputeVerticalTailGeometry(om.Group):
-    """ Vertical tail geometry estimation """
+class ComputeVerticalTailGeometryFD(om.Group):
+    """ Vertical tail geometry estimation based on fixed HTP/VTP distance """
 
     def setup(self):
         
         self.add_subsystem("vt_chords", ComputeVTChords(), promotes=["*"])
-        self.add_subsystem("vt_mac", ComputeVTMAC(), promotes=["*"])
+        self.add_subsystem("vt_mac", ComputeVTmacFD(), promotes=["*"])
         self.add_subsystem("vt_sweep", ComputeVTSweep(), promotes=["*"])
         self.add_subsystem("vt_wet_area", ComputeVTWetArea(), promotes=["*"])
 
 
-class ComputeVerticalTailGeometry2(om.Group):
-    """ Vertical tail geometry estimation """
+class ComputeVerticalTailGeometryFL(om.Group):
+    """ Vertical tail geometry estimation based on fixed fuselage length """
 
     def setup(self):
         self.add_subsystem("vt_chords", ComputeVTChords(), promotes=["*"])
-        self.add_subsystem("vt_mac", ComputeVTMAC2(), promotes=["*"])
+        self.add_subsystem("vt_mac", ComputeVTmacFL(), promotes=["*"])
         self.add_subsystem("vt_sweep", ComputeVTSweep(), promotes=["*"])
         self.add_subsystem("vt_wet_area", ComputeVTWetArea(), promotes=["*"])

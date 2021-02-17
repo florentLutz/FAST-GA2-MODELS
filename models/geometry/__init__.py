@@ -14,5 +14,5 @@ Estimation of global geometry components
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .geometry import GeometryFixedHTPDistance
-from .geometry_2 import GeometryFixedFuselage
+from .geometry_fuselage import GeometryFixedFuselage
+from .geometry_htp_distance import GeometryFixedTailDistance

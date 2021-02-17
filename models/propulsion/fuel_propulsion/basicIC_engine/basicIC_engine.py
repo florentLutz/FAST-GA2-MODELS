@@ -395,7 +395,7 @@ class BasicICEngine(AbstractFuelPropulsion):
 
         return uninstalled_weight
 
-    def compute_dimensions(self) -> (float, float, float, float):
+    def compute_dimensions(self) -> (float, float, float, float, float, float):
         """
         Computes propulsion dimensions (engine/nacelle/propeller) from maximum power.
         Model from :...
@@ -440,7 +440,7 @@ class BasicICEngine(AbstractFuelPropulsion):
         # For clarity purposes, it has been assimilated as the spinner length
 
         return self.nacelle["height"], self.nacelle["width"], self.nacelle["length"], self.nacelle[
-            "wet_area"], d, propeller_depth
+            "wet_area"], self.propeller["diameter"], self.propeller["depth"]
 
     def compute_drag(self, mach, unit_reynolds, wing_mac):
         """
