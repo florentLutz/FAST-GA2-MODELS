@@ -216,9 +216,9 @@ class ComputeVNvlm(VLMSimpleGeometry):
         # Lets start by computing the 1g/-1g stall speeds using the usual formulations
         Vs_1g_ps = math.sqrt((2. * mass * g) / (atm_0.density * wing_area * cl_max))  # [m/s]
         Vs_1g_ng = math.sqrt((2. * mass * g) / (atm_0.density * wing_area * abs(cl_min)))  # [m/s]
-        velocity_array.append(Vs_1g_ps)
+        velocity_array.append(float(Vs_1g_ps))
         load_factor_array.append(1.0)
-        velocity_array.append(Vs_1g_ng)
+        velocity_array.append(float(Vs_1g_ng))
         load_factor_array.append(-1.0)
 
 
@@ -269,8 +269,8 @@ class ComputeVNvlm(VLMSimpleGeometry):
             n_lim_ng_max = - 0.4 * n_lim_ps  # CS 23.337 (b)
         n_lim_ng = min(n_lim_ng_max, design_n_ng)
 
-        load_factor_array.append(n_lim_ps)
-        load_factor_array.append(n_lim_ng)
+        load_factor_array.append(float(n_lim_ps))
+        load_factor_array.append(float(n_lim_ng))
 
         # Starting from there, we need to compute the gust lines as it can have an impact on the choice
         # of the maneuvering speed. We will also compute the maximum intensity gust line for later
@@ -319,8 +319,8 @@ class ComputeVNvlm(VLMSimpleGeometry):
 
         Vma_ps = Vs_1g_ps * math.sqrt(n_lim_ps)  # [m/s]
         Vma_ng = Vs_1g_ng * math.sqrt(abs(n_lim_ng))  # [m/s]
-        velocity_array.append(Vma_ps)
-        velocity_array.append(Vma_ng)
+        velocity_array.append(float(Vma_ps))
+        velocity_array.append(float(Vma_ng))
 
         # We now need to check if we are in the aforementioned case (usually happens for low design wing
         # loading aircraft and/or mission wing loading)
@@ -333,8 +333,8 @@ class ComputeVNvlm(VLMSimpleGeometry):
             delta = lambda x: load_factor_gust_p(U_de_Vc, x) - load_factor_stall_p(x)
             Vma_ps = max(optimize.fsolve(delta, np.array(1000.0))[0])
             n_ma_ps = load_factor_gust_p(U_de_Vc, Vma_ps)  # [-]
-            velocity_array.append(Vma_ps)
-            load_factor_array.append(n_ma_ps)
+            velocity_array.append(float(Vma_ps))
+            load_factor_array.append(float(n_ma_ps))
         else:
             velocity_array.append(0.0)
             load_factor_array.append(0.0)
@@ -349,8 +349,8 @@ class ComputeVNvlm(VLMSimpleGeometry):
             delta = lambda x: load_factor_gust_n(U_de_Vc, x) - load_factor_stall_n(x)
             Vma_ng = max(optimize.fsolve(delta, np.array(1000.0))[0])
             n_ma_ng = load_factor_gust_n(U_de_Vc, Vma_ng)  # [-]
-            velocity_array.append(Vma_ng)
-            load_factor_array.append(n_ma_ng)
+            velocity_array.append(float(Vma_ng))
+            load_factor_array.append(float(n_ma_ng))
         else:
             velocity_array.append(0.0)
             load_factor_array.append(0.0)
@@ -399,8 +399,8 @@ class ComputeVNvlm(VLMSimpleGeometry):
         # the maximum level velocity at sea level hence
 
         Vc = max(min(design_vc, Vh), Vc_min_fin)  # [m/s]
-        velocity_array.append(Vc)
-        load_factor_array.append(n_lim_ng)
+        velocity_array.append(float(Vc))
+        load_factor_array.append(float(n_lim_ng))
 
         # Lets now look at the load factors associated with the Vc, since it is here that the greatest
         # load factors can appear
@@ -408,10 +408,10 @@ class ComputeVNvlm(VLMSimpleGeometry):
         n_Vc_ps = max(load_factor_gust_p(U_de_Vc, Vc), n_lim_ps)  # [-]
         n_Vc_ng = min(load_factor_gust_n(U_de_Vc, Vc), n_lim_ng)  # [-]
 
-        velocity_array.append(Vc)
-        load_factor_array.append(n_Vc_ps)
-        velocity_array.append(Vc)
-        load_factor_array.append(n_Vc_ng)
+        velocity_array.append(float(Vc))
+        load_factor_array.append(float(n_Vc_ps))
+        velocity_array.append(float(Vc))
+        load_factor_array.append(float(n_Vc_ng))
 
         # We now compute the diving speed, methods are described in CS 23.335 (b). We will take the minimum
         # diving speed allowable as our design diving speed. We need to keep in mind that this speed could
@@ -451,9 +451,9 @@ class ComputeVNvlm(VLMSimpleGeometry):
         Vd_min_2 = k_d * Vc_min_fin  # [m/s]
         Vd = max(Vd_min_1, Vd_min_2)  # [m/s]
 
-        velocity_array.append(Vd)
-        load_factor_array.append(n_lim_ps)
-        velocity_array.append(Vd)
+        velocity_array.append(float(Vd))
+        load_factor_array.append(float(n_lim_ps))
+        velocity_array.append(float(Vd))
         load_factor_array.append(0.0)
 
         # Similarly to what was done for the design cruising speed we will explore the load factors
@@ -473,10 +473,10 @@ class ComputeVNvlm(VLMSimpleGeometry):
 
         n_Vd_ng = load_factor_gust_n(U_de_Vd, Vd)  # [-]
 
-        velocity_array.append(Vd)
-        load_factor_array.append(n_Vd_ps)
-        velocity_array.append(Vd)
-        load_factor_array.append(n_Vd_ng)
+        velocity_array.append(float(Vd))
+        load_factor_array.append(float(n_Vd_ps))
+        velocity_array.append(float(Vd))
+        load_factor_array.append(float(n_Vd_ng))
 
         # We have now calculated all the velocities need to plot the flight domain. For the sake of
         # thoroughness we will also compute the maximal structural cruising speed and cruise never-exceed
@@ -495,7 +495,7 @@ class ComputeVNvlm(VLMSimpleGeometry):
 
         V_ne = 0.9 * Vd  # [m/s]
 
-        velocity_array.append(V_ne)
+        velocity_array.append(float(V_ne))
         load_factor_array.append(0.0)
 
         V_no_min = Vc_min  # [m/s]
@@ -506,7 +506,7 @@ class ComputeVNvlm(VLMSimpleGeometry):
 
         V_no = max(V_no_min, V_no_max)  # [m/s]
 
-        velocity_array.append(V_no)
+        velocity_array.append(float(V_no))
         load_factor_array.append(0.0)
 
         # One additional velocity needs to be computed if we are talking about commuter aircraft. It is
@@ -548,8 +548,8 @@ class ComputeVNvlm(VLMSimpleGeometry):
             Vmg = 0.0  # [m/s]
             n_Vmg = 0.0
 
-        velocity_array.append(Vmg)
-        load_factor_array.append(n_Vmg)
+        velocity_array.append(float(Vmg))
+        load_factor_array.append(float(n_Vmg))
 
         # Let us now look at the flight domain in the flap extended configuration. For the computation of these
         # speeds and load factors, we will use the formula provided in CS 23.1511
@@ -567,7 +567,7 @@ class ComputeVNvlm(VLMSimpleGeometry):
         Vfe_min = max(Vfe_min_1, Vfe_min_2)  # [m/s]
         Vfe = Vfe_min  # [m/s]
 
-        velocity_array.append(Vsfe_1g_ps)
+        velocity_array.append(float(Vsfe_1g_ps))
         load_factor_array.append(1.0)
 
 
@@ -580,10 +580,10 @@ class ComputeVNvlm(VLMSimpleGeometry):
         n_lim_ps_fe = 2.0
         n_Vfe = max(n_lim_ps_fe, load_factor_gust_n(U_de_fe, Vfe))
 
-        velocity_array.append(Vsfe_1g_ps * math.sqrt(n_Vfe))
-        load_factor_array.append(n_Vfe)
-        velocity_array.append(Vfe)
-        load_factor_array.append(n_Vfe)
+        velocity_array.append(float(Vsfe_1g_ps * math.sqrt(n_Vfe)))
+        load_factor_array.append(float(n_Vfe))
+        velocity_array.append(float(Vfe))
+        load_factor_array.append(float(n_Vfe))
 
         # We also store the conditions in which the values were computed so that we can easily access
         # them when drawing the flight domains

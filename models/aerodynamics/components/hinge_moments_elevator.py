@@ -39,8 +39,9 @@ class Compute2DHingeMomentsTail(ExplicitComponent):
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="kn")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
 
-        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment_2D:AOA", val=np.nan, units="rad**-1")
-        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment_2D:elevator", val=np.nan,
+        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D", val=np.nan,
+                        units="rad**-1")
+        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D", val=np.nan,
                         units="rad**-1")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
@@ -262,8 +263,8 @@ class Compute2DHingeMomentsTail(ExplicitComponent):
         # Step 5.
         ch_delta_fin = ch_delta_balance / beta
 
-        outputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_2D:AOA"] = ch_alpha_fin
-        outputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_2D:elevator"] = ch_delta_fin
+        outputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D"] = ch_alpha_fin
+        outputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D"] = ch_delta_fin
 
 
 class Compute3DHingeMomentsTail(ExplicitComponent):
@@ -273,20 +274,21 @@ class Compute3DHingeMomentsTail(ExplicitComponent):
     """
 
     def setup(self):
-        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment_2D:AOA", val=np.nan, units="rad**-1")
-        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment_2D:elevator", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D", val=np.nan, units="rad**-1")
         self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="rad")
         self.add_input("data:geometry:horizontal_tail:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:horizontal_tail:elevator_chord_ratio", val=np.nan)
 
-        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:AOA", val=np.nan, units="rad**-1")
-        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:elevator", val=np.nan,
+        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha", val=np.nan,
+                        units="rad**-1")
+        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta", val=np.nan,
                         units="rad**-1")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        ch_alpha_2d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_2D:AOA"]
-        ch_delta_2d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_2D:elevator"]
+        ch_alpha_2d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D"]
+        ch_delta_2d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D"]
         sweep_25_ht = inputs["data:geometry:horizontal_tail:sweep_25"]
         ar_ht = inputs["data:geometry:horizontal_tail:aspect_ratio"]
         elevator_chord_ratio = inputs["data:geometry:horizontal_tail:elevator_chord_ratio"]
@@ -314,5 +316,5 @@ class Compute3DHingeMomentsTail(ExplicitComponent):
             a_delta * ((2.0 * math.cos(sweep_25_ht))/(ar_ht + 2. * math.cos(sweep_25_ht))) * ch_alpha_2d
         )
 
-        outputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:AOA"] = ch_alpha_3d
-        outputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:elevator"] = ch_delta_3d
+        outputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha"] = ch_alpha_3d
+        outputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta"] = ch_delta_3d

@@ -57,7 +57,6 @@ RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
 xfoil_path = None if system() == "Windows" else get_xfoil_path()
 
 XML_FILE = "beechcraft_76.xml"
-TUTORIAL_FILE = 'D:/a.reysset/Documents/Github/FAST-GA2-MODELS/notebooks/tutorial/workdir/geometry_long_wing.xml'
 ENGINE_WRAPPER = "test.wrapper.aerodynamics.beechcraft.dummy_engine"
 
 
@@ -494,14 +493,30 @@ def test_2d_hinge_moment():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(Compute2DHingeMomentsTail()), __file__, XML_FILE)
-    ivc.add_output("data:aerodynamics:wing:cruise:CL_alpha", 4.569, units="rad**-1")
+    ivc.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha", 0.6826, units="rad**-1")
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeDeltaHighLift(), ivc)
-    angle = problem.get_val("data:aerodynamics:horizontal_tail:cruise:hinge_moment_2D:AOA", units="rad**-1")
-    assert angle == pytest.approx(0.7321, abs=1e-4)
+    problem = run_system(Compute2DHingeMomentsTail(), ivc)
+    ch_alpha_2d = problem.get_val("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D", units="rad**-1")
+    assert ch_alpha_2d == pytest.approx(-0.3339, abs=1e-4)
+    ch_delta_2d = problem.get_val("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D", units="rad**-1")
+    assert ch_delta_2d == pytest.approx(-0.6358, abs=1e-4)
 
 
+def test_3d_hinge_moment():
+    """ Tests tail hinge-moments """
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(Compute3DHingeMomentsTail()), __file__, XML_FILE)
+    ivc.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D", -0.3339, units="rad**-1")
+    ivc.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D", -0.6358, units="rad**-1")
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(Compute3DHingeMomentsTail(), ivc)
+    ch_alpha = problem.get_val("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha", units="rad**-1")
+    assert ch_alpha == pytest.approx(-0.2486, abs=1e-4)
+    ch_delta = problem.get_val("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta", units="rad**-1")
+    assert ch_delta == pytest.approx(-0.6765, abs=1e-4)
 
 
 def test_high_lift():
@@ -530,8 +545,8 @@ def test_high_lift():
     assert delta_cm_takeoff == pytest.approx(-0.0378, abs=1e-4)
     delta_cd_takeoff = problem["data:aerodynamics:flaps:takeoff:CD"]
     assert delta_cd_takeoff == pytest.approx(0.00111811, abs=1e-4)
-    cl_alpha_elev = problem.get_val("data:aerodynamics:elevator:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_elev == pytest.approx(0.6167, abs=1e-4)
+    cl_delta_elev = problem.get_val("data:aerodynamics:elevator:low_speed:CL_delta", units="rad**-1")
+    assert cl_delta_elev == pytest.approx(0.6167, abs=1e-4)
 
 
 def test_extreme_cl():

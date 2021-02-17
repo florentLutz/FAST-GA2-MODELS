@@ -66,7 +66,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_output("data:aerodynamics:flaps:takeoff:CL_max")
         self.add_output("data:aerodynamics:flaps:takeoff:CM")
         self.add_output("data:aerodynamics:flaps:takeoff:CD")
-        self.add_output("data:aerodynamics:elevator:low_speed:CL_alpha", units="rad**-1")
+        self.add_output("data:aerodynamics:elevator:low_speed:CL_delta", units="rad**-1")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -112,7 +112,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                 )
 
         # Computes elevator contribution during low speed operations (for different deflection angle)
-        outputs["data:aerodynamics:elevator:low_speed:CL_alpha"] = self._get_elevator_delta_cl(
+        outputs["data:aerodynamics:elevator:low_speed:CL_delta"] = self._get_elevator_delta_cl(
             inputs,
             25.0,
         )  # get derivative for 25° angle
