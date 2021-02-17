@@ -1,0 +1,27 @@
+ //===== Define wing 1st Section ====//
+   
+   SetParmVal( GetParm(wid, "Span", "XSec_1"), y4_wing );
+   SetParmVal( GetParm(wid, "Root_Chord", "XSec_1"), l2_wing );
+   SetParmVal( GetParm(wid, "Tip_Chord", "XSec_1"), l4_wing );
+   SetParmVal( GetParm(wid, "Sweep", "XSec_1"), sweep_0_wing );
+   SetParmVal( GetParm(wid, "Sec_Sweep_Location", "XSec_1"), 0.7 );
+   SetParmVal( GetParm(wid, "Sweep_Location", "XSec_1"), 0 );
+   SetParmVal( GetParm(wid, "SectTess_U", "XSec_1"), 8 );
+   SetParmVal( GetParm(wid, "OutCluster", "XSec_2"), 0.9 );
+   Update();
+   
+   //==== Change Airfoil 0 shape ====//
+   
+   ChangeXSecShape( xsec_surf, 0, XS_FILE_AIRFOIL );
+   xsec = GetXSec( xsec_surf, 0 );
+   ReadFileAirfoil( xsec, airfoil_0_file );
+   Update();
+   
+   //==== Change Airfoil 1 (y=y2) shape ====//
+   
+   ChangeXSecShape( xsec_surf, 1, XS_FILE_AIRFOIL );
+   xsec = GetXSec( xsec_surf, 1 );
+   ReadFileAirfoil( xsec, airfoil_1_file );
+   Update();
+
+string xsec_surf = GetXSecSurf( wid, 0 );

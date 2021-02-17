@@ -134,6 +134,7 @@ class _UpdateArea(om.ExplicitComponent):
         self.add_input("data:aerodynamics:flaps:landing:CM", val=np.nan)
         self.add_input("data:aerodynamics:flaps:takeoff:CM", val=np.nan)
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:efficiency", val=np.nan)
 
         self.add_input("landing:cl_htp", val=np.nan)
         self.add_input("takeoff:cl_htp", val=np.nan)
@@ -169,6 +170,7 @@ class _UpdateArea(om.ExplicitComponent):
         cl_max_takeoff = inputs["data:aerodynamics:aircraft:takeoff:CL_max"]
         cl_flaps_landing = inputs["data:aerodynamics:flaps:landing:CL"]
         cl_flaps_takeoff = inputs["data:aerodynamics:flaps:takeoff:CL"]
+        tail_efficiency_factor = inputs["data:aerodynamics:horizontal_tail:efficiency"]
         cl_htp_landing = inputs["landing:cl_htp"]
         cl_htp_takeoff = inputs["takeoff:cl_htp"]
         cm_landing = inputs["data:aerodynamics:wing:low_speed:CM0_clean"] + inputs["data:aerodynamics:flaps:landing:CM"]
@@ -211,7 +213,8 @@ class _UpdateArea(om.ExplicitComponent):
         # Compute aerodynamic coefficients for takeoff @ 0° aircraft angle
         cl0_takeoff = cl0_clean + cl_flaps_takeoff
         # Calculation of correction coefficient n_h and n_q            
-        n_h = (x_ht - x_lg) / lp_ht * 0.9  # 0.9=(v_h/v_r)²: dynamic pressure reduction at tail (typical value)
+        n_h = (x_ht - x_lg) / lp_ht * tail_efficiency_factor  # tail_efficiency_factor: dynamic pressure reduction at
+        # tail (typical value)
         n_q = 1 + cl_alpha_htp / cl_htp_takeoff * _ANG_VEL * (x_ht - x_lg) / v_r
         # Calculation of volume coefficient based on Torenbeek formula
         coef_vol = (
@@ -244,7 +247,8 @@ class _UpdateArea(om.ExplicitComponent):
         # Evaluate aircraft overall angle (aoa)
         cl0_landing = cl0_clean + cl_flaps_landing
         # Calculation of correction coefficient n_h and n_q            
-        n_h = (x_ht - x_lg) / lp_ht * 0.9  # 0.9=(v_htp/v_r)²: dynamic pressure reduction at tail (typical value)
+        n_h = (x_ht - x_lg) / lp_ht * tail_efficiency_factor  # tail_efficiency_factor: dynamic pressure reduction at
+        # tail (typical value)
         n_q = 1 + cl_alpha_htp / cl_htp_landing * _ANG_VEL * (x_ht - x_lg) / v_r
         # Calculation of volume coefficient based on Torenbeek formula
         coef_vol = (
