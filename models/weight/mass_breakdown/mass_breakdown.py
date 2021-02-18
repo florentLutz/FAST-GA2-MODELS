@@ -81,7 +81,7 @@ class MassBreakdown(om.Group):
         self.linear_solver.options["err_on_non_converge"] = True
         self.linear_solver.options["iprint"] = 2
         self.linear_solver.options["maxiter"] = 10
-        self.linear_solver.options["rtol"] = 1e-3
+        # self.linear_solver.options["rtol"] = 1e-3
 
 
 class ComputeOperatingWeightEmpty(om.Group):

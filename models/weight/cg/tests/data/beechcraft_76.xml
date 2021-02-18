@@ -17,17 +17,34 @@
 	<data>
 		<TLAR>
 			<NPAX>2.0<!--number of passengers (2 pilots not included)--></NPAX>
+			<v_cruise units="kn">164.0<!--top-level requirement: cruise speed--></v_cruise>
 		</TLAR>
+		<aerodynamics>
+			<aircraft>
+				<cruise>
+					<CD0>0.01958</CD0>
+				</cruise>
+			</aircraft>
+			<wing>
+				<cruise>
+					<induced_drag_coefficient>0.0480</induced_drag_coefficient>
+				</cruise>
+			</wing>
+		</aerodynamics>
 		<geometry>
 			<cabin>
 				<NPAX>2.0<!--number of passengers seats if all rows filled-up--></NPAX>
 				<aisle_width units="m">0.0<!--cabin aisle width--></aisle_width>
+				<luggage>
+					<mass_max units="kg">50.0<!--maximum luggage mass to carry--></mass_max>
+				</luggage>
 				<seats>
 					<pilot>
 						<length units="m">0.75<!--pilot seats length--></length>
 						<width units="m">0.565<!--pilot seats width--></width>
 					</pilot>
 					<passenger>
+						<NPAX_max>2.0<!--maximum number of passengers in cabin (2 pilots seats not included)--></NPAX_max>
 						<count_by_row>2.0<!--passenger seats per row--></count_by_row>
 						<length units="m">0.8<!--passenger seats length--></length>
 						<width units="m">0.565<!--passenger seats width--></width>
@@ -62,6 +79,7 @@
 				</tip>
 			</horizontal_tail>
 			<propulsion>
+				<count>2.0<!--number of engines--></count>
 				<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
 				<nacelle>
 					<length units="m">1.44<!--nacelle length--></length>
@@ -103,6 +121,7 @@
 						</x>
 					</leading_edge>
 				</MAC>
+				<area units="m**2">19.151<!--wing reference area--></area>
 				<root>
 					<chord units="m">1.549<!--chord length at wing root--></chord>
 					<virtual_chord units="m">1.549<!--virtual chord length at wing root if sweep angle of trailing edge of outer wing part was on the whole wing (no kink)--></virtual_chord>
@@ -125,9 +144,26 @@
 				<span_ratio>0.8<!--ratio (width of flaps)/(total span)--></span_ratio>
 			</flap>
 		</geometry>
+		<mission>
+		  	<sizing>
+				<main_route>
+					<cruise>
+						<altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
+					</cruise>
+				</main_route>
+		  	</sizing>
+		</mission>
+		<propulsion>
+			<IC_engine>
+				<fuel_type>1.0<!--1=gasoline ICE engine / 2=gasoil ICE engine--></fuel_type>
+				<max_power units="W">130000.0<!--max power @ see level--></max_power>
+				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
+			</IC_engine>
+		</propulsion>
 		<weight>
 			<aircraft>
 				<MFW units="kg">587.15<!--maximum fuel weight--></MFW>
+				<MTOW units="kg">1700.0<!--maximum takeoff weight--></MTOW>
 			</aircraft>
 			<airframe>
 				<flight_controls>
@@ -187,4 +223,13 @@
 			</systems>
 		</weight>
 	</data>
+	<settings>
+		<weight>
+			<aircraft>
+				<CG>
+					<range>0.15<!--distance between front position and aft position of CG, as ratio of mean aerodynamic chord (allows to have front position of CG, as currently, FAST-OAD estimates only the aft position of CG)--></range>
+				</CG>
+			</aircraft>
+		</weight>
+	</settings>
 </FASTOAD_model>

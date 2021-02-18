@@ -23,7 +23,7 @@ from .cg_components.b_propulsion import ComputeEngineCG, ComputeFuelLinesCG, Com
 from .cg_components.c_systems import ComputePowerSystemsCG, ComputeLifeSupportCG, ComputeNavigationSystemsCG
 from .cg_components.d_furniture import ComputePassengerSeatsCG
 from .cg_components.payload import ComputePayloadCG
-from .cg_components.global_cg import ComputeGlobalCG, ComputeGlobalCGnew
+from .cg_components.global_cg import ComputeGlobalCG
 from .cg_components.update_mlg import UpdateMLG
 
 
@@ -48,8 +48,7 @@ class CG(om.Group):
         self.add_subsystem("navigation_systems_cg", ComputeNavigationSystemsCG(), promotes=["*"])
         self.add_subsystem("passenger_seats_cg", ComputePassengerSeatsCG(), promotes=["*"])
         self.add_subsystem("payload_cg", ComputePayloadCG(), promotes=["*"])
-        # self.add_subsystem("compute_cg", ComputeGlobalCG(propulsion_id=self.options['propulsion_id']), promotes=["*"])
-        self.add_subsystem("compute_cg", ComputeGlobalCGnew(propulsion_id=self.options['propulsion_id']), promotes=["*"])
+        self.add_subsystem("compute_cg", ComputeGlobalCG(propulsion_id=self.options['propulsion_id']), promotes=["*"])
         self.add_subsystem("update_mlg", UpdateMLG(), promotes=["*"])
         self.add_subsystem("aircraft", ComputeAircraftCG(), promotes=["*"])
 
@@ -59,16 +58,14 @@ class CG(om.Group):
         self.nonlinear_solver.options["err_on_non_converge"] = True
         self.nonlinear_solver.options["iprint"] = 2
         self.nonlinear_solver.options["maxiter"] = 50
-        self.nonlinear_solver.options["reraise_child_analysiserror"] = True
-        self.nonlinear_solver.options["rtol"] = 1e-5
-        # self.nonlinear_solver.options["stall_limit"] = 1
-        # self.nonlinear_solver.options["stall_tol"] = 1e-5
+        # self.nonlinear_solver.options["reraise_child_analysiserror"] = True
+        # self.nonlinear_solver.options["rtol"] = 1e-5
 
         self.linear_solver = om.LinearBlockGS()
         self.linear_solver.options["err_on_non_converge"] = True
         self.linear_solver.options["iprint"] = 2
         self.linear_solver.options["maxiter"] = 10
-        self.linear_solver.options["rtol"] = 1e-5
+        # self.linear_solver.options["rtol"] = 1e-5
 
 
 class ComputeAircraftCG(om.ExplicitComponent):

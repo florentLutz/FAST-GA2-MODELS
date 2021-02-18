@@ -16,8 +16,8 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-		  	<v_approach units="kn">78.0!--top-level requirement: approach speed--></v_approach>
-			<v_cruise units="kn">164.0!--top-level requirement: cruise speed--></v_cruise>
+		  	<v_approach units="kn">78.0<!--top-level requirement: approach speed--></v_approach>
+			<v_cruise units="kn">164.0<!--top-level requirement: cruise speed--></v_cruise>
 		</TLAR>
 		<geometry>
 			<flap>
@@ -123,9 +123,9 @@
 			  		<flap_angle units="deg">30.0<!--flap angle during landing phase in sizing mission--></flap_angle>
 				</landing>
 				<main_route>
-				<cruise>
-				  	<altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
-				</cruise>
+					<cruise>
+						<altitude units="ft">8000.0<!--altitude during cruise phase in sizing mission--></altitude>
+					</cruise>
 				</main_route>
 				<takeoff>
 				  	<elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>

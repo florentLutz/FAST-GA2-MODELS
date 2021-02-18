@@ -15,13 +15,19 @@ Test module for geometry functions of cg components
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os.path as pth
-import openmdao.api as om
-
+import pandas as pd
+import numpy as np
+from openmdao.core.component import Component
 import pytest
+from typing import Union
+
 from fastoad.io import VariableIO
+from fastoad.module_management.service_registry import RegisterPropulsion
+from fastoad import BundleLoader
+from fastoad.base.flight_point import FlightPoint
+from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
-from ....tests.testing_utilities import run_system, get_indep_var_comp, list_inputs, Timer
-
+from ....tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 from ..cg import CG
 from ..cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, \
     ComputeLandingGearCG
@@ -29,12 +35,81 @@ from ..cg_components.b_propulsion import ComputeEngineCG, ComputeFuelLinesCG, Co
 from ..cg_components.c_systems import ComputePowerSystemsCG, ComputeLifeSupportCG, ComputeNavigationSystemsCG
 from ..cg_components.d_furniture import ComputePassengerSeatsCG
 from ..cg_components.payload import ComputePayloadCG
-from ..cg_components.loadcase import ComputeCGLoadCase
+from ..cg_components.loadcase import ComputeGroundCGCase, ComputeFlightCGCase
 from ..cg_components.ratio_aft import ComputeCGRatioAft
-from ..cg_components.max_cg_ratio import ComputeMaxCGratio
+from ..cg_components.max_cg_ratio import ComputeMaxMinCGratio
 from ..cg_components.update_mlg import UpdateMLG
+from ....propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from ....propulsion.propulsion import IPropulsion
 
 XML_FILE = "beechcraft_76.xml"
+ENGINE_WRAPPER = "test.wrapper.cg.beechcraft.dummy_engine"
+
+
+class DummyEngine(AbstractFuelPropulsion):
+
+    def __init__(self,
+                 max_power: float,
+                 design_altitude: float,
+                 design_speed: float,
+                 fuel_type: float,
+                 strokes_nb: float,
+                 prop_layout: float,
+                 ):
+        """
+        Dummy engine model returning thrust in particular conditions defined for htp/vtp areas.
+
+        """
+        super().__init__()
+        self.prop_layout = prop_layout
+        self.max_power = max_power
+        self.design_altitude = design_altitude
+        self.design_speed = design_speed
+        self.fuel_type = fuel_type
+        self.strokes_nb = strokes_nb
+
+    def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
+        flight_points.thrust = 3500.0
+        flight_points['sfc'] = 0.0
+
+    def compute_weight(self) -> float:
+        return 562.83 / 2.0
+
+    def compute_dimensions(self) -> (float, float, float, float, float, float):
+        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    def compute_drag(self, mach, unit_reynolds, l0_wing):
+        return 0.0
+
+    def get_consumed_mass(self, flight_point: FlightPoint, time_step: float) -> float:
+        return 0.0
+
+
+@RegisterPropulsion(ENGINE_WRAPPER)
+class DummyEngineWrapper(IOMPropulsionWrapper):
+    def setup(self, component: Component):
+        component.add_input("data:propulsion:IC_engine:max_power", np.nan, units="W")
+        component.add_input("data:propulsion:IC_engine:fuel_type", np.nan)
+        component.add_input("data:propulsion:IC_engine:strokes_nb", np.nan)
+        component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
+        component.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
+        component.add_input("data:geometry:propulsion:layout", np.nan)
+
+    @staticmethod
+    def get_model(inputs) -> IPropulsion:
+        engine_params = {
+            "max_power": inputs["data:propulsion:IC_engine:max_power"],
+            "design_altitude": inputs["data:mission:sizing:main_route:cruise:altitude"],
+            "design_speed": inputs["data:TLAR:v_cruise"],
+            "fuel_type": inputs["data:propulsion:IC_engine:fuel_type"],
+            "strokes_nb": inputs["data:propulsion:IC_engine:strokes_nb"],
+            "prop_layout": inputs["data:geometry:propulsion:layout"]
+        }
+
+        return DummyEngine(**engine_params)
+
+
+BundleLoader().context.install_bundle(__name__).start()
 
 
 def test_compute_cg_wing():
@@ -236,54 +311,56 @@ def test_compute_cg_ratio_aft():
 
 
 def test_compute_cg_loadcase():
-    """ Tests computation of center of gravity for all load case conf. """
+    """ Tests computation of center of gravity for ground/flight conf. """
 
     # Research independent input value in .xml file and add values calculated from other modules
-    ivc = get_indep_var_comp(list_inputs(ComputeCGLoadCase()), __file__, XML_FILE)
-    ivc.add_output("data:weight:payload:PAX:CG:x", 4.13, units="m")  # use old fast-version for calculation
+    ivc = get_indep_var_comp(list_inputs(ComputeGroundCGCase()), __file__, XML_FILE)
+    ivc.add_output("data:weight:propulsion:unusable_fuel:mass", 20.0, units="kg")
+    ivc.add_output("data:weight:propulsion:tank:CG:x", 3.83, units="m")
     ivc.add_output("data:weight:payload:rear_fret:CG:x", 5.68, units="m")
-    ivc.add_output("data:weight:payload:front_fret:CG:x", 0.0, units="m")
+    ivc.add_output("data:weight:furniture:passenger_seats:CG:x", 4.13, units="m")
     ivc.add_output("data:weight:aircraft_empty:CG:x", 2.66, units="m")
     ivc.add_output("data:weight:aircraft_empty:mass", 950.47, units="kg")
-    ivc.add_output("data:weight:propulsion:tank:CG:x", 3.83, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
-    for case in range(1, 7):
-        problem = run_system(ComputeCGLoadCase(load_case=case), ivc)
-        cg_ratio_lc = problem.get_val("data:weight:aircraft:load_case_"+str(case)+":CG:MAC_position")
-        if case == 1:
-            assert cg_ratio_lc == pytest.approx(0.14, abs=1e-2)
-        elif case == 2:
-            assert cg_ratio_lc == pytest.approx(0.17, abs=1e-2)
-        elif case == 3:
-            assert cg_ratio_lc == pytest.approx(0.03, abs=1e-2)
-        elif case == 4:
-            assert cg_ratio_lc == pytest.approx(0.15, abs=1e-2)
-        elif case == 5:
-            assert cg_ratio_lc == pytest.approx(0.03, abs=1e-2)
-        elif case == 6:
-            assert cg_ratio_lc == pytest.approx(0.06, abs=1e-2)
-        else:
-            pass
+    problem = run_system(ComputeGroundCGCase(), ivc)
+    mac_max = problem["data:weight:aircraft:CG:ground_condition:max:MAC_position"]
+    assert mac_max == pytest.approx(-0.105, abs=1e-3)
+    mac_min = problem["data:weight:aircraft:CG:ground_condition:min:MAC_position"]
+    assert mac_min == pytest.approx(-0.243, abs=1e-2)
+
+    # Research independent input value in .xml file and add values calculated from other modules
+    ivc = get_indep_var_comp(list_inputs(ComputeFlightCGCase(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
+    ivc.add_output("data:weight:propulsion:unusable_fuel:mass", 20.0, units="kg")
+    ivc.add_output("data:weight:propulsion:tank:CG:x", 3.83, units="m")
+    ivc.add_output("data:weight:payload:rear_fret:CG:x", 5.68, units="m")
+    ivc.add_output("data:weight:aircraft_empty:CG:x", 2.66, units="m")
+    ivc.add_output("data:weight:aircraft_empty:mass", 950.47, units="kg")
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeFlightCGCase(propulsion_id=ENGINE_WRAPPER), ivc)
+    mac_max = problem["data:weight:aircraft:CG:flight_condition:max:MAC_position"]
+    assert mac_max == pytest.approx(0.195, abs=1e-3)
+    mac_min = problem["data:weight:aircraft:CG:flight_condition:min:MAC_position"]
+    assert mac_min == pytest.approx(-0.185, abs=1e-2)
 
 
 def test_compute_max_cg_ratio():
     """ Tests computation of maximum center of gravity ratio """
 
     # Define the independent input values that should be filled if basic function is chosen
-    ivc = om.IndepVarComp()
-    ivc.add_output("data:weight:aircraft:empty:CG:MAC_position", -0.26)
-    ivc.add_output("data:weight:aircraft:load_case_1:CG:MAC_position", 0.14)
-    ivc.add_output("data:weight:aircraft:load_case_2:CG:MAC_position", 0.20)
-    ivc.add_output("data:weight:aircraft:load_case_3:CG:MAC_position", 0.08)
-    ivc.add_output("data:weight:aircraft:load_case_4:CG:MAC_position", 0.15)
-    ivc.add_output("data:weight:aircraft:load_case_5:CG:MAC_position", 0.06)
-    ivc.add_output("data:weight:aircraft:load_case_6:CG:MAC_position", 0.09)
+    ivc = get_indep_var_comp(list_inputs(ComputeMaxMinCGratio()), __file__, XML_FILE)
+    ivc.add_output("data:weight:aircraft:CG:ground_condition:max:MAC_position", -0.105)
+    ivc.add_output("data:weight:aircraft:CG:ground_condition:min:MAC_position", -0.243)
+    ivc.add_output("data:weight:aircraft:CG:flight_condition:max:MAC_position", 0.195)
+    ivc.add_output("data:weight:aircraft:CG:flight_condition:min:MAC_position", -0.185)
 
     # Run problem and check obtained value(s) is/(are) correct
-    problem = run_system(ComputeMaxCGratio(), ivc)
-    cg_ratio = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")
-    assert cg_ratio == pytest.approx(0.25, abs=1e-2)
+    problem = run_system(ComputeMaxMinCGratio(), ivc)
+    cg_ratio_aft = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")
+    assert cg_ratio_aft == pytest.approx(0.245, abs=1e-3)
+    cg_ratio_fwd = problem.get_val("data:weight:aircraft:CG:fwd:MAC_position")
+    assert cg_ratio_fwd == pytest.approx(-0.273, abs=1e-3)
 
 
 def test_update_mlg():
@@ -303,15 +380,17 @@ def test_update_mlg():
 def test_complete_cg():
     """ Run computation of all models """
 
-    with Timer(name="CG: loop"):
-        # with data from file
-        reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
-        reader.path_separator = ":"
-        input_vars = reader.read().to_ivc()
+    # with data from file
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
+    reader.path_separator = ":"
+    input_vars = reader.read().to_ivc()
+    input_vars.add_output("data:weight:propulsion:unusable_fuel:mass", 20.0, units="kg")
 
-        # Run problem and check obtained value(s) is/(are) correct
-        problem = run_system(CG(), input_vars, check=True)
-        cg_global = problem.get_val("data:weight:aircraft:CG:aft:x", units="m")
-        assert cg_global == pytest.approx(3.86577958, abs=1e-1)
-        cg_ratio = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")
-        assert cg_ratio == pytest.approx(0.51906364, abs=1e-2)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    # noinspection PyTypeChecker
+    problem = run_system(CG(propulsion_id=ENGINE_WRAPPER), input_vars, check=True)
+    cg_global = problem.get_val("data:weight:aircraft:CG:aft:x", units="m")
+    assert cg_global == pytest.approx(3.921, abs=1e-3)
+    cg_ratio = problem.get_val("data:weight:aircraft:CG:aft:MAC_position")
+    assert cg_ratio == pytest.approx(0.555, abs=1e-3)

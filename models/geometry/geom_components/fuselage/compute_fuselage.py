@@ -87,7 +87,7 @@ class ComputeFuselageGeometryCabinSizingFD(ExplicitComponent):
         self.add_input("data:geometry:cabin:seats:passenger:width", val=np.nan, units="m")
         self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
         self.add_input("data:geometry:cabin:aisle_width", val=np.nan, units="m")
-        self.add_input("data:geometry:cabin:luggage:luggage_mass_max", val=np.nan, units="kg")
+        self.add_input("data:geometry:cabin:luggage:mass_max", val=np.nan, units="kg")
         self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
         self.add_input("data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
         self.add_input("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", val=np.nan, units="m")
@@ -122,7 +122,7 @@ class ComputeFuselageGeometryCabinSizingFD(ExplicitComponent):
         w_pass_seats = inputs["data:geometry:cabin:seats:passenger:width"]
         seats_p_row = inputs["data:geometry:cabin:seats:passenger:count_by_row"]
         w_aisle = inputs["data:geometry:cabin:aisle_width"]
-        luggage_mass_max = inputs["data:geometry:cabin:luggage:luggage_mass_max"]
+        luggage_mass_max = inputs["data:geometry:cabin:luggage:mass_max"]
         prop_layout = inputs["data:geometry:propulsion:layout"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         ht_lp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
@@ -211,7 +211,7 @@ class ComputeFuselageGeometryCabinSizingFL(ExplicitComponent):
         self.add_input("data:geometry:cabin:seats:passenger:width", val=np.nan, units="m")
         self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
         self.add_input("data:geometry:cabin:aisle_width", val=np.nan, units="m")
-        self.add_input("data:geometry:cabin:luggage:luggage_mass_max", val=np.nan, units="kg")
+        self.add_input("data:geometry:cabin:luggage:mass_max", val=np.nan, units="kg")
         self.add_input("data:geometry:fuselage:rear_length", units="m")
 
         self.add_output("data:geometry:cabin:NPAX")
@@ -236,7 +236,7 @@ class ComputeFuselageGeometryCabinSizingFL(ExplicitComponent):
         w_pass_seats = inputs["data:geometry:cabin:seats:passenger:width"]
         seats_p_row = inputs["data:geometry:cabin:seats:passenger:count_by_row"]
         w_aisle = inputs["data:geometry:cabin:aisle_width"]
-        luggage_mass_max = inputs["data:geometry:cabin:luggage:luggage_mass_max"]
+        luggage_mass_max = inputs["data:geometry:cabin:luggage:mass_max"]
         prop_layout = inputs["data:geometry:propulsion:layout"]
         lar = inputs["data:geometry:fuselage:rear_length"]
 

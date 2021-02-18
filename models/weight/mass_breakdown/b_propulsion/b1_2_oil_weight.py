@@ -15,9 +15,14 @@ Estimation of engine and associated component weight
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+from scipy.constants import lbf
 from openmdao.core.explicitcomponent import ExplicitComponent
+
 from ....propulsion.fuel_propulsion.base import FuelEngineSet
+
 from fastoad import BundleLoader
+from fastoad.base.flight_point import FlightPoint
+from fastoad.constants import EngineSetting
 
 
 class ComputeOilWeight(ExplicitComponent):
@@ -47,13 +52,20 @@ class ComputeOilWeight(ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        propulsion_model = FuelEngineSet(self._engine_wrapper.get_model(inputs),
-                                         inputs["data:geometry:propulsion:count"])
+        n_eng = inputs["data:geometry:propulsion:count"]
+
+        propulsion_model = FuelEngineSet(self._engine_wrapper.get_model(inputs), n_eng)
+
+        flight_point = FlightPoint(
+            mach=0.0, altitude=0.0, engine_setting=EngineSetting.TAKEOFF,
+            thrust_rate=1.0
+        )  # with engine_setting as EngineSetting
+        propulsion_model.compute_flight_points(flight_point)
 
         # This should give the UNINSTALLED weight
-        sl_thrust_newton = propulsion_model.compute_sl_thrust()
-        sl_thrust_lbs = sl_thrust_newton * 0.224809
+        sl_thrust_newton = float(flight_point.thrust)
+        sl_thrust_lbs = sl_thrust_newton / lbf
 
-        b1_2 = 0.082 * inputs["data:geometry:propulsion:count"] * sl_thrust_lbs ** 0.65
+        b1_2 = 0.082 * n_eng * sl_thrust_lbs ** 0.65
 
         outputs["data:weight:propulsion:engine_oil:mass"] = b1_2

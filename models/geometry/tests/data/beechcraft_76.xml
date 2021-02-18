@@ -22,7 +22,7 @@
 			<cabin>
 				<aisle_width units="m">0.0<!--cabin aisle width--></aisle_width>
 				<luggage>
-					<luggage_mass_max units="kg">50.0<!--maximum luggage mass to carry--></luggage_mass_max>
+					<mass_max units="kg">50.0<!--maximum luggage mass to carry--></mass_max>
 				</luggage>
 				<seats>
 					<pilot>

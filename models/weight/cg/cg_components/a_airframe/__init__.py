@@ -13,6 +13,6 @@
 
 from .a1_wing_cg import ComputeWingCG
 from .a2_fuselage_cg import ComputeFuselageCG
-from .a3_tail_cg import ComputeTailCG # A31/A32
+from .a3_tail_cg import ComputeTailCG
 from .a4_flight_control_cg import ComputeFlightControlCG
 from .a5_landing_gear_cg import ComputeLandingGearCG

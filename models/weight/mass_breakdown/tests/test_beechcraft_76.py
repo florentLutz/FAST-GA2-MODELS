@@ -16,7 +16,6 @@ Test module for mass breakdown functions
 
 import os.path as pth
 import pandas as pd
-import openmdao.api as om
 import numpy as np
 from openmdao.core.component import Component
 import pytest
@@ -38,8 +37,10 @@ from ..a_airframe import (
     ComputeLandingGearWeight,
 )
 from ..b_propulsion import (
+    ComputeOilWeight,
     ComputeFuelLinesWeight,
     ComputeEngineWeight,
+    ComputeUnusableFuelWeight,
 )
 from ..c_systems import (
     ComputeLifeSupportSystemsWeight,
@@ -82,14 +83,14 @@ class DummyEngine(AbstractFuelPropulsion):
         self.strokes_nb = strokes_nb
 
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
-        flight_points.thrust = 0.0
+        flight_points.thrust = 3500.0
         flight_points['sfc'] = 0.0
 
     def compute_weight(self) -> float:
         return 562.83 / 2.0
 
-    def compute_dimensions(self) -> (float, float, float, float):
-        return [0.0, 0.0, 0.0, 0.0]
+    def compute_dimensions(self) -> (float, float, float, float, float, float):
+        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     def compute_drag(self, mach, unit_reynolds, l0_wing):
         return 0.0
@@ -177,7 +178,7 @@ def test_compute_fuselage_weight_raymer():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuselageWeightRaymer(), ivc)
     weight_a2 = problem.get_val("data:weight:airframe:fuselage:mass_raymer", units="kg")
-    assert weight_a2 == pytest.approx(186.93351769, abs=1e-2)
+    assert weight_a2 == pytest.approx(186.93, abs=1e-2)
 
 
 def test_compute_empennage_weight():
@@ -220,6 +221,19 @@ def test_compute_landing_gear_weight():
     assert weight_a52 == pytest.approx(24.11, abs=1e-2)
 
 
+def test_compute_oil_weight():
+    """ Tests engine weight computation from sample XML data """
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeOilWeight(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    register_wrappers()
+    problem = run_system(ComputeOilWeight(propulsion_id=ENGINE_WRAPPER), ivc)
+    weight_b1_2 = problem.get_val("data:weight:propulsion:engine_oil:mass", units="kg")
+    assert weight_b1_2 == pytest.approx(8.90, abs=1e-2)
+
+
 def test_compute_engine_weight():
     """ Tests engine weight computation from sample XML data """
 
@@ -243,6 +257,19 @@ def test_compute_fuel_lines_weight():
     problem = run_system(ComputeFuelLinesWeight(), ivc)
     weight_b2 = problem.get_val("data:weight:propulsion:fuel_lines:mass", units="kg")
     assert weight_b2 == pytest.approx(57.3149, abs=1e-2)
+
+
+def test_compute_unusable_fuel_weight():
+    """ Tests engine weight computation from sample XML data """
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeUnusableFuelWeight(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
+
+    # Run problem and check obtained value(s) is/(are) correct
+    register_wrappers()
+    problem = run_system(ComputeUnusableFuelWeight(propulsion_id=ENGINE_WRAPPER), ivc)
+    weight_b3 = problem.get_val("data:weight:propulsion:unusable_fuel:mass", units="kg")
+    assert weight_b3 == pytest.approx(56.93, abs=1e-2)
 
 
 def test_compute_navigation_systems_weight():
