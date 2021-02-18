@@ -40,9 +40,9 @@ class ComputeAeroCenter(ExplicitComponent):
         )
         self.add_input("data:aerodynamics:wing:cruise:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:horizontal_tail:cruise:CL_alpha", val=np.nan, units="rad**-1")
-        self.add_input("data:aerodynamics:elevator:low_speed:CL_alpha", val=np.nan, units="rad**-1")
-        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:AOA", val=np.nan, units="rad**-1")
-        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:elevator", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:elevator:low_speed:CL_delta", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta", val=np.nan, units="rad**-1")
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
 
@@ -65,9 +65,9 @@ class ComputeAeroCenter(ExplicitComponent):
         lp_ht = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
         cl_alpha_wing = inputs["data:aerodynamics:wing:cruise:CL_alpha"]
         cl_alpha_ht = inputs["data:aerodynamics:horizontal_tail:cruise:CL_alpha"]
-        cl_delta_ht = inputs["data:aerodynamics:elevator:low_speed:CL_alpha"]
-        ch_alpha_3d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:AOA"]
-        ch_delta_3d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment_3D:elevator"]
+        cl_delta_ht = inputs["data:aerodynamics:elevator:low_speed:CL_delta"]
+        ch_alpha_3d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha"]
+        ch_delta_3d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta"]
         v_cruise = inputs["data:TLAR:v_cruise"]
         alt_cruise = inputs["data:mission:sizing:main_route:cruise:altitude"]
 

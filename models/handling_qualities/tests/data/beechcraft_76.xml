@@ -30,7 +30,7 @@
 			</aircraft>
 			<elevator>
 				<low_speed>
-					<CL_alpha units="rad**-1">0.6167<!--derivative of lift coefficient with respect to angle of attack in low speed conditions--></CL_alpha>
+					<CL_delta units="rad**-1">0.6167<!--derivative of lift coefficient with respect to angle of attack in low speed conditions--></CL_delta>
 				</low_speed>
 			</elevator>
 			<flaps>
@@ -47,6 +47,10 @@
 				<area units="m**2">4.422<!--horizontal_tail area--></area>
 				<cruise>
 					<CL_alpha units="rad**-1">1.2589<!--derivative of lift coefficient with respect to angle of attack in cruise conditions--></CL_alpha>
+					<hinge_moment>
+						<CH_alpha units="rad**-1">-0.2486</CH_alpha>
+						<CH_delta units="rad**-1">-0.6765</CH_delta>
+					</hinge_moment>
 				</cruise>
 				<low_speed>
 					<CL_alpha units="rad**-1">1.2457<!--derivative of lift coefficient with respect to angle of attack in low speed conditions--></CL_alpha>
@@ -111,6 +115,7 @@
 					<length units="m">1.549<!--length of mean aerodynamic chord of wing--></length>
 				</MAC>
 				<area units="m**2">19.15<!--wing reference area--></area>
+				<aspect_ratio>7.981<!--wing aspect ratio--></aspect_ratio>
 				<root>
 					<virtual_chord units="m">1.549<!--virtual chord length at wing root--></virtual_chord>
 				</root>

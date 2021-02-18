@@ -38,12 +38,25 @@ ENGINE_WRAPPER = "test.wrapper.handling_qualities.beechcraft.dummy_engine"
 
 class DummyEngine(AbstractFuelPropulsion):
 
-    def __init__(self):
+    def __init__(self,
+                 max_power: float,
+                 design_altitude: float,
+                 design_speed: float,
+                 fuel_type: float,
+                 strokes_nb: float,
+                 prop_layout: float,
+                 ):
         """
-        Dummy engine model returning thrust in particular conditions defined for htp/vtp areas.
+        Dummy engine model returning nacelle dimensions height-width-length-wet_area.
 
         """
         super().__init__()
+        self.prop_layout = prop_layout
+        self.max_power = max_power
+        self.design_altitude = design_altitude
+        self.design_speed = design_speed
+        self.fuel_type = fuel_type
+        self.strokes_nb = strokes_nb
 
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
         if flight_points.engine_setting == EngineSetting.TAKEOFF:
@@ -59,8 +72,8 @@ class DummyEngine(AbstractFuelPropulsion):
     def compute_weight(self) -> float:
         return 0.0
 
-    def compute_dimensions(self) -> (float, float, float, float):
-        return [0.0, 0.0, 0.0, 0.0]
+    def compute_dimensions(self) -> (float, float, float, float, float, float):
+        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     def compute_drag(self, mach, unit_reynolds, l0_wing):
         return 0.0
@@ -72,12 +85,25 @@ class DummyEngine(AbstractFuelPropulsion):
 @RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
+        component.add_input("data:propulsion:IC_engine:max_power", np.nan, units="W")
+        component.add_input("data:propulsion:IC_engine:fuel_type", np.nan)
+        component.add_input("data:propulsion:IC_engine:strokes_nb", np.nan)
         component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
         component.add_input("data:mission:sizing:main_route:cruise:altitude", np.nan, units="m")
+        component.add_input("data:geometry:propulsion:layout", np.nan)
 
     @staticmethod
     def get_model(inputs) -> IPropulsion:
-        return DummyEngine()
+        engine_params = {
+            "max_power": inputs["data:propulsion:IC_engine:max_power"],
+            "design_altitude": inputs["data:mission:sizing:main_route:cruise:altitude"],
+            "design_speed": inputs["data:TLAR:v_cruise"],
+            "fuel_type": inputs["data:propulsion:IC_engine:fuel_type"],
+            "strokes_nb": inputs["data:propulsion:IC_engine:strokes_nb"],
+            "prop_layout": inputs["data:geometry:propulsion:layout"]
+        }
+
+        return DummyEngine(**engine_params)
 
 
 BundleLoader().context.install_bundle(__name__).start()
@@ -111,7 +137,7 @@ def test_compute_ht_area():
     problem = run_system(ComputeHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     ht_area = problem.get_val("data:geometry:horizontal_tail:area", units="m**2")
     # FIXME: error on obtained value!
-    assert ht_area == pytest.approx(5.53, abs=1e-2)  # old-version obtained value 3.9m²
+    assert ht_area == pytest.approx(6.00, abs=1e-2)  # old-version obtained value 3.9m²
 
 
 def test_compute_static_margin():

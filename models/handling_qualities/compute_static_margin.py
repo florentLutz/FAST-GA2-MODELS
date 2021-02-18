@@ -51,6 +51,4 @@ class _ComputeStaticMargin(om.ExplicitComponent):
         cg_ratio = inputs["data:weight:aircraft:CG:aft:MAC_position"]
         ac_ratio = inputs["data:aerodynamics:cruise:neutral_point:stick_fixed:x"]
 
-        print("wing_position = " + str(float(wing_position)))
-        print("static_margin = " + str(float(ac_ratio - cg_ratio)))
         outputs["data:handling_qualities:static_margin"] = ac_ratio - cg_ratio

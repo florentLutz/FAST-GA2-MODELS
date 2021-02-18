@@ -15,3 +15,4 @@ from .aerodynamics import Aerodynamics
 from .aerodynamics_high_speed import AerodynamicsHighSpeed
 from .aerodynamics_low_speed import AerodynamicsLowSpeed
 from .lift_equilibrium import AircraftEquilibrium
+from .aero_center import ComputeAeroCenter

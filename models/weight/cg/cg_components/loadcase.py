@@ -17,14 +17,15 @@
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
+import scipy.optimize as optimize
+from scipy.constants import g
+
 from ....propulsion.fuel_propulsion.base import FuelEngineSet
 
 from fastoad import BundleLoader
 from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting
 from fastoad.utils.physics import Atmosphere
-
-import scipy.optimize as optimize
 
 
 class ComputeGroundCGCase(ExplicitComponent):
@@ -226,10 +227,9 @@ class ComputeFlightCGCase(ExplicitComponent):
         )
 
         # noinspection PyTypeChecker
-        v_cruise = inputs["data:TLAR:v_cruise"]
         mtow = inputs["data:weight:aircraft:MTOW"]
 
-        vh = self.max_speed(inputs, 0.0, mtow, v_cruise / 0.9)
+        vh = self.max_speed(inputs, 0.0, mtow)
 
         atm = Atmosphere(0.0, altitude_in_feet=False)
         flight_point = FlightPoint(
@@ -242,12 +242,12 @@ class ComputeFlightCGCase(ExplicitComponent):
 
         return m_fuel
 
-    def max_speed(self, inputs, altitude, mass, v_init):
+    def max_speed(self, inputs, altitude, mass):
 
         # noinspection PyTypeChecker
         roots = optimize.fsolve(
             self.delta_axial_load,
-            v_init,
+            300.0,
             args=(inputs, altitude, mass)
         )[0]
 
@@ -268,7 +268,6 @@ class ComputeFlightCGCase(ExplicitComponent):
             mach=air_speed / atm.speed_of_sound, altitude=altitude, engine_setting=EngineSetting.TAKEOFF,
             thrust_rate=1.0
         )
-        g = 9.81
         propulsion_model.compute_flight_points(flight_point)
         thrust = float(flight_point.thrust)
 
