@@ -46,9 +46,8 @@ class UpdateMLWandMZFW(ExplicitComponent):
         mzfw = owe + max_pl
         zfw = owe + pl
 
-        if cruise_ktas > 250:
+        if cruise_ktas > 250.0:
             mlw = 1.06 * mzfw
-
         else:
             mlw = mtow
 

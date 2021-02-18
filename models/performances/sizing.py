@@ -18,6 +18,7 @@
 import openmdao.api as om
 import numpy as np
 
+from ..weight.cg import InFlightCGVariation
 from .takeoff import TakeOffPhase
 from .mission import _compute_taxi, _compute_climb, _compute_cruise, _compute_descent
 
@@ -56,16 +57,14 @@ class Sizing(om.Group):
         self.nonlinear_solver.options["err_on_non_converge"] = True
         self.nonlinear_solver.options["iprint"] = 2
         self.nonlinear_solver.options["maxiter"] = 50
-        self.nonlinear_solver.options["reraise_child_analysiserror"] = True
-        self.nonlinear_solver.options["rtol"] = 1e-5
-        # self.nonlinear_solver.options["stall_limit"] = 1
-        # self.nonlinear_solver.options["stall_tol"] = 1e-5
+        # self.nonlinear_solver.options["reraise_child_analysiserror"] = True
+        # self.nonlinear_solver.options["rtol"] = 1e-5
 
         self.linear_solver = om.LinearBlockGS()
         self.linear_solver.options["err_on_non_converge"] = True
         self.linear_solver.options["iprint"] = 2
         self.linear_solver.options["maxiter"] = 10
-        self.linear_solver.options["rtol"] = 1e-5
+        # self.linear_solver.options["rtol"] = 1e-5
 
 
 class _compute_reserve(om.ExplicitComponent):
@@ -130,58 +129,3 @@ class UpdateFW(om.ExplicitComponent):
         )
 
         outputs["data:mission:sizing:fuel"] = m_total
-
-
-class InFlightCGVariation(om.ExplicitComponent):
-    """ Computes the coefficient necessary to the calculation of the cg position at any point of the DESIGN flight """
-
-    def setup(self):
-        self.add_input("data:TLAR:NPAX_des", val=np.nan)
-        self.add_input("data:weight:payload:rear_fret:CG:x", val=np.nan, units="m")
-        self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
-        self.add_input("data:geometry:cabin:seats:pilot:length", val=np.nan, units="m")
-        self.add_input("data:geometry:cabin:seats:passenger:length", val=np.nan, units="m")
-        self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
-        self.add_input("data:weight:aircraft_empty:CG:x", val=np.nan, units="m")
-        self.add_input("data:weight:aircraft_empty:mass", val=np.nan, units="kg")
-        self.add_input("data:weight:propulsion:tank:CG:x", val=np.nan, units="m")
-        self.add_input("data:TLAR:m_lug_des", val=np.nan, units="kg")
-        self.add_input("data:weight:aircraft:payload", val=np.nan, units="kg")
-
-        self.add_output("data:weight:aircraft:in_flight_variation:C1")
-        self.add_output("data:weight:aircraft:in_flight_variation:C2")
-        self.add_output("data:weight:aircraft:in_flight_variation:C3")
-
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-
-        npax = inputs["data:TLAR:NPAX_des"]
-        luggage_weight = inputs["data:TLAR:m_lug_des"]
-        cg_rear_fret = inputs["data:weight:payload:rear_fret:CG:x"]
-        l_pilot_seat = inputs["data:geometry:cabin:seats:pilot:length"]
-        l_pass_seat = inputs["data:geometry:cabin:seats:passenger:length"]
-        seats_p_row = inputs["data:geometry:cabin:seats:passenger:count_by_row"]
-        cg_tank = inputs["data:weight:propulsion:tank:CG:x"]
-        design_mass_p_pax = 80.
-        x_cg_plane_aft = inputs["data:weight:aircraft_empty:CG:x"]
-        m_empty = inputs["data:weight:aircraft_empty:mass"]
-        lav = inputs["data:geometry:fuselage:front_length"]
-        payload = inputs["data:weight:aircraft:payload"]
-
-        l_instr = 0.7
-        x_cg_pilot = lav + l_instr + l_pilot_seat / 2.
-
-        n_rows = np.ceil(npax / seats_p_row)
-        x_cg_passenger = lav + l_instr + l_pilot_seat + l_pass_seat * n_rows / 2.0
-
-        x_cg_payload = (x_cg_pilot * 2. * design_mass_p_pax +
-                        x_cg_passenger * npax * design_mass_p_pax +
-                        cg_rear_fret * luggage_weight
-                        ) / payload
-
-        c1 = m_empty * x_cg_plane_aft + payload * x_cg_payload
-        c2 = cg_tank
-        c3 = m_empty + payload
-
-        outputs["data:weight:aircraft:in_flight_variation:C1"] = c1
-        outputs["data:weight:aircraft:in_flight_variation:C2"] = c2
-        outputs["data:weight:aircraft:in_flight_variation:C3"] = c3
