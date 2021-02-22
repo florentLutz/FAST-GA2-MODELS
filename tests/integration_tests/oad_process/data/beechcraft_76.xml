@@ -16,8 +16,8 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-			<NPAX_des>2.0<!--top-level requirement: number of passengers for the design mission, assuming a classic eco/business class repartition--></NPAX_des>
-			<m_lug_des units="kg">40.<!--top-level requirement: luggage mass per passenger for the design mission--></m_lug_des>-->
+			<NPAX_design>2.0<!--top-level requirement: number of passengers for the design mission, assuming a classic eco/business class repartition--></NPAX_design>
+			<luggage_mass_design units="kg">40.<!--top-level requirement: luggage mass per passenger for the design mission--></luggage_mass_design>
 			<range units="NM">780.0</range>
 			<v_approach units="kn">78.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">164.0<!--top-level requirement: cruise speed--></v_cruise>
@@ -44,7 +44,7 @@
 					</passenger>
 				</seats>
 				<luggage>
-						<max_luggage_weight units="kg">90.<!--maximum luggage weight in the luggage compartiment--></max_luggage_weight>
+					<mass_max units="kg">90.<!--maximum luggage weight in the luggage compartment--></mass_max>
 				</luggage>
 			</cabin>
 			<fuselage>
@@ -60,6 +60,7 @@
 					</at25percent>
 				</MAC>
 				<area units="m**2">3.44<!--horizontal tail area--></area>
+				<elevator_chord_ratio is_input="True">0.3</elevator_chord_ratio>
 				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
 				<taper_ratio>1.0<!--taper ratio of horizontal tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of horizontal tail--></thickness_ratio>

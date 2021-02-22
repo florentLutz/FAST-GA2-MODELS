@@ -41,7 +41,7 @@ class ComputeTailWeight(om.ExplicitComponent):
 
         self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="ft**2")
         self.add_input("data:geometry:horizontal_tail:thickness_ratio", val=np.nan)
-        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan)
+        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
         self.add_input("data:geometry:horizontal_tail:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:horizontal_tail:taper_ratio", val=np.nan)
 

@@ -25,7 +25,6 @@ class ComputePassengerSeatsCG(ExplicitComponent):
     """ Passenger seats center of gravity estimation """
 
     def setup(self):
-        self.add_input("data:TLAR:NPAX", val=np.nan)
         self.add_input("data:geometry:cabin:seats:passenger:NPAX_max", val=np.nan)
         self.add_input("data:geometry:fuselage:front_length", val=np.nan, units="m")
         self.add_input("data:geometry:cabin:seats:passenger:count_by_row", val=np.nan)
