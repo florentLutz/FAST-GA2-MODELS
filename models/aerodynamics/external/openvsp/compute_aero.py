@@ -67,16 +67,20 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             self.add_output("data:aerodynamics:wing:low_speed:CL_vector", shape=SPAN_MESH_POINT)
             self.add_output("data:aerodynamics:wing:low_speed:induced_drag_coefficient")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL0")
+            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_ref")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
+            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_alpha_isolated", units="rad**-1")
+            self.add_output("data:aerodynamics:horizontal_tail:low_speed:Y_vector", shape=SPAN_MESH_POINT, units="m")
+            self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_vector", shape=SPAN_MESH_POINT)
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:induced_drag_coefficient")
         else:
             self.add_output("data:aerodynamics:wing:cruise:CL0_clean")
             self.add_output("data:aerodynamics:wing:cruise:CL_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:wing:cruise:CM0_clean")
-            self.add_output("data:aerodynamics:wing:cruise:CM_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:wing:cruise:induced_drag_coefficient")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL0")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
+            self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha_isolated", units="rad**-1")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient")
 
         self.declare_partials("*", "*", method="fd")
@@ -98,19 +102,24 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
             mach = inputs["data:aerodynamics:cruise:mach"]
 
-        cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_vector, coef_k_wing, cl_0_htp, \
-        cl_alpha_htp, coef_k_htp = self.compute_aero_coef(inputs, outputs, altitude, mach, INPUT_AOA)
+        cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp, \
+        cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp = self.compute_aero_coef(
+            inputs, outputs, altitude, mach, INPUT_AOA)
 
         # Defining outputs -----------------------------------------------------------------------------
         if self.options["low_speed_aero"]:
             outputs['data:aerodynamics:wing:low_speed:CL0_clean'] = cl_0_wing
             outputs['data:aerodynamics:wing:low_speed:CL_alpha'] = cl_alpha_wing
             outputs['data:aerodynamics:wing:low_speed:CM0_clean'] = cm_0_wing
-            outputs['data:aerodynamics:wing:low_speed:Y_vector'] = y_vector
-            outputs['data:aerodynamics:wing:low_speed:CL_vector'] = cl_vector
+            outputs['data:aerodynamics:wing:low_speed:Y_vector'] = y_vector_wing
+            outputs['data:aerodynamics:wing:low_speed:CL_vector'] = cl_vector_wing
             outputs["data:aerodynamics:wing:low_speed:induced_drag_coefficient"] = coef_k_wing
             outputs['data:aerodynamics:horizontal_tail:low_speed:CL0'] = cl_0_htp
+            outputs['data:aerodynamics:horizontal_tail:low_speed:CL_ref'] = cl_X_htp
             outputs['data:aerodynamics:horizontal_tail:low_speed:CL_alpha'] = cl_alpha_htp
+            outputs['data:aerodynamics:horizontal_tail:low_speed:CL_alpha_isolated'] = cl_alpha_htp_isolated
+            outputs["data:aerodynamics:horizontal_tail:low_speed:Y_vector"] = y_vector_htp
+            outputs["data:aerodynamics:horizontal_tail:low_speed:CL_vector"] = cl_vector_htp
             outputs["data:aerodynamics:horizontal_tail:low_speed:induced_drag_coefficient"] = coef_k_htp
         else:
             outputs['data:aerodynamics:wing:cruise:CL0_clean'] = cl_0_wing
@@ -119,4 +128,5 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             outputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"] = coef_k_wing
             outputs['data:aerodynamics:horizontal_tail:cruise:CL0'] = cl_0_htp
             outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha'] = cl_alpha_htp
+            outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha_isolated'] = cl_alpha_htp_isolated
             outputs["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"] = coef_k_htp

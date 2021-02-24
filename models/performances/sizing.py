@@ -58,7 +58,7 @@ class Sizing(om.Group):
         self.nonlinear_solver.options["iprint"] = 2
         self.nonlinear_solver.options["maxiter"] = 50
         # self.nonlinear_solver.options["reraise_child_analysiserror"] = True
-        # self.nonlinear_solver.options["rtol"] = 1e-5
+        self.nonlinear_solver.options["rtol"] = 1e-5
 
         self.linear_solver = om.LinearBlockGS()
         self.linear_solver.options["err_on_non_converge"] = True

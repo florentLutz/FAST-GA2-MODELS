@@ -49,7 +49,7 @@ class ComputeGroundCGCase(ExplicitComponent):
         self.add_output("data:weight:aircraft:CG:ground_condition:min:MAC_position")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        luggage_mass_max = inputs["data:geometry:cabin:luggage:mass_max"]
+        luggage_mass_max = float(inputs["data:geometry:cabin:luggage:mass_max"])
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         cg_pax = inputs["data:weight:furniture:passenger_seats:CG:x"]
@@ -138,7 +138,7 @@ class ComputeFlightCGCase(ExplicitComponent):
         self.add_output("data:weight:aircraft:CG:flight_condition:min:MAC_position")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        luggage_mass_max = inputs["data:geometry:cabin:luggage:mass_max"]
+        luggage_mass_max = float(inputs["data:geometry:cabin:luggage:mass_max"])
         n_pax_max = inputs["data:geometry:cabin:seats:passenger:NPAX_max"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
@@ -159,8 +159,8 @@ class ComputeFlightCGCase(ExplicitComponent):
 
         n_pax_array = np.linspace(0., n_pax_max, int(n_pax_max) + 1)
 
-        m_pilot = 77.
-        m_pilot_array = np.array([2. * m_pilot])  # Without the pilots and with the 2 pilots
+        m_pilot_single = 77.
+        m_pilot_array = np.array([2. * m_pilot_single])  # Without the pilots and with the 2 pilots
 
         m_fuel_min = m_unusable_fuel + self.min_in_flight_fuel(inputs)
 

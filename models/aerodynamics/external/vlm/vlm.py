@@ -86,7 +86,8 @@ class VLMSimpleGeometry(om.ExplicitComponent):
         cl_alpha_aircraft parameter.
 
         """
-        _, cl_alpha_wing, _, _, _, _, _, _, cl_alpha_htp, _ = self.compute_aero_coef(inputs, altitude, mach, aoa_angle)
+        _, cl_alpha_wing, _, _, _, _, _, _, cl_alpha_htp, _, _, _, _ = self.compute_aero_coef(
+            inputs, altitude, mach, aoa_angle)
         return float(cl_alpha_wing + cl_alpha_htp)
 
 
@@ -99,8 +100,8 @@ class VLMSimpleGeometry(om.ExplicitComponent):
         @param altitude: altitude for aerodynamic calculation in meters
         @param mach: air speed expressed in mach
         @param aoa_angle: air speed angle of attack with respect to aircraft
-        @return: cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_vector, coef_k_wing, cl_0_htp, \
-               cl_alpha_htp, coef_k_htp parameters.
+        @return: cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp,\
+               cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp parameters.
         """
 
         # Fix mach number of digits to consider similar results
@@ -159,6 +160,10 @@ class VLMSimpleGeometry(om.ExplicitComponent):
             _, htp_0, _ = self.compute_aircraft(inputs, altitude, mach, 0.0, flaps_angle=0.0, use_airfoil=True)
             _, htp_X, _ = self.compute_aircraft(inputs, altitude, mach, aoa_angle, flaps_angle=0.0, use_airfoil=True)
 
+            # Compute isolated HTP @ 0°/X° angle of attack
+            htp_0_isolated = self.compute_htp(inputs, altitude, mach, 0.0, use_airfoil=True)
+            htp_X_isolated = self.compute_htp(inputs, altitude, mach, aoa_angle, use_airfoil=True)
+
             # Post-process wing data -----------------------------------------------------------------------------------
             k_fus = 1 + 0.025 * width_max / span_wing - 0.025 * (width_max / span_wing) ** 2
             beta = math.sqrt(1 - mach ** 2)  # Prandtl-Glauert
@@ -166,8 +171,8 @@ class VLMSimpleGeometry(om.ExplicitComponent):
             cl_X_wing = float(wing_X["cl"] * k_fus / beta)
             cm_0_wing = float(wing_0["cm"] * k_fus / beta)
             cl_alpha_wing = (cl_X_wing - cl_0_wing) / (aoa_angle * math.pi / 180)
-            y_vector = wing_0["y_vector"]
-            cl_vector = (np.array(wing_0["cl_vector"]) * k_fus / beta).tolist()
+            y_vector_wing = wing_0["y_vector"]
+            cl_vector_wing = (np.array(wing_0["cl_vector"]) * k_fus / beta).tolist()
             cdp_foil = self._interpolate_cdp(cl_wing_airfoil, cdp_wing_airfoil, cl_X_wing)
             if mach <= 0.4:
                 coef_e = wing_X["coef_e"]
@@ -181,7 +186,7 @@ class VLMSimpleGeometry(om.ExplicitComponent):
             coef_e = float(coef_e * k_fus / 1.05 ** 2)
             coef_k_wing = float(1. / (math.pi * span_wing ** 2 / sref_wing * coef_e))
 
-            # Post-process HTP data ------------------------------------------------------------------------------------
+            # Post-process HTP-aircraft data ---------------------------------------------------------------------------
             cl_0_htp = float(htp_0["cl"]) / beta * area_ratio
             cl_X_htp = float(htp_X["cl"]) / beta * area_ratio
             cl_alpha_htp = float((cl_X_htp - cl_0_htp) / (aoa_angle * math.pi / 180))
@@ -193,22 +198,37 @@ class VLMSimpleGeometry(om.ExplicitComponent):
             cdi = (htp_X["cl"] / beta) ** 2 / (
                     math.pi * aspect_ratio_htp * coef_e) + cdp_foil
             coef_k_htp = float(cdi / cl_X_htp ** 2 * area_ratio)
+            y_vector_htp = htp_X["y_vector"]
+            cl_vector_htp = (np.array(htp_X["cl_vector"]) / beta * area_ratio).tolist()
+
+            # Post-process HTP-isolated data ---------------------------------------------------------------------------
+            cl_alpha_htp_isolated = float(htp_X_isolated["cl"] - htp_0_isolated["cl"]) / beta * area_ratio \
+                                    / (aoa_angle * math.pi / 180)
 
             # Resize vectors -------------------------------------------------------------------------------------------
-            if SPAN_MESH_POINT < len(y_vector):
-                y_interp = np.linspace(y_vector[0], y_vector[-1], SPAN_MESH_POINT)
-                cl_vector = np.interp(y_interp, y_vector, cl_vector)
-                y_vector = y_interp
+            if SPAN_MESH_POINT < len(y_vector_wing):
+                y_interp = np.linspace(y_vector_wing[0], y_vector_wing[-1], SPAN_MESH_POINT)
+                cl_vector_wing = np.interp(y_interp, y_vector_wing, cl_vector_wing)
+                y_vector_wing = y_interp
                 warnings.warn("Defined maximum span mesh in fast aerodynamics\\constants.py exceeded!")
             else:
-                additional_zeros = list(np.zeros(SPAN_MESH_POINT - len(y_vector)))
-                y_vector.extend(additional_zeros)
-                cl_vector.extend(additional_zeros)
+                additional_zeros = list(np.zeros(SPAN_MESH_POINT - len(y_vector_wing)))
+                y_vector_wing.extend(additional_zeros)
+                cl_vector_wing.extend(additional_zeros)
+            if SPAN_MESH_POINT < len(y_vector_htp):
+                y_interp = np.linspace(y_vector_htp[0], y_vector_htp[-1], SPAN_MESH_POINT)
+                cl_vector_htp = np.interp(y_interp, y_vector_htp, cl_vector_htp)
+                y_vector_htp = y_interp
+                warnings.warn("Defined maximum span mesh in fast aerodynamics\\constants.py exceeded!")
+            else:
+                additional_zeros = list(np.zeros(SPAN_MESH_POINT - len(y_vector_htp)))
+                y_vector_htp.extend(additional_zeros)
+                cl_vector_htp.extend(additional_zeros)
 
             # Save results to defined path -----------------------------------------------------------------------------
             if self.options["result_folder_path"] != "":
-                results = [cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_0_htp, cl_alpha_htp,
-                           coef_k_wing, coef_k_htp]
+                results = [cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp,
+                           cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp]
                 self.save_results(result_file_path, results)
 
         # Else retrieved results are used, eventually adapted with new area ratio
@@ -218,15 +238,19 @@ class VLMSimpleGeometry(om.ExplicitComponent):
             cl_0_wing = float(data.loc["cl_0_wing", 0])
             cl_alpha_wing = float(data.loc["cl_alpha_wing", 0])
             cm_0_wing = float(data.loc["cm_0_wing", 0])
-            y_vector = np.array([float(i) for i in data.loc["y_vector", 0][1:-2].split(',')])
-            cl_vector = np.array([float(i) for i in data.loc["cl_vector", 0][1:-2].split(',')])
+            y_vector_wing = np.array([float(i) for i in data.loc["y_vector_wing", 0][1:-2].split(',')])
+            cl_vector_wing = np.array([float(i) for i in data.loc["cl_vector_wing", 0][1:-2].split(',')])
             coef_k_wing = float(data.loc["coef_k_wing", 0])
             cl_0_htp = float(data.loc["cl_0_htp", 0]) * (area_ratio / saved_area_ratio)
+            cl_X_htp = float(data.loc["cl_X_htp", 0]) * (area_ratio / saved_area_ratio)
             cl_alpha_htp = float(data.loc["cl_alpha_htp", 0]) * (area_ratio / saved_area_ratio)
+            cl_alpha_htp_isolated = float(data.loc["cl_alpha_htp_isolated", 0])
+            y_vector_htp = np.array([float(i) for i in data.loc["y_vector_htp", 0][1:-2].split(',')])
+            cl_vector_htp = np.array([float(i) for i in data.loc["cl_vector_htp", 0][1:-2].split(',')])
             coef_k_htp = float(data.loc["coef_k_htp", 0]) * (area_ratio / saved_area_ratio)
 
-        return cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_vector, coef_k_wing, cl_0_htp, \
-               cl_alpha_htp, coef_k_htp
+        return cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp,\
+               cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp
 
 
     def compute_wing(
@@ -254,7 +278,7 @@ class VLMSimpleGeometry(om.ExplicitComponent):
         self._run(inputs)
 
         # Get inputs
-        aspect_ratio = inputs['data:geometry:wing:aspect_ratio']
+        aspect_ratio = float(inputs['data:geometry:wing:aspect_ratio'])
         meanchord = inputs['data:geometry:wing:MAC:length']
 
         # Initialization
@@ -335,7 +359,7 @@ class VLMSimpleGeometry(om.ExplicitComponent):
         self._run(inputs)
 
         # Get inputs
-        aspect_ratio = inputs['data:geometry:horizontal_tail:aspect_ratio']
+        aspect_ratio = float(inputs['data:geometry:horizontal_tail:aspect_ratio'])
         meanchord = inputs['data:geometry:horizontal_tail:MAC:length']
 
         # Initialization
@@ -798,8 +822,9 @@ class VLMSimpleGeometry(om.ExplicitComponent):
     @staticmethod
     def save_results(result_file_path, results):
 
-        labels = ["cl_0_wing", "cl_alpha_wing", "cm_0_wing", "y_vector", "cl_vector", "cl_0_htp", "cl_alpha_htp",
-                  "coef_k_wing", "coef_k_htp"]
+        labels = ["cl_0_wing", "cl_alpha_wing", "cm_0_wing", "y_vector_wing", "cl_vector_wing", "coef_k_wing",
+                  "cl_0_htp", "cl_X_htp", "cl_alpha_htp", "cl_alpha_htp_isolated", "y_vector_htp", "cl_vector_htp",
+                  "coef_k_htp"]
         data = pd.DataFrame(results, index=labels)
         data.to_csv(result_file_path)
 

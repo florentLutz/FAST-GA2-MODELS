@@ -38,6 +38,7 @@ from ...constants import SPAN_MESH_POINT
 DEFAULT_WING_AIRFOIL = "naca23012.af"
 DEFAULT_HTP_AIRFOIL = "naca0012.af"
 INPUT_WING_SCRIPT = "wing_openvsp.vspscript"
+INPUT_HTP_SCRIPT = "ht_openvsp.vspscript"
 INPUT_AIRCRAFT_SCRIPT = "wing_ht_openvsp.vspscript"
 STDERR_FILE_NAME = "vspaero_calc.err"
 VSPSCRIPT_EXE_NAME = "vspscript.exe"
@@ -91,8 +92,8 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         cl_alpha_aircraft parameter.
 
         """
-        _, cl_alpha_wing, _, _, _, _, _, _, cl_alpha_htp, _ = self.compute_aero_coef(inputs, outputs, altitude, mach,
-                                                                                     aoa_angle)
+        _, cl_alpha_wing, _, _, _, _, _, _, cl_alpha_htp, _, _, _, _ = self.compute_aero_coef(
+            inputs, outputs, altitude, mach, aoa_angle)
         return float(cl_alpha_wing + cl_alpha_htp)
 
 
@@ -106,8 +107,8 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         @param altitude: altitude for aerodynamic calculation in meters
         @param mach: air speed expressed in mach
         @param aoa_angle: air speed angle of attack with respect to aircraft
-        @return: cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_vector, coef_k_wing, cl_0_htp, \
-               cl_alpha_htp, coef_k_htp parameters.
+        @return: cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp,\
+               cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp parameters.
         """
 
         # Fix mach number of digits to consider similar results
@@ -155,6 +156,10 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             _, htp_0, _ = self.compute_aircraft(inputs, outputs, altitude, mach, 0.0)
             _, htp_X, _ = self.compute_aircraft(inputs, outputs, altitude, mach, aoa_angle)
 
+            # Compute isolated HTP @ 0°/X° angle of attack
+            htp_0_isolated = self.compute_isolated_htp(inputs, outputs, altitude, mach, 0.0)
+            htp_X_isolated = self.compute_isolated_htp(inputs, outputs, altitude, mach, aoa_angle)
+
             # Post-process wing data -----------------------------------------------------------------------------------
             width_max = inputs["data:geometry:fuselage:maximum_width"]
             span_wing = inputs['data:geometry:wing:span']
@@ -163,34 +168,49 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             cl_X_wing = float(wing_X["cl"] * k_fus)
             cm_0_wing = float(wing_0["cm"] * k_fus)
             cl_alpha_wing = (cl_X_wing - cl_0_wing) / (aoa_angle * math.pi / 180)
-            y_vector = wing_0["y_vector"]
-            cl_vector = (np.array(wing_0["cl_vector"]) * k_fus).tolist()
+            y_vector_wing = wing_0["y_vector"]
+            cl_vector_wing = (np.array(wing_0["cl_vector"]) * k_fus).tolist()
             k_fus = 1 - 2 * (width_max / span_wing) ** 2  # Fuselage correction
             # Full aircraft correction: Wing lift is 105% of total lift, so: CDi = (CL*1.05)^2/(piAe) -> e' = e/1.05^2
             coef_e = float(wing_X["coef_e"] * k_fus / 1.05 ** 2)
             coef_k_wing = float(1. / (math.pi * span_wing ** 2 / sref_wing * coef_e))
 
-            # Post-process HTP data ------------------------------------------------------------------------------------
+            # Post-process HTP-aircraft data ---------------------------------------------------------------------------
             cl_0_htp = float(htp_0["cl"])
             cl_X_htp = float(htp_X["cl"])
             cl_alpha_htp = float((cl_X_htp - cl_0_htp) / (aoa_angle * math.pi / 180))
             coef_k_htp = float(htp_X["cdi"]) / cl_X_htp ** 2
+            y_vector_htp = htp_X["y_vector"]
+            cl_vector_htp = (np.array(htp_X["cl_vector"]) * area_ratio).tolist()
+
+            # Post-process HTP-isolated data ---------------------------------------------------------------------------
+            cl_alpha_htp_isolated = float(htp_X_isolated["cl"] - htp_0_isolated["cl"]) * area_ratio\
+                                    / (aoa_angle * math.pi / 180)
 
             # Resize vectors -------------------------------------------------------------------------------------------
-            if SPAN_MESH_POINT < len(y_vector):
-                y_interp = np.linspace(y_vector[0], y_vector[-1], SPAN_MESH_POINT)
-                cl_vector = np.interp(y_interp, y_vector, cl_vector)
-                y_vector = y_interp
+            if SPAN_MESH_POINT < len(y_vector_wing):
+                y_interp = np.linspace(y_vector_wing[0], y_vector_wing[-1], SPAN_MESH_POINT)
+                cl_vector_wing = np.interp(y_interp, y_vector_wing, cl_vector_wing)
+                y_vector_wing = y_interp
                 warnings.warn("Defined maximum span mesh in fast aerodynamics\\constants.py exceeded!")
             else:
-                additional_zeros = list(np.zeros(SPAN_MESH_POINT - len(y_vector)))
-                y_vector.extend(additional_zeros)
-                cl_vector.extend(additional_zeros)
+                additional_zeros = list(np.zeros(SPAN_MESH_POINT - len(y_vector_wing)))
+                y_vector_wing.extend(additional_zeros)
+                cl_vector_wing.extend(additional_zeros)
+            if SPAN_MESH_POINT < len(y_vector_htp):
+                y_interp = np.linspace(y_vector_htp[0], y_vector_htp[-1], SPAN_MESH_POINT)
+                cl_vector_htp = np.interp(y_interp, y_vector_htp, cl_vector_htp)
+                y_vector_htp = y_interp
+                warnings.warn("Defined maximum span mesh in fast aerodynamics\\constants.py exceeded!")
+            else:
+                additional_zeros = list(np.zeros(SPAN_MESH_POINT - len(y_vector_htp)))
+                y_vector_htp.extend(additional_zeros)
+                cl_vector_htp.extend(additional_zeros)
 
             # Save results to defined path -----------------------------------------------------------------------------
             if self.options["result_folder_path"] != "":
-                results = [cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_0_htp, cl_alpha_htp,
-                           coef_k_wing, coef_k_htp]
+                results = [cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp,
+                           cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp]
                 self.save_results(result_file_path, results)
 
         # Else retrieved results are used, eventually adapted with new area ratio
@@ -200,15 +220,19 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             cl_0_wing = float(data.loc["cl_0_wing", 0])
             cl_alpha_wing = float(data.loc["cl_alpha_wing", 0])
             cm_0_wing = float(data.loc["cm_0_wing", 0])
-            y_vector = np.array([float(i) for i in data.loc["y_vector", 0][1:-2].split(',')])
-            cl_vector = np.array([float(i) for i in data.loc["cl_vector", 0][1:-2].split(',')])
+            y_vector_wing = np.array([float(i) for i in data.loc["y_vector_wing", 0][1:-2].split(',')])
+            cl_vector_wing = np.array([float(i) for i in data.loc["cl_vector_wing", 0][1:-2].split(',')])
             coef_k_wing = float(data.loc["coef_k_wing", 0])
             cl_0_htp = float(data.loc["cl_0_htp", 0]) * (area_ratio / saved_area_ratio)
+            cl_X_htp = float(data.loc["cl_X_htp", 0]) * (area_ratio / saved_area_ratio)
             cl_alpha_htp = float(data.loc["cl_alpha_htp", 0]) * (area_ratio / saved_area_ratio)
+            cl_alpha_htp_isolated = float(data.loc["cl_alpha_htp_isolated", 0])
+            y_vector_htp = np.array([float(i) for i in data.loc["y_vector_htp", 0][1:-2].split(',')])
+            cl_vector_htp = np.array([float(i) for i in data.loc["cl_vector_htp", 0][1:-2].split(',')])
             coef_k_htp = float(data.loc["coef_k_htp", 0]) * (area_ratio / saved_area_ratio)
 
-        return cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector, cl_vector, cl_vector, coef_k_wing, cl_0_htp, \
-               cl_alpha_htp, coef_k_htp
+        return cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp,\
+               cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp
 
     def compute_wing(self, inputs, outputs, altitude, mach, aoa_angle):
         """
@@ -218,7 +242,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         @param outputs: outputs parameters defined within FAST-OAD-GA
         @param altitude: altitude for aerodynamic calculation in meters
         @param mach: air speed expressed in mach
-        @param aoa_angle: air speed angle of attack with respect to aircraft (degree)
+        @param aoa_angle: air speed angle of attack with respect to wing (degree)
         @return: wing dictionary including aero parameters as keys: y_vector, cl_vector, cd_vector, cm_vector, cl
         cdi, cm, coef_e
         """
@@ -412,6 +436,200 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
                 'cm': cm_wing,
                 'coef_e': wing_e}
         return wing
+
+    def compute_isolated_htp(self, inputs, outputs, altitude, mach, aoa_angle):
+        """
+        Function that computes in OpenVSP environment the HTP alone and returns the different aerodynamic parameters.
+
+        @param inputs: inputs parameters defined within FAST-OAD-GA
+        @param outputs: outputs parameters defined within FAST-OAD-GA
+        @param altitude: altitude for aerodynamic calculation in meters
+        @param mach: air speed expressed in mach
+        @param aoa_angle: air speed angle of attack with respect to htp (degree)
+        @return: htp dictionary including aero parameters as keys: y_vector, cl_vector, cd_vector, cm_vector, cl
+        cdi, cm, coef_e
+        """
+
+        # STEP 1/XX - DEFINE OR CALCULATE INPUT DATA FOR AERODYNAMIC EVALUATION ########################################
+        ################################################################################################################
+
+        # Get inputs (and calculate missing ones)
+        sref_htp = float(inputs['data:geometry:horizontal_tail:area'])
+        fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
+        height_max = inputs["data:geometry:fuselage:maximum_height"]
+        sweep_25_htp = inputs["data:geometry:horizontal_tail:sweep_25"]
+        semi_span_htp = inputs["data:geometry:horizontal_tail:span"] / 2.0
+        root_chord_htp = inputs["data:geometry:horizontal_tail:root:chord"]
+        tip_chord_htp = inputs["data:geometry:horizontal_tail:tip:chord"]
+        lp_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
+        l0_htp = inputs["data:geometry:horizontal_tail:MAC:length"]
+        x0_htp = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:local"]
+        height_htp = inputs["data:geometry:horizontal_tail:z:from_wingMAC25"]
+        # Compute remaining inputs
+        atm = Atmosphere(altitude, altitude_in_feet=False)
+        x_htp = fa_length + lp_htp - x0_htp - 0.25 * l0_htp
+        z_htp = -(height_max - 0.12 * l0_htp) * 0.5 - height_htp
+        rho = atm.density
+        v_inf = max(atm.speed_of_sound * mach, 0.01)  # avoid V=0 m/s crashes
+        reynolds = v_inf * l0_htp / atm.kinematic_viscosity
+
+        # STEP 2/XX - DEFINE WORK DIRECTORY, COPY RESOURCES AND CREATE COMMAND BATCH ###################################
+        ################################################################################################################
+
+        # If a folder path is specified for openvsp .exe, it becomes working directory (target), if not temporary folder
+        # is created
+        if self.options["openvsp_exe_path"]:
+            target_directory = pth.abspath(self.options["openvsp_exe_path"])
+        else:
+            tmp_directory = self._create_tmp_directory()
+            target_directory = tmp_directory.name
+        # Define the list of necessary input files: geometry script and foil file for both wing/HTP
+        input_file_list = [pth.join(target_directory, INPUT_HTP_SCRIPT),
+                           pth.join(target_directory, self.options['htp_airfoil_file'])]
+        self.options["external_input_files"] = input_file_list
+        # Define standard error file by default to avoid error code return
+        self.stderr = pth.join(target_directory, STDERR_FILE_NAME)
+        # Copy resource in working (target) directory
+        # noinspection PyTypeChecker
+        copy_resource_folder(openvsp3201, target_directory)
+        # noinspection PyTypeChecker
+        copy_resource(resources, self.options['htp_airfoil_file'], target_directory)
+        # Create corresponding .bat files (one for each geometry configuration)
+        self.options["command"] = [pth.join(target_directory, 'vspscript.bat')]
+        batch_file = open(self.options["command"][0], "w+")
+        batch_file.write("@echo off\n")
+        command = pth.join(target_directory, VSPSCRIPT_EXE_NAME) + ' -script ' \
+                  + pth.join(target_directory, INPUT_HTP_SCRIPT) + ' >nul 2>nul\n'
+        batch_file.write(command)
+        batch_file.close()
+
+        # STEP 3/XX - OPEN THE TEMPLATE SCRIPT FOR GEOMETRY GENERATION, MODIFY VALUES AND SAVE TO WORKDIR ##############
+        ################################################################################################################
+
+        output_file_list = [pth.join(target_directory, INPUT_HTP_SCRIPT.replace('.vspscript', '_DegenGeom.csv'))]
+        parser = InputFileGenerator()
+        with path(local_resources, INPUT_HTP_SCRIPT) as input_template_path:
+            parser.set_template_file(str(input_template_path))
+            parser.set_generated_file(input_file_list[0])
+            # Modify htp parameters
+            parser.mark_anchor("x_htp")
+            parser.transfer_var(float(x_htp), 0, 5)
+            parser.mark_anchor("z_htp")
+            parser.transfer_var(float(z_htp), 0, 5)
+            parser.mark_anchor("semi_span_htp")
+            parser.transfer_var(float(semi_span_htp), 0, 5)
+            parser.mark_anchor("root_chord_htp")
+            parser.transfer_var(float(root_chord_htp), 0, 5)
+            parser.mark_anchor("tip_chord_htp")
+            parser.transfer_var(float(tip_chord_htp), 0, 5)
+            parser.mark_anchor("sweep_25_htp")
+            parser.transfer_var(float(sweep_25_htp), 0, 5)
+            parser.mark_anchor("airfoil_0_file")
+            parser.transfer_var('\"' + input_file_list[1].replace('\\', '/') + '\"', 0, 3)
+            parser.mark_anchor("airfoil_1_file")
+            parser.transfer_var('\"' + input_file_list[1].replace('\\', '/') + '\"', 0, 3)
+            parser.mark_anchor("csv_file")
+            csv_name = output_file_list[0]
+            parser.transfer_var('\"' + csv_name.replace('\\', '/') + '\"', 0, 3)
+            parser.generate()
+
+        # STEP 4/XX - RUN BATCH TO GENERATE GEOMETRY .CSV FILE #########################################################
+        ################################################################################################################
+
+        self.options["external_output_files"] = output_file_list
+        super().compute(inputs, outputs)
+
+        # STEP 5/XX - DEFINE NEW INPUT/OUTPUT FILES LIST AND CREATE BATCH FOR VLM COMPUTATION ##########################
+        ################################################################################################################
+
+        input_file_list = output_file_list
+        input_file_list.append(input_file_list[0].replace('.csv', '.vspaero'))
+        output_file_list = [input_file_list[0].replace('.csv', '.lod'), input_file_list[0].replace('.csv', '.polar')]
+        self.options["external_input_files"] = input_file_list
+        self.options["external_output_files"] = output_file_list
+        self.options["command"] = [pth.join(target_directory, 'vspaero.bat')]
+        batch_file = open(self.options["command"][0], "w+")
+        batch_file.write("@echo off\n")
+        command = pth.join(target_directory, VSPAERO_EXE_NAME) + ' ' \
+                  + input_file_list[1].replace('.vspaero', '') + ' >nul 2>nul\n'
+        batch_file.write(command)
+        batch_file.close()
+
+        # STEP 6/XX - OPEN THE TEMPLATE VSPAERO FOR COMPUTATION, MODIFY VALUES AND SAVE TO WORKDIR #####################
+        ################################################################################################################
+
+        parser = InputFileGenerator()
+        template_file = pth.split(input_file_list[1])[1]
+        with path(local_resources, template_file) as input_template_path:
+            parser.set_template_file(str(input_template_path))
+            parser.set_generated_file(input_file_list[1])
+            parser.reset_anchor()
+            parser.mark_anchor("Sref")
+            parser.transfer_var(float(sref_htp), 0, 3)
+            parser.mark_anchor("Cref")
+            parser.transfer_var(float(l0_htp), 0, 3)
+            parser.mark_anchor("Bref")
+            parser.transfer_var(float(2. * semi_span_htp), 0, 3)
+            parser.mark_anchor("X_cg")
+            parser.transfer_var(float(fa_length + lp_htp), 0, 3)
+            parser.mark_anchor("Mach")
+            parser.transfer_var(float(mach), 0, 3)
+            parser.mark_anchor("AOA")
+            parser.transfer_var(float(aoa_angle), 0, 3)
+            parser.mark_anchor("Vinf")
+            parser.transfer_var(float(v_inf), 0, 3)
+            parser.mark_anchor("Rho")
+            parser.transfer_var(float(rho), 0, 3)
+            parser.mark_anchor("ReCref")
+            parser.transfer_var(float(reynolds), 0, 3)
+            parser.generate()
+
+        # STEP 7/XX - RUN BATCH TO GENERATE AERO OUTPUT FILES (.lod, .polar...) ########################################
+        ################################################################################################################
+
+        super().compute(inputs, outputs)
+
+        # STEP 8/XX - READ FILES, RETURN RESULTS (AND CLEAR TEMPORARY WORKDIR) #########################################
+        ################################################################################################################
+
+        # Open .lod file and extract data
+        htp_y_vect = []
+        htp_cl_vect = []
+        htp_cd_vect = []
+        htp_cm_vect = []
+        with open(output_file_list[0], 'r') as lf:
+            data = lf.readlines()
+            for i in range(len(data)):
+                line = data[i].split()
+                line.append('**')
+                if line[0] == '1':
+                    htp_y_vect.append(float(line[2]))
+                    htp_cl_vect.append(float(line[5]))
+                    htp_cd_vect.append(float(line[6]))
+                    htp_cm_vect.append(float(line[12]))
+                if line[0] == 'Comp':
+                    cl_htp = float(data[i + 1].split()[5]) + float(data[i + 2].split()[5])  # sum CL left/right
+                    cdi_htp = float(data[i + 1].split()[6]) + float(data[i + 2].split()[6])  # sum CDi left/right
+                    cm_htp = float(data[i + 1].split()[12]) + float(data[i + 2].split()[12])  # sum CM left/right
+                    break
+        # Open .polar file and extract data
+        with open(output_file_list[1], 'r') as lf:
+            data = lf.readlines()
+            htp_e = float(data[1].split()[10])
+        # Delete temporary directory
+        if not (self.options["openvsp_exe_path"]):
+            # noinspection PyUnboundLocalVariable
+            tmp_directory.cleanup()
+        # Return values
+        htp = {'y_vector': htp_y_vect,
+                'cl_vector': htp_cl_vect,
+                'cd_vector': htp_cd_vect,
+                'cm_vector': htp_cm_vect,
+                'cl': cl_htp,
+                'cdi': cdi_htp,
+                'cm': cm_htp,
+                'coef_e': htp_e}
+        return htp
 
 
     def compute_aircraft(self, inputs, outputs, altitude, mach, aoa_angle):
@@ -638,6 +856,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
                     cl_htp = float(data[i + 3].split()[5]) + float(data[i + 4].split()[5])  # sum CL left/right
                     cdi_htp = float(data[i + 3].split()[6]) + float(data[i + 4].split()[6])  # sum CDi left/right
                     cm_htp = float(data[i + 3].split()[12]) + float(data[i + 4].split()[12])  # sum CM left/right
+                    break
         # Open .polar file and extract data
         with open(output_file_list[1], 'r') as lf:
             data = lf.readlines()
@@ -733,8 +952,9 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
     @staticmethod
     def save_results(result_file_path, results):
 
-        labels = ["cl_0_wing", "cl_alpha_wing", "cm_0_wing", "y_vector", "cl_vector", "cl_0_htp", "cl_alpha_htp",
-                  "coef_k_wing", "coef_k_htp"]
+        labels = ["cl_0_wing", "cl_alpha_wing", "cm_0_wing", "y_vector_wing", "cl_vector_wing", "coef_k_wing",
+                  "cl_0_htp", "cl_X_htp", "cl_alpha_htp", "cl_alpha_htp_isolated", "y_vector_htp", "cl_vector_htp",
+                  "coef_k_htp"]
         data = pd.DataFrame(results, index=labels)
         data.to_csv(result_file_path)
 
