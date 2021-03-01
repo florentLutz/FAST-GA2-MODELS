@@ -39,9 +39,9 @@ class Compute2DHingeMomentsTail(ExplicitComponent):
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="kn")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
 
-        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D", val=np.nan,
+        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D",
                         units="rad**-1")
-        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D", val=np.nan,
+        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D",
                         units="rad**-1")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
@@ -280,9 +280,9 @@ class Compute3DHingeMomentsTail(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:horizontal_tail:elevator_chord_ratio", val=np.nan)
 
-        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha", val=np.nan,
+        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha",
                         units="rad**-1")
-        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta", val=np.nan,
+        self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta",
                         units="rad**-1")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
