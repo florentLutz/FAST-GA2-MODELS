@@ -53,6 +53,8 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_input("data:geometry:flap:chord_ratio", val=0.2)
         self.add_input("data:geometry:flap:span_ratio", val=np.nan)
         self.add_input("data:geometry:flap_type", val=np.nan)
+        self.add_input("data:geometry:horizontal_tail:elevator_chord_ratio", val=np.nan)
+        self.add_input("data:geometry:horizontal_tail:thickness_ratio", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
         self.add_input("data:mission:sizing:landing:flap_angle", val=30.0, units="deg")
@@ -72,7 +74,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        mach = inputs["data:aerodynamics:low_speed:mach"]
+        mach_ls = inputs["data:aerodynamics:low_speed:mach"]
 
         # Computes flaps contribution during low speed operations (take-off/landing)
         for self.phase in ['landing', 'takeoff']:
@@ -82,12 +84,12 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                 outputs["data:aerodynamics:flaps:landing:CL_max"] = self._get_flaps_delta_cl(
                     inputs,
                     flap_angle,
-                    mach,
+                    mach_ls,
                 )
                 outputs["data:aerodynamics:flaps:landing:CM"] = self._get_flaps_delta_cm(
                     inputs,
                     flap_angle,
-                    mach,
+                    mach_ls,
                 )
                 outputs["data:aerodynamics:flaps:landing:CD"] = self._get_flaps_delta_cd(
                     inputs,
@@ -99,12 +101,12 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                 outputs["data:aerodynamics:flaps:takeoff:CL_max"] = self._get_flaps_delta_cl(
                     inputs,
                     flap_angle,
-                    mach,
+                    mach_ls,
                 )
                 outputs["data:aerodynamics:flaps:takeoff:CM"] = self._get_flaps_delta_cm(
                     inputs,
                     flap_angle,
-                    mach,
+                    mach_ls,
                 )
                 outputs["data:aerodynamics:flaps:takeoff:CD"] = self._get_flaps_delta_cd(
                     inputs,
@@ -115,7 +117,8 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         outputs["data:aerodynamics:elevator:low_speed:CL_delta"] = self._get_elevator_delta_cl(
             inputs,
             25.0,
-        )  # get derivative for 25° angle
+        )  # get derivative for 25° angle assuming it is linear when <= to 25 degree,
+        # derivative wrt to the wing
 
     def _get_elevator_delta_cl(self, inputs, elevator_angle: Union[float, np.array]) -> Union[float, np.array]:
         """
@@ -127,9 +130,11 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
 
         ht_area = inputs["data:geometry:horizontal_tail:area"]
         wing_area = inputs["data:geometry:wing:area"]
+        elevator_chord_ratio = inputs["data:geometry:horizontal_tail:elevator_chord_ratio"]
+        htp_thickness_ratio = inputs["data:geometry:horizontal_tail:thickness_ratio"]
 
         # Elevator (plain flap). Default: maximum deflection (25deg)
-        cl_delta_theory, k = self._delta_lift_plainflap(abs(elevator_angle), 0.3, 0.1)
+        cl_delta_theory, k = self._delta_lift_plainflap(abs(elevator_angle), elevator_chord_ratio, htp_thickness_ratio)
         cl_alpha_elev = (cl_delta_theory * k) * ht_area / wing_area
         cl_alpha_elev *= 0.9  # Correction for the central fuselage part (no elevator there)
 

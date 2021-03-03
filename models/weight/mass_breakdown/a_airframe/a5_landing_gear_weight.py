@@ -54,6 +54,11 @@ class ComputeLandingGearWeight(om.ExplicitComponent):
         carbas = 0.0
         dfte = 0.0
 
+        # To prevent using obstruse data we put this failsafe here
+        # TODO : Find a better way to do this
+        if mlw < mtow / 2.0:
+            mlw = mtow
+
         mlg_weight = (0.0117 - dfte * 0.0012) * mlw ** 0.95 * lg_height ** 0.43
         nlg_weight = (0.048 - dfte * 0.008) * mlw ** 0.67 * lg_height ** 0.43 * (1. + 0.8 * carbas)
 

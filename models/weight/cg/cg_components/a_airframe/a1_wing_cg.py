@@ -68,7 +68,7 @@ class ComputeWingCG(ExplicitComponent):
                 chord_reduction = (y_cg - y2_wing) / (y4_wing - y2_wing) * (l2_wing - l4_wing)
 
             chord_at_cg_pos = l2_wing - chord_reduction
-            x_cg_wing_rel = 0.4 * chord_at_cg_pos + y_cg * math.tan(sweep_25 * math.pi / 180.0)
+            x_cg_wing_rel = 0.42 * chord_at_cg_pos + y_cg * math.tan(sweep_25 * math.pi / 180.0)
 
         else:
             y_cg = 0.35 * span / 2.

@@ -48,7 +48,8 @@ class ComputeFuselageCG(ExplicitComponent):
         if prop_layout == 1.0:
             x_cg_a2 = 0.39 * fus_length
         elif prop_layout == 3.0:  # nose mount
-            x_cg_a2 = lav + 0.33 * (fus_length - lav)
+            # x_cg_a2 = lav + 0.35 * (fus_length - lav)
+            x_cg_a2 = lav + 0.45 * (fus_length - lav)
         else:
             x_cg_a2 = lav + 0.47 * (fus_length - lav)
         

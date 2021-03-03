@@ -18,7 +18,7 @@
 		<TLAR>
 			<NPAX_des>2.0<!--top-level requirement: number of passengers for the design mission, assuming a classic eco/business class repartition--></NPAX_des>
 			<m_lug_des units="kg">10.<!--top-level requirement: luggage mass per passenger for the design mission--></m_lug_des>
-			<range units="NM">960.0</range>
+			<range units="NM">890.0</range>
 			<v_approach units="kn">79.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">160.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">202.6<!--top-level requirement: limit speed--></v_limit>
@@ -52,7 +52,7 @@
 				<MAC>
 					<at25percent>
 						<x>
-							<from_wingMAC25 units="m">4.184<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
+							<from_wingMAC25 units="m">3.91<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
 						</x>
 					</at25percent>
 				</MAC>
@@ -60,7 +60,7 @@
 				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
 				<taper_ratio>0.613<!--taper ratio of horizontal tail--></taper_ratio>
 				<thickness_ratio>0.12<!--thickness ratio of horizontal tail--></thickness_ratio>
-				<elevator_chord_ratio>0.30<!--ratio between elevator chord and tail chord--></elevator_chord_ratio>>
+				<elevator_chord_ratio>0.30<!--ratio between elevator chord and tail chord--></elevator_chord_ratio>
 			</horizontal_tail>
 			<landing_gear>
 				<type>0.0<!--0=non-retractable landing gears / 1=retractable landing gear--></type>
@@ -71,6 +71,13 @@
 				<y_ratio>0.34<!--engine position with respect to total span--></y_ratio>
 			</propulsion>
 			<vertical_tail>
+				<MAC>
+					<at25percent>
+						<x>
+							<from_wingMAC25 units="m">4.21<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
+						</x>
+					</at25percent>
+				</MAC>
 				<area units="m**2">1.51<!--vertical tail area--></area>
 				<aspect_ratio>2.0<!--aspect ratio of vertical tail--></aspect_ratio>
 				<sweep_25 units="deg">10.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
@@ -80,7 +87,7 @@
 			<wing>
 				<MAC>
 					<at25percent>
-						<x units="m">2.60<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
+						<x units="m">2.65<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
 					</at25percent>
 				</MAC>
 				<area units="m**2">13.46<!--wing reference area--></area>

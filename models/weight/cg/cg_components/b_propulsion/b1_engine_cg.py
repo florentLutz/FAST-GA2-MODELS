@@ -74,7 +74,7 @@ class ComputeEngineCG(ExplicitComponent):
         y_nacell = inputs["data:geometry:propulsion:nacelle:y"]
         prop_depth = inputs["data:geometry:propulsion:propeller:depth"]
 
-        x_cg_in_nacelle = 0.5 * nacelle_length
+        x_cg_in_nacelle = 0.6 * nacelle_length
         # From the beginning of the nacelle wrt to the nose, the CG is at x_cg_in_nacelle
 
         if prop_layout == 1.0:
