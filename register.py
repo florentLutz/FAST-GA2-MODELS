@@ -19,9 +19,8 @@ from .models.aerodynamics.aerodynamics_high_speed import AerodynamicsHighSpeed
 from .models.aerodynamics.aerodynamics_low_speed import AerodynamicsLowSpeed
 from .models.geometry import GeometryFixedFuselage, GeometryFixedTailDistance
 from .models.handling_qualities.compute_static_margin import ComputeStaticMargin
-from .models.handling_qualities.tail_sizing.compute_tail_areas import ComputeTailAreas
-from .models.loops.compute_wing_area import ComputeWingArea
-from .models.loops.compute_wing_position import ComputeWingPosition
+from .models.handling_qualities.tail_sizing import UpdateTailAreas
+from .models.loops import UpdateWingArea, UpdateWingPosition
 from .models.weight.mass_breakdown.update_mtow import UpdateMTOW
 from .models.performances.sizing import Sizing
 from .models.weight.weight import Weight
@@ -44,7 +43,7 @@ OpenMDAOSystemRegistry.register_system(
 OpenMDAOSystemRegistry.register_system(
     AerodynamicsHighSpeed,
     "fastga.aerodynamics.highspeed.legacy",
-    domain=ModelDomain.AERODYNAMICS,
+    domain=ModelDomain.AERODYNAMICS
 )
 
 # Geometry ####################################################################
@@ -61,7 +60,7 @@ OpenMDAOSystemRegistry.register_system(
 
 # handling qualities ##########################################################
 OpenMDAOSystemRegistry.register_system(
-    ComputeTailAreas,
+    UpdateTailAreas,
     "fastga.handling_qualities.tail_sizing",
     domain=ModelDomain.HANDLING_QUALITIES,
 )
@@ -73,12 +72,12 @@ OpenMDAOSystemRegistry.register_system(
 
 # Loops #######################################################################
 OpenMDAOSystemRegistry.register_system(
-    ComputeWingArea,
+    UpdateWingArea,
     "fastga.loop.wing_area",
     domain=ModelDomain.OTHER
 )
 OpenMDAOSystemRegistry.register_system(
-    ComputeWingPosition,
+    UpdateWingPosition,
     "fastoad.loop.wing_position",
     domain=ModelDomain.OTHER
 )

@@ -173,13 +173,11 @@ class ComputeWing3DExtremeCL(ExplicitComponent):
 
         y_interp, cl_interp = self._reshape_curve(y_interp, cl_interp)
         y_vect = np.linspace(max(y_root, min(y_interp)), min(y_tip, max(y_interp)), SPAN_MESH_POINT)
-
         cl_xfoil_max = np.interp(y_vect, np.array([y_root, y_tip]), np.array([cl_max_2d_root, cl_max_2d_tip]))
-        # print("cl_xfoil_max ", cl_xfoil_max)
         cl_xfoil_min = np.interp(y_vect, np.array([y_root, y_tip]), np.array([cl_min_2d_root, cl_min_2d_tip]))
-        # print("cl_xfoil_min ", cl_xfoil_min)
-        cl_curve = np.interp(y_vect, y_interp, cl_interp) + 1e-4
-        # print("cl_curve ", cl_curve)
+        cl_curve = np.array(
+            max(np.interp(y_vect, y_interp, cl_interp).tolist(), (1e-12 * np.ones(np.size(y_vect))).tolist())
+        )  # avoid divide by 0
         cl_max_clean = cl0 * np.min(cl_xfoil_max/cl_curve)
         cl_min_clean = cl0 * np.max(cl_xfoil_min / cl_curve)
         
@@ -241,7 +239,9 @@ class ComputeHtp3DExtremeCL(ExplicitComponent):
         y_vect = np.linspace(max(y_root, min(y_interp)), min(y_tip, max(y_interp)), SPAN_MESH_POINT)
         cl_xfoil_max = np.interp(y_vect, np.array([y_root, y_tip]), np.array([cl_max_2d_root, cl_max_2d_tip]))
         cl_xfoil_min = np.interp(y_vect, np.array([y_root, y_tip]), np.array([cl_min_2d_root, cl_min_2d_tip]))
-        cl_curve = np.interp(y_vect, y_interp, cl_interp)
+        cl_curve = np.array(
+            max(np.interp(y_vect, y_interp, cl_interp).tolist(), (1e-12 * np.ones(np.size(y_vect))).tolist())
+        )  # avoid divide by 0
         cl_max_clean = cl_ref * np.min(cl_xfoil_max / cl_curve)
         cl_min_clean = cl_ref * np.max(cl_xfoil_min / cl_curve)
 

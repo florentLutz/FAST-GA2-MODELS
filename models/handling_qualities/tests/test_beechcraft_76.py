@@ -27,8 +27,7 @@ from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
 from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 from ..compute_static_margin import ComputeStaticMargin
-from ..tail_sizing.compute_ht_area import ComputeHTArea
-from ..tail_sizing.compute_vt_area import ComputeVTArea
+from ..tail_sizing import UpdateVTArea, UpdateHTArea
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ...propulsion.propulsion import IPropulsion
 
@@ -109,32 +108,32 @@ class DummyEngineWrapper(IOMPropulsionWrapper):
 BundleLoader().context.install_bundle(__name__).start()
 
 
-def test_compute_vt_area():
+def test_update_vt_area():
     """ Tests computation of the vertical tail area """
 
     # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(ComputeVTArea(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
+    ivc = get_indep_var_comp(list_inputs(UpdateVTArea(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
     ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.364924)
     ivc.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.0599)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
-    problem = run_system(ComputeVTArea(propulsion_id=ENGINE_WRAPPER), ivc)
+    problem = run_system(UpdateVTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     vt_area = problem.get_val("data:geometry:vertical_tail:area", units="m**2")
     assert vt_area == pytest.approx(2.44, abs=1e-2)  # old-version obtained value 2.4m²
 
 
-def test_compute_ht_area():
+def test_update_ht_area():
     """ Tests computation of the horizontal tail area """
 
     # Research independent input value in .xml file
     # noinspection PyTypeChecker
-    ivc = get_indep_var_comp(list_inputs(ComputeHTArea(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
+    ivc = get_indep_var_comp(list_inputs(UpdateHTArea(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
     # noinspection PyTypeChecker
-    problem = run_system(ComputeHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
+    problem = run_system(UpdateHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     ht_area = problem.get_val("data:geometry:horizontal_tail:area", units="m**2")
     # FIXME: error on obtained value!
     assert ht_area == pytest.approx(6.00, abs=1e-2)  # old-version obtained value 3.9m²

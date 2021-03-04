@@ -18,41 +18,31 @@ import numpy as np
 import openmdao.api as om
 
 
-class ComputeWingPosition(om.ImplicitComponent):
-    """
-    An implicit component to solve the wing position
-    """
+class UpdateWingPosition(om.ExplicitComponent):
 
     def setup(self):
         self.add_input("data:handling_qualities:static_margin", val=np.nan)
         self.add_input("data:handling_qualities:static_margin:target", val=np.nan)
-        self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
+        self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan)
+        self.add_input("data:weight:aircraft:CG:aft:x", val=np.nan, units="m")
 
         self.add_output("data:geometry:wing:MAC:at25percent:x", units="m")
 
-        self.declare_partials(of="*", wrt="*", method="exact")
+        self.declare_partials(of="*", wrt="*", method="fd")
 
-    def apply_nonlinear(self, inputs, outputs, residuals, **kwargs):
+    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         static_margin = inputs["data:handling_qualities:static_margin"]
         target_static_margin = inputs["data:handling_qualities:static_margin:target"]
+        l0_wing = inputs["data:geometry:wing:MAC:length"]
+        cg_ratio = inputs["data:weight:aircraft:CG:aft:MAC_position"]
+        cg_x = inputs["data:weight:aircraft:CG:aft:x"]
 
-        residuals["data:geometry:wing:MAC:at25percent:x"] = static_margin - target_static_margin
+        mac_position = (
+            cg_x
+            + 0.25 * l0_wing
+            - cg_ratio * l0_wing
+            - (static_margin - target_static_margin) * l0_wing
+        )
 
-    def guess_nonlinear(self, inputs, outputs, resids, **kwargs):
-        # Check residuals
-        if np.abs(resids["data:geometry:wing:MAC:at25percent:x"]) > 1.0e-1:
-            outputs["data:geometry:wing:MAC:at25percent:x"] = (
-                inputs["data:geometry:fuselage:length"] * 0.30
-            )
-
-    def linearize(self, inputs, outputs, jacobian, **kwargs):
-
-        jacobian[
-            "data:geometry:wing:MAC:at25percent:x", "data:handling_qualities:static_margin"
-        ] = 1.0
-        jacobian[
-            "data:geometry:wing:MAC:at25percent:x", "data:handling_qualities:static_margin:target"
-        ] = -1.0
-        jacobian[
-            "data:geometry:wing:MAC:at25percent:x", "data:geometry:wing:MAC:at25percent:x"
-        ] = 0.0
+        outputs["data:geometry:wing:MAC:at25percent:x"] = mac_position

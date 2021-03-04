@@ -39,7 +39,6 @@ from .d_furniture import (
 )
 from .payload import ComputePayload
 from .update_mlw_and_mzfw import UpdateMLWandMZFW
-from .update_mtow import UpdateMTOW
 
 
 class MassBreakdown(om.Group):

@@ -16,11 +16,10 @@ Computation of tail areas w.r.t. HQ criteria
 
 import openmdao.api as om
 
-from .compute_ht_area import ComputeHTArea
-from .compute_vt_area import ComputeVTArea
+from . import UpdateVTArea, UpdateHTArea
 
 
-class ComputeTailAreas(om.Group):
+class UpdateTailAreas(om.Group):
     """
     Computes areas of vertical and horizontal tail.
 
@@ -34,6 +33,6 @@ class ComputeTailAreas(om.Group):
         self.options.declare("propulsion_id", default=None, types=str, allow_none=True)
 
     def setup(self):
-        self.add_subsystem("horizontal_tail", ComputeHTArea(propulsion_id=self.options["propulsion_id"]),
+        self.add_subsystem("horizontal_tail", UpdateHTArea(propulsion_id=self.options["propulsion_id"]),
                            promotes=["*"])
-        self.add_subsystem("vertical_tail", ComputeVTArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
+        self.add_subsystem("vertical_tail", UpdateVTArea(propulsion_id=self.options["propulsion_id"]), promotes=["*"])

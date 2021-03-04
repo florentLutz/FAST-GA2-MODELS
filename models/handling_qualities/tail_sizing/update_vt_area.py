@@ -23,7 +23,7 @@ from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting
 
 
-class ComputeVTArea(om.ExplicitComponent):
+class UpdateVTArea(om.ExplicitComponent):
     """
     Computes needed vt area to:
       - have enough rotational moment/controllability during cruise

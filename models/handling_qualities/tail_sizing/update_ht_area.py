@@ -29,7 +29,7 @@ from fastoad.constants import EngineSetting
 _ANG_VEL = 12 * math.pi / 180  # 12 deg/s (typical for light aircraft)
 
 
-class ComputeHTArea(om.Group):
+class UpdateHTArea(om.Group):
     """
     Computes needed ht area to:
       - have enough rotational power during take-off phase
@@ -53,9 +53,9 @@ class ComputeHTArea(om.Group):
         )
         self.add_subsystem(
             "ht_area",
-            _ComputeArea(propulsion_id=self.options["propulsion_id"]),
+            _UpdateArea(propulsion_id=self.options["propulsion_id"]),
             promotes=self.get_io_names(
-                _ComputeArea(propulsion_id=self.options["propulsion_id"]),
+                _UpdateArea(propulsion_id=self.options["propulsion_id"]),
                 excludes=[
                     "landing:cl_htp",
                     "takeoff:cl_htp",
@@ -96,7 +96,7 @@ class ComputeHTArea(om.Group):
         return list_names
 
 
-class _ComputeArea(om.ExplicitComponent):
+class _UpdateArea(om.ExplicitComponent):
     """
     Computes area of horizontal tail plane (internal function)
     """

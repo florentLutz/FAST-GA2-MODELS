@@ -18,6 +18,7 @@ import math
 import openmdao.api as om
 import copy
 from scipy.constants import g
+import time
 
 from fastoad.utils.physics import Atmosphere
 from fastoad import BundleLoader
@@ -31,6 +32,7 @@ from ..aerodynamics import AircraftEquilibrium
 POINTS_NB_CLIMB = 200
 POINTS_NB_CRUISE = 1000
 POINTS_NB_DESCENT = 200
+MAX_CALCULATION_TIME = 5  # time in seconds
 
 
 class Mission(om.Group):
@@ -169,6 +171,7 @@ class _compute_climb(AircraftEquilibrium):
         thrust_rate = inputs["data:mission:sizing:main_route:climb:thrust_rate"]
 
         # Define initial conditions
+        t_start = time.time()
         altitude_t = SAFETY_HEIGHT  # conversion to m
         distance_t = 0.0
         time_t = 0.0
@@ -234,6 +237,11 @@ class _compute_climb(AircraftEquilibrium):
             mass_fuel_t += propulsion_model.get_consumed_mass(flight_point, time_step)
             mass_t = mass_t - propulsion_model.get_consumed_mass(flight_point, time_step)
             time_t += time_step
+
+            # Check calculation duration
+            if (time.time() - t_start) > MAX_CALCULATION_TIME:
+                raise Exception("Time calculation duration for climb phase [{}s] exceeded!".format(
+                    MAX_CALCULATION_TIME))
 
         outputs["data:mission:sizing:main_route:climb:fuel"] = mass_fuel_t
         outputs["data:mission:sizing:main_route:climb:distance"] = distance_t
@@ -324,6 +332,7 @@ class _compute_cruise(AircraftEquilibrium):
         time_step = (cruise_distance / v_tas) / float(POINTS_NB_CRUISE)
 
         # Define initial conditions
+        t_start = time.time()
         distance_t = 0.0
         time_t = 0.0
         mass_fuel_t = 0.0
@@ -353,6 +362,7 @@ class _compute_cruise(AircraftEquilibrium):
 
             # Calculate distance increase
             distance_t += v_tas * min(time_step, (cruise_distance - distance_t) / v_tas)
+
             # Estimate mass evolution and update time
             mass_fuel_t += propulsion_model.get_consumed_mass(
                 flight_point,
@@ -363,6 +373,11 @@ class _compute_cruise(AircraftEquilibrium):
                 min(time_step, (cruise_distance - distance_t) / v_tas)
             )
             time_t += min(time_step, (cruise_distance - distance_t) / v_tas)
+
+            # Check calculation duration
+            if (time.time() - t_start) > MAX_CALCULATION_TIME:
+                raise Exception("Time calculation duration for cruise phase [{}s] exceeded!".format(
+                    MAX_CALCULATION_TIME))
 
         outputs["data:mission:sizing:main_route:cruise:fuel"] = mass_fuel_t
         outputs["data:mission:sizing:main_route:cruise:distance"] = distance_t
@@ -446,6 +461,7 @@ class _compute_descent(AircraftEquilibrium):
         m_cr = inputs["data:mission:sizing:main_route:cruise:fuel"]
 
         # Define initial conditions
+        t_start = time.time()
         gamma = math.asin(descent_rate)
         altitude_t = copy.deepcopy(cruise_altitude)
         distance_t = 0.0
@@ -507,6 +523,11 @@ class _compute_descent(AircraftEquilibrium):
             mass_fuel_t += propulsion_model.get_consumed_mass(flight_point, time_step)
             mass_t = mass_t - propulsion_model.get_consumed_mass(flight_point, time_step)
             time_t += time_step
+
+            # Check calculation duration
+            if (time.time() - t_start) > MAX_CALCULATION_TIME:
+                raise Exception("Time calculation duration for descent phase [{}s] exceeded!".format(
+                    MAX_CALCULATION_TIME))
 
         if warning:
             warnings.warn("Descent rate has been reduced!")

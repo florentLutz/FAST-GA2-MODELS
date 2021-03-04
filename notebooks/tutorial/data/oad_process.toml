@@ -1,7 +1,7 @@
 title = "OAD Process"
 
 # List of folder paths where user added custom registered OpenMDAO components
-module_folders = ["../../../../"]
+module_folders = ["D:/a.reysset/Documents/Github/FAST-GA2-MODELS"]
 
 # Input and output files
 input_file = "../results/oad_process_inputs.xml"
@@ -14,24 +14,20 @@ driver = "om.ScipyOptimizeDriver(tol=1e-2, optimizer='COBYLA')"
     nonlinear_solver = "om.NonlinearBlockGS(maxiter=100, iprint=2, rtol=1e-5, debug_print=True, reraise_child_analysiserror=True)"
     linear_solver = "om.DirectSolver()"
     [model.cycle]
-        nonlinear_solver = "om.BroydenSolver(maxiter=20,  iprint=2,  rtol=1e-5, debug_print=True)"
-        linear_solver = "om.DirectSolver()"
-            [model.cycle.subcycle]
-                nonlinear_solver = "om.NonlinearBlockGS(maxiter=50, err_on_non_converge=False, rtol=1e-5, iprint=2, debug_print=True, reraise_child_analysiserror=True)"
-                linear_solver = "om.DirectSolver()"
+        [model.cycle.subcycle]
             [model.cycle.subcycle.geometry]
-                id = "fastga.geometry.legacy"
+                id = "fastga.geometry.alternate"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
             [model.cycle.subcycle.aerodynamics_highspeed]
                 id = "fastga.aerodynamics.highspeed.legacy"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
                 result_folder_path = "D:/tmp"
-                use_openvsp = false
+                use_openvsp = true
             [model.cycle.subcycle.aerodynamics_lowspeed]
                 id = "fastga.aerodynamics.lowspeed.legacy"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
                 result_folder_path = "D:/tmp"
-                use_openvsp = false
+                use_openvsp = true
             [model.cycle.subcycle.weight]
                 id = "fastga.weight.legacy"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
@@ -42,7 +38,7 @@ driver = "om.ScipyOptimizeDriver(tol=1e-2, optimizer='COBYLA')"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
             [model.cycle.subcycle.tail_areas]
                 id = "fastga.handling_qualities.tail_sizing"
-            propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
+                propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
         [model.cycle.static_margin]
             id = "fastga.handling_qualities.static_margin"
         [model.cycle.wing_position]

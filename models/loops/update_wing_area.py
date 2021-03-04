@@ -20,7 +20,7 @@ from scipy.constants import g
 import warnings
 
 
-class ComputeWingArea(om.Group):
+class UpdateWingArea(om.Group):
     """
     Computes needed wing area to:
       - have enough lift at required approach speed
@@ -28,11 +28,11 @@ class ComputeWingArea(om.Group):
     """
 
     def setup(self):
-        self.add_subsystem("wing_area", _ComputeWingArea(), promotes=["*"])
+        self.add_subsystem("wing_area", _UpdateWingArea(), promotes=["*"])
         self.add_subsystem("constraints", _ComputeWingAreaConstraints(), promotes=["*"])
 
 
-class _ComputeWingArea(om.ExplicitComponent):
+class _UpdateWingArea(om.ExplicitComponent):
     """ Computation of wing area from needed approach speed and mission fuel """
 
     def setup(self):
@@ -85,10 +85,10 @@ class _ComputeWingArea(om.ExplicitComponent):
         ) / 2.0
         wing_area_mission = (mfw_mission / m_vol_fuel) / (0.3 * ave_thichness)
 
-        approach_speed = inputs["data:TLAR:v_approach"]
+        stall_speed = inputs["data:TLAR:v_approach"]/1.3
         mlw = inputs["data:weight:aircraft:MLW"]
         max_cl = inputs["data:aerodynamics:aircraft:landing:CL_max"]
-        wing_area_approach = 2 * mlw * g / (approach_speed ** 2) / (1.225 * max_cl)
+        wing_area_approach = 2 * mlw * g / (stall_speed ** 2) / (1.225 * max_cl)
 
         outputs["data:geometry:wing:area"] = max(wing_area_mission, wing_area_approach)
 
@@ -127,12 +127,12 @@ class _ComputeWingAreaConstraints(om.ExplicitComponent):
         
         mfw = inputs["data:weight:aircraft:MFW"]
         mission_fuel = inputs["data:mission:sizing:fuel"]
-        v_approach = inputs["data:TLAR:v_approach"]
+        v_stall = inputs["data:TLAR:v_approach"]/1.3
         cl_max = inputs["data:aerodynamics:aircraft:landing:CL_max"]
         mlw = inputs["data:weight:aircraft:MLW"]
         wing_area = inputs["data:geometry:wing:area"]
 
         outputs["data:weight:aircraft:additional_fuel_capacity"] = mfw - mission_fuel
         outputs["data:aerodynamics:aircraft:landing:additional_CL_capacity"] = cl_max - mlw * g / (
-            0.5 * 1.225 * v_approach ** 2 * wing_area
+            0.5 * 1.225 * v_stall ** 2 * wing_area
         )
