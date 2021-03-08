@@ -32,18 +32,18 @@ def test_compute_flight_points():
 
     # Test with scalars
     flight_point = FlightPoint(
-        mach=0, altitude=0.0, engine_setting=EngineSetting.TAKEOFF, thrust_rate=0.8
-    )  # with engine_setting as EngineSetting
-    engine.compute_flight_points(flight_point)
-    np.testing.assert_allclose(flight_point.thrust, 3532.6 * 0.8, rtol=1e-2)
-    np.testing.assert_allclose(flight_point.sfc, 3.130755e-17, rtol=1e-2)
-
-    flight_point = FlightPoint(
         mach=0.3, altitude=0.0, engine_setting=EngineSetting.CLIMB.value, thrust=528.46263916
     )  # with engine_setting as int
     engine.compute_flight_points(flight_point)
     np.testing.assert_allclose(flight_point.thrust_rate, 0.5, rtol=1e-2)
     np.testing.assert_allclose(flight_point.sfc, 7.336237820294389e-06, rtol=1e-2)
+
+    flight_point = FlightPoint(
+        mach=0, altitude=0.0, engine_setting=EngineSetting.TAKEOFF, thrust_rate=0.8
+    )  # with engine_setting as EngineSetting
+    engine.compute_flight_points(flight_point)
+    np.testing.assert_allclose(flight_point.thrust, 3532.6 * 0.8, rtol=1e-2)
+    np.testing.assert_allclose(flight_point.sfc, 3.130755e-17, rtol=1e-2)
 
     # Test full arrays
     # 2D arrays are used, where first line is for thrust rates, and second line
