@@ -24,6 +24,7 @@ from .models.loops import UpdateWingArea, UpdateWingPosition
 from .models.weight.mass_breakdown.update_mtow import UpdateMTOW
 from .models.performances.sizing import Sizing
 from .models.weight.weight import Weight
+from .models.load_analysis.loads import Loads
 from fastoad.module_management import OpenMDAOSystemRegistry
 from fastoad.module_management.constants import ModelDomain
 
@@ -99,4 +100,11 @@ OpenMDAOSystemRegistry.register_system(
     Sizing,
     "fastga.performances.sizing",
     domain=ModelDomain.PERFORMANCE
+)
+
+# Aerostructural loads ########################################################
+OpenMDAOSystemRegistry.register_system(
+    Loads,
+    "fastga.loads.legacy",
+    domain=ModelDomain.OTHER
 )

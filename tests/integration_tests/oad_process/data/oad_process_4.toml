@@ -38,6 +38,9 @@ driver = "om.ScipyOptimizeDriver(tol=1e-2, optimizer='COBYLA')"
     [model.aicraft.handling_qualities]
         id = "fastga.handling_qualities.all_handling_qualities"
         propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
+    [model.aicraft.loads]
+        id = "fastga.loads.legacy"
+        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
 
 
 [optimization]  # This section is needed only if optimization process is run

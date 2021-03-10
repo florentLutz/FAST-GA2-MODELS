@@ -270,26 +270,3 @@ class ComputeBalkedLandingLimit(aircraft_equilibrium_limit):
         climb_gradient = math.tan(climb_angle)
 
         return climb_gradient, equilibrium_found
-
-    def cg_limit_fwd(self, inputs, mass):
-
-        cl_max_landing = inputs["data:aerodynamics:aircraft:landing:CL_max"]
-        wing_area = inputs["data:geometry:wing:area"]
-        fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
-
-        rho = Atmosphere(0.0).density
-
-        v_s0 = math.sqrt((mass * 9.81) / (0.5 * rho * wing_area * cl_max_landing))
-        v_ref = 1.3 * v_s0
-
-        propulsion_model = FuelEngineSet(self._engine_wrapper.get_model(inputs),
-                                         inputs["data:geometry:propulsion:count"])
-
-        # noinspection PyTypeChecker
-        roots = optimize.fsolve(
-            self.delta_climb_rate,
-            fa_length,
-            args=(v_ref, mass, propulsion_model, inputs)
-        )[0]
-
-        return roots

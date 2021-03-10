@@ -1,0 +1,169 @@
+<!--
+  ~ This file is part of FAST : A framework for rapid Overall Aircraft Design
+  ~ Copyright (C) 2020  ONERA & ISAE-SUPAERO
+  ~ FAST is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<FASTOAD_model>
+	<data>
+		<TLAR>
+		</TLAR>
+		<aerodynamics>
+			<aircraft>
+				<cruise>
+				</cruise>
+				<low_speed>
+				</low_speed>
+				<landing>
+				</landing>
+				<takeoff>
+				</takeoff>
+				<mach_interpolation>
+        		</mach_interpolation>
+			</aircraft>
+			<elevator>
+				<low_speed>
+				</low_speed>
+			</elevator>
+			<flaps>
+				<landing>
+				</landing>
+				<takeoff>
+				</takeoff>
+			</flaps>
+			<horizontal_tail>
+				<cruise>
+					<hinge_moment_3D>
+         			</hinge_moment_3D>
+				</cruise>
+				<low_speed>
+					<clean>
+          			</clean>
+				</low_speed>
+			</horizontal_tail>
+			<vertical_tail>
+				<cruise>
+				</cruise>
+			</vertical_tail>
+			<wing>
+				<cruise>
+				</cruise>
+				<low_speed>
+				</low_speed>
+			</wing>
+		</aerodynamics>
+		<geometry>
+			<fuselage>
+			</fuselage>
+			<horizontal_tail>
+				<MAC>
+					<at25percent>
+						<x>
+						</x>
+					</at25percent>
+				</MAC>
+				<z>
+        		</z>
+				<tip>
+        		</tip>
+				<root>
+				</root>
+			</horizontal_tail>
+			<landing_gear>
+			</landing_gear>
+			<propulsion>
+				<nacelle>
+				</nacelle>
+			</propulsion>
+			<wing>
+				<MAC>
+					<at25percent>
+					</at25percent>
+					<leading_edge>
+						<x>
+						</x>
+					</leading_edge>
+				</MAC>
+				<root>
+				</root>
+				<tip>
+				</tip>
+			</wing>
+			<vertical_tail>
+				<MAC>
+					<at25percent>
+						<x>
+						</x>
+					</at25percent>
+				</MAC>
+			</vertical_tail>
+		</geometry>
+		<mission>
+			<sizing>
+				<landing>
+				</landing>
+				<main_route>
+					<climb>
+					</climb>
+					<cruise>
+					</cruise>
+				</main_route>
+				<takeoff>
+				</takeoff>
+			</sizing>
+		</mission>
+		<propulsion>
+			<IC_engine>
+			</IC_engine>
+		</propulsion>
+		<weight>
+			<aircraft_empty>
+        		<CG>
+        		</CG>
+      		</aircraft_empty>
+			<aircraft>
+				<CG>
+					<aft>
+					</aft>
+					<fwd>
+         		 	</fwd>
+				</CG>
+				<in_flight_variation>
+        		</in_flight_variation>
+			</aircraft>
+			<airframe>
+				<wing>
+				</wing>
+				<landing_gear>
+					<main>
+						<CG>
+						</CG>
+					</main>
+				</landing_gear>
+			</airframe>
+			<propulsion>
+				<engine>
+					<CG>
+					</CG>
+				</engine>
+			</propulsion>
+		</weight>
+	</data>
+	<settings>
+		<weight>
+			<aircraft>
+				<CG>
+				</CG>
+			</aircraft>
+		</weight>
+	</settings>
+</FASTOAD_model>
