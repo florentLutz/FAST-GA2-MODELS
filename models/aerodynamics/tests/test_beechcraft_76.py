@@ -170,6 +170,8 @@ def clear_polar_results():
         os.remove(pth.join(resources.__path__[0], DEFAULT_WING_AIRFOIL.replace('.af', '_sym.csv')))
     if pth.exists(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv'))):
         os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv')))
+    if pth.exists(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('.af', '_sym.csv'))):
+        os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('.af', '_sym.csv')))
 
 
 def test_compute_reynolds():
@@ -672,13 +674,13 @@ def test_extreme_cl():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeExtremeCL(), ivc)
     cl_max_clean_wing = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-    assert cl_max_clean_wing == pytest.approx(1.4850, abs=1e-4)
+    assert cl_max_clean_wing == pytest.approx(1.4865, abs=1e-4)
     cl_min_clean_wing = problem["data:aerodynamics:wing:low_speed:CL_min_clean"]
-    assert cl_min_clean_wing == pytest.approx(-1.0701, abs=1e-4)
+    assert cl_min_clean_wing == pytest.approx(-1.0712, abs=1e-4)
     cl_max_takeoff_wing = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-    assert cl_max_takeoff_wing == pytest.approx(1.6068, abs=1e-4)
+    assert cl_max_takeoff_wing == pytest.approx(1.6083, abs=1e-4)
     cl_max_landing_wing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-    assert cl_max_landing_wing == pytest.approx(2.0638, abs=1e-2)
+    assert cl_max_landing_wing == pytest.approx(2.0653, abs=1e-2)
     cl_max_clean_htp = problem["data:aerodynamics:horizontal_tail:low_speed:CL_max_clean"]
     assert cl_max_clean_htp == pytest.approx(1.2954, abs=1e-4)
     cl_min_clean_htp = problem["data:aerodynamics:horizontal_tail:low_speed:CL_min_clean"]
