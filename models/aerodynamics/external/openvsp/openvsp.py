@@ -33,7 +33,7 @@ from fastoad.utils.resource_management.copy import copy_resource, copy_resource_
 from ... import resources
 from . import resources as local_resources
 from . import openvsp3201
-from ...constants import SPAN_MESH_POINT
+from ...constants import SPAN_MESH_POINT, MACH_NB_PTS
 
 DEFAULT_WING_AIRFOIL = "naca23012.af"
 DEFAULT_HTP_AIRFOIL = "naca0012.af"
@@ -96,6 +96,25 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             inputs, outputs, altitude, mach, aoa_angle)
         return float(cl_alpha_wing + cl_alpha_htp)
 
+    def compute_cl_alpha_mach(self, inputs, outputs, aoa_angle, altitude, cruise_mach):
+        """
+        Function that performs multiple run of OpenVSP to get an interpolation of Cl_alpha as a function of Mach
+        for later use in the computation of the V-n diagram
+        """
+        mach_interp = np.log(np.linspace(np.exp(0.15), np.exp(1.55 * cruise_mach), MACH_NB_PTS))
+        cl_alpha_interp = np.zeros(np.size(mach_interp))
+        for idx in range(len(mach_interp)):
+            cl_alpha_interp[idx] = self.compute_cl_alpha_aircraft(inputs, outputs, altitude, mach_interp[idx],
+                                                                  aoa_angle)
+            test = 1.0
+
+        # We add the case were M=0, for thoroughness and since we are in an incompressible flow, the Cl_alpha is
+        # approximately the same as for the first Mach of the interpolation
+        mach_interp = np.insert(mach_interp, 0, 0.)
+        cl_alpha_inc = cl_alpha_interp[0]
+        cl_alpha_interp = np.insert(cl_alpha_interp, 0, cl_alpha_inc)
+
+        return mach_interp, cl_alpha_interp
 
     def compute_aero_coef(self, inputs, outputs, altitude, mach, aoa_angle):
         """

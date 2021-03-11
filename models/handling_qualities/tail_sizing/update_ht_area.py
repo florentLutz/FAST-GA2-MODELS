@@ -59,14 +59,14 @@ class UpdateHTArea(om.Group):
                 excludes=[
                     "landing:cl_htp",
                     "takeoff:cl_htp",
-                    "low_speed:cl_alpha_htp",
+                    "low_speed:cl_alpha_htp_isolated",
                 ]
             )
         )
 
         self.connect("aero_coeff_landing.cl_htp", "ht_area.landing:cl_htp")
         self.connect("aero_coeff_takeoff.cl_htp", "ht_area.takeoff:cl_htp")
-        self.connect("aero_coeff_takeoff.cl_alpha_htp", "ht_area.low_speed:cl_alpha_htp")
+        self.connect("aero_coeff_takeoff.cl_alpha_htp_isolated", "ht_area.low_speed:cl_alpha_htp_isolated")
 
     @staticmethod
     def get_io_names(
@@ -138,7 +138,7 @@ class _UpdateArea(om.ExplicitComponent):
 
         self.add_input("landing:cl_htp", val=np.nan)
         self.add_input("takeoff:cl_htp", val=np.nan)
-        self.add_input("low_speed:cl_alpha_htp", val=np.nan)
+        self.add_input("low_speed:cl_alpha_htp_isolated", val=np.nan)
 
         self.add_output("data:geometry:horizontal_tail:area", val=4.0, units="m**2")
 
@@ -175,7 +175,7 @@ class _UpdateArea(om.ExplicitComponent):
         cl_htp_takeoff = inputs["takeoff:cl_htp"]
         cm_landing = inputs["data:aerodynamics:wing:low_speed:CM0_clean"] + inputs["data:aerodynamics:flaps:landing:CM"]
         cm_takeoff = inputs["data:aerodynamics:wing:low_speed:CM0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CM"]
-        cl_alpha_htp = inputs["low_speed:cl_alpha_htp"]
+        cl_alpha_htp_isolated = inputs["low_speed:cl_alpha_htp_isolated"]
 
         # Conditions for calculation
         atm = Atmosphere(0.0)
@@ -215,7 +215,7 @@ class _UpdateArea(om.ExplicitComponent):
         # Calculation of correction coefficient n_h and n_q            
         n_h = (x_ht - x_lg) / lp_ht * tail_efficiency_factor  # tail_efficiency_factor: dynamic pressure reduction at
         # tail (typical value)
-        n_q = 1 + cl_alpha_htp / cl_htp_takeoff * _ANG_VEL * (x_ht - x_lg) / v_r
+        n_q = 1 + cl_alpha_htp_isolated / cl_htp_takeoff * _ANG_VEL * (x_ht - x_lg) / v_r
         # Calculation of volume coefficient based on Torenbeek formula
         coef_vol = (
                 cl_max_takeoff / (n_h * n_q * cl_htp_takeoff)
@@ -249,7 +249,7 @@ class _UpdateArea(om.ExplicitComponent):
         # Calculation of correction coefficient n_h and n_q            
         n_h = (x_ht - x_lg) / lp_ht * tail_efficiency_factor  # tail_efficiency_factor: dynamic pressure reduction at
         # tail (typical value)
-        n_q = 1 + cl_alpha_htp / cl_htp_landing * _ANG_VEL * (x_ht - x_lg) / v_r
+        n_q = 1 + cl_alpha_htp_isolated / cl_htp_landing * _ANG_VEL * (x_ht - x_lg) / v_r
         # Calculation of volume coefficient based on Torenbeek formula
         coef_vol = (
                 cl_max_landing / (n_h * n_q * cl_htp_landing)
@@ -281,6 +281,7 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="kg")
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL0", val=np.nan)
+        self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha_isolated", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", val=np.nan, units="rad**-1")
@@ -293,7 +294,7 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         self.add_input("data:mission:sizing:takeoff:elevator_angle", val=np.nan, units="rad")
 
         self.add_output("cl_htp")
-        self.add_output("cl_alpha_htp")
+        self.add_output("cl_alpha_htp_isolated")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -303,6 +304,7 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         ht_area = inputs["data:geometry:horizontal_tail:area"]
         mlw = inputs["data:weight:aircraft:MLW"]
         cl0_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL0"]
+        cl_alpha_htp_isolated = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha_isolated"]
         cl_alpha_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha"]
         cl0_clean_wing = inputs["data:aerodynamics:wing:low_speed:CL0_clean"]
         cl_alpha_wing = inputs["data:aerodynamics:wing:low_speed:CL_alpha"]
@@ -341,10 +343,10 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
                 * wing_area / ht_area
         )
         # Define Cl_alpha with htp reference surface
-        cl_alpha_htp = cl_alpha_htp * wing_area / ht_area
+        cl_alpha_htp_isolated = cl_alpha_htp_isolated * wing_area / ht_area
 
         outputs["cl_htp"] = cl_htp
-        outputs["cl_alpha_htp"] = cl_alpha_htp
+        outputs["cl_alpha_htp_isolated"] = cl_alpha_htp_isolated
 
     @staticmethod
     def _extrapolate(x, xp, yp) -> float:

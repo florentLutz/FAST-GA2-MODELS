@@ -137,13 +137,13 @@ class ComputeZCG(om.ExplicitComponent):
         for mass_name in self.options["mass_names"]:
             self.add_input(mass_name, val=np.nan, units="kg")
 
-        self.add_input("data:geometry:fuselage:maximum_height", units="m")
-        self.add_input("data:geometry:propulsion:propeller:diameter", units="m")
-        self.add_input("data:geometry:landing_gear:height", units="m")
-        self.add_input("data:geometry:horizontal_tail:z:from_wingMAC25", units="m")
-        self.add_input("data:geometry:vertical_tail:span", units="m")
-        self.add_input("data:geometry:wing:MAC:length", units="m")
-        self.add_input("data:geometry:wing:thickness_ratio")
+        self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
+        self.add_input("data:geometry:propulsion:propeller:diameter", val=np.nan, units="m")
+        self.add_input("data:geometry:landing_gear:height", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:z:from_wingMAC25", val=np.nan, units="m")
+        self.add_input("data:geometry:vertical_tail:span", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:thickness_ratio", val=np.nan)
 
         self.add_output("data:weight:aircraft_empty:CG:z", units="m")
         self.add_output("data:weight:propulsion:engine:CG:z", units="m")

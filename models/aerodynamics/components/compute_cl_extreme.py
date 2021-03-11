@@ -206,6 +206,8 @@ class ComputeHtp3DExtremeCL(ExplicitComponent):
 
         nans_array = np.full(SPAN_MESH_POINT, np.nan)
         self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
+        self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="m**0")
+        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:tip:CL_max_2D", val=np.nan)
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:root:CL_max_2D", val=np.nan)
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:tip:CL_min_2D", val=np.nan)
@@ -213,9 +215,12 @@ class ComputeHtp3DExtremeCL(ExplicitComponent):
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_ref", val=np.nan)
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:Y_vector", val=nans_array, units="m")
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_vector", val=nans_array)
+        self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", val=np.nan, units="rad**-1")
 
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_max_clean")
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_min_clean")
+        self.add_output("data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_max")
+        self.add_output("data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_min")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -223,11 +228,14 @@ class ComputeHtp3DExtremeCL(ExplicitComponent):
 
         y_root = 0.0
         y_tip = float(inputs["data:geometry:horizontal_tail:span"]) / 2.0
+        wing_area = inputs["data:geometry:wing:area"]
+        htp_area = inputs["data:geometry:horizontal_tail:area"]
 
         cl_max_2d_root = float(inputs["data:aerodynamics:horizontal_tail:low_speed:root:CL_max_2D"])
         cl_max_2d_tip = float(inputs["data:aerodynamics:horizontal_tail:low_speed:tip:CL_max_2D"])
         cl_min_2d_root = float(inputs["data:aerodynamics:horizontal_tail:low_speed:root:CL_min_2D"])
         cl_min_2d_tip = float(inputs["data:aerodynamics:horizontal_tail:low_speed:tip:CL_min_2D"])
+        cl_alpha_htp = float(inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha"])
         cl_ref = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_ref"]
         y_interp = inputs["data:aerodynamics:horizontal_tail:low_speed:Y_vector"]
         cl_interp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_vector"]
@@ -247,6 +255,12 @@ class ComputeHtp3DExtremeCL(ExplicitComponent):
 
         outputs["data:aerodynamics:horizontal_tail:low_speed:CL_max_clean"] = cl_max_clean
         outputs["data:aerodynamics:horizontal_tail:low_speed:CL_min_clean"] = cl_min_clean
+
+        clean_alpha_max_htp = cl_max_clean / (cl_alpha_htp * wing_area / htp_area) * 180. / np.pi
+        clean_alpha_min_htp = cl_min_clean / (cl_alpha_htp * wing_area / htp_area) * 180. / np.pi
+
+        outputs["data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_max"] = clean_alpha_max_htp
+        outputs["data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_min"] = clean_alpha_min_htp
 
     @staticmethod
     def _reshape_curve(y: np.ndarray, cl: np.ndarray):

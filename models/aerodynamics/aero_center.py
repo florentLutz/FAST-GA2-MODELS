@@ -43,6 +43,7 @@ class ComputeAeroCenter(ExplicitComponent):
         self.add_input("data:aerodynamics:elevator:low_speed:CL_delta", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:efficiency", val=np.nan)
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
 
@@ -68,6 +69,7 @@ class ComputeAeroCenter(ExplicitComponent):
         cl_delta_ht = inputs["data:aerodynamics:elevator:low_speed:CL_delta"]
         ch_alpha_3d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha"]
         ch_delta_3d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta"]
+        tail_efficiency = inputs["data:aerodynamics:horizontal_tail:efficiency"]
         v_cruise = inputs["data:TLAR:v_cruise"]
         alt_cruise = inputs["data:mission:sizing:main_route:cruise:altitude"]
 
@@ -79,7 +81,8 @@ class ComputeAeroCenter(ExplicitComponent):
         # equation from Raymer book, eqn 16.22
         # FIXME: introduce cm_alpha_wing to the equation (non-symmetrical profile)
         cm_alpha_fus = k_h * width_max ** 2 * fus_length / (l0_wing * wing_area) * 180.0 / np.pi
-        x_ca_plane = (cl_alpha_ht * lp_ht - cm_alpha_fus * l0_wing) / (cl_alpha_wing+cl_alpha_ht)
+        x_ca_plane = (tail_efficiency * cl_alpha_ht * lp_ht - cm_alpha_fus * l0_wing) / \
+                     (cl_alpha_wing + tail_efficiency * cl_alpha_ht)
         x_aero_center = x_ca_plane / l0_wing + 0.25
 
         outputs["data:aerodynamics:cruise:neutral_point:stick_fixed:x"] = x_aero_center
@@ -99,8 +102,8 @@ class ComputeAeroCenter(ExplicitComponent):
 
         outputs["data:aerodynamics:cruise:neutral_point:free_elevator_factor"] = free_elevator_factor
 
-        x_ca_plane_free = (free_elevator_factor * cl_alpha_ht * lp_ht - cm_alpha_fus * l0_wing) / \
-                          (cl_alpha_wing + free_elevator_factor * cl_alpha_ht)
+        x_ca_plane_free = (tail_efficiency * free_elevator_factor * cl_alpha_ht * lp_ht - cm_alpha_fus * l0_wing) / \
+                          (cl_alpha_wing + tail_efficiency * free_elevator_factor * cl_alpha_ht)
         x_aero_center_free = x_ca_plane_free / l0_wing + 0.25
 
         outputs["data:aerodynamics:cruise:neutral_point:stick_free:x"] = x_aero_center_free

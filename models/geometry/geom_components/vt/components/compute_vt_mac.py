@@ -39,7 +39,7 @@ class ComputeVTmacFD(ExplicitComponent):
         self.add_output("data:geometry:vertical_tail:MAC:length", units="m")
         self.add_output("data:geometry:vertical_tail:MAC:at25percent:x:local", units="m")
         self.add_output("data:geometry:vertical_tail:MAC:z", units="m")
-        #self.add_output("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", units="m")
+        self.add_output("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", units="m")
 
         self.declare_partials(
             "data:geometry:vertical_tail:MAC:length",
@@ -61,13 +61,13 @@ class ComputeVTmacFD(ExplicitComponent):
             ],
             method="fd",
         )
-        #self.declare_partials(
-        #    "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
-        #    [
-        #        "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
-        #    ],
-        #    method="fd",
-        #)
+        self.declare_partials(
+            "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
+            [
+                "data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25",
+            ],
+            method="fd",
+        )
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         root_chord = inputs["data:geometry:vertical_tail:root:chord"]
@@ -97,7 +97,7 @@ class ComputeVTmacFD(ExplicitComponent):
         outputs["data:geometry:vertical_tail:MAC:length"] = mac_vt
         outputs["data:geometry:vertical_tail:MAC:at25percent:x:local"] = x0_vt
         outputs["data:geometry:vertical_tail:MAC:z"] = z0_vt
-        #outputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"] = vt_lp
+        outputs["data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25"] = vt_lp
 
 
 class ComputeVTmacFL(ExplicitComponent):

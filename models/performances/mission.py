@@ -163,6 +163,7 @@ class _compute_climb(AircraftEquilibrium):
         cd0 = inputs["data:aerodynamics:aircraft:cruise:CD0"]
         coef_k_wing = inputs["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
         coef_k_htp = inputs["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"]
+        cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
         wing_area = inputs["data:geometry:wing:area"]
         mtow = inputs["data:weight:aircraft:MTOW"]
         m_to = inputs["data:mission:sizing:taxi_out:fuel"]
@@ -183,13 +184,15 @@ class _compute_climb(AircraftEquilibrium):
         cl = math.sqrt(3*cd0/coef_k_wing)
         atm = Atmosphere(altitude_t, altitude_in_feet=False)
         v_cas = math.sqrt((mass_t * g) / (0.5 * atm.density * wing_area * cl))
+        vs1 = math.sqrt((mass_t * g) / (0.5 * atm.density * wing_area * cl_max_clean))
 
         mach = math.sqrt(
             5 * ((atm_0.pressure / atm.pressure * (
                     (1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) ** 3.5 - 1
             ) + 1) ** (1 / 3.5) - 1)
         )
-        v_tas = mach * atm.speed_of_sound
+        v_tas = max(mach * atm.speed_of_sound, 1.3*vs1)
+        mach = v_tas/atm.speed_of_sound
         # Define specific time step ~POINTS_NB_CLIMB points for calculation (with ground conditions)
         cl_wing, cl_htp, _ = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
         cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
@@ -206,14 +209,15 @@ class _compute_climb(AircraftEquilibrium):
 
             # Define air properties
             atm = Atmosphere(altitude_t, altitude_in_feet=False)
-
+            vs1 = math.sqrt((mass_t * g) / (0.5 * atm.density * wing_area * cl_max_clean))
             # Evaluate thrust and sfc
             mach = math.sqrt(
                 5 * ((atm_0.pressure / atm.pressure * (
                         (1 + 0.2 * (v_cas / atm_0.speed_of_sound) ** 2) ** 3.5 - 1
                 ) + 1) ** (1 / 3.5) - 1)
             )
-            v_tas = mach * atm.speed_of_sound
+            v_tas = max(mach * atm.speed_of_sound, 1.3*vs1)
+            mach = v_tas/atm.speed_of_sound
             flight_point = FlightPoint(
                 mach=mach, altitude=altitude_t, engine_setting=EngineSetting.CLIMB,
                 thrust_rate=thrust_rate

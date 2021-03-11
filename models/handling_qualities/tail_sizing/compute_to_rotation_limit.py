@@ -19,7 +19,6 @@ import math
 import openmdao.api as om
 from scipy.constants import g
 from fastoad.utils.physics import Atmosphere
-from ...aerodynamics.constants import HT_POINT_COUNT
 from fastoad import BundleLoader
 from fastoad.models.propulsion.fuel_propulsion.base import FuelEngineSet
 from fastoad.base.flight_point import FlightPoint
@@ -127,8 +126,8 @@ class ComputeTORotationLimit(om.ExplicitComponent):
         self.add_input("takeoff:cm_wing", val=np.nan)
         self.add_input("low_speed:cl_alpha_htp", val=np.nan)
 
-        self.add_output("data:handling_qualities:to_rotation_limit:x", val=4.0, units="m")
-        self.add_output("data:handling_qualities:to_rotation_limit:MAC_position", val=np.nan)
+        self.add_output("data:handling_qualities:to_rotation_limit:x", units="m")
+        self.add_output("data:handling_qualities:to_rotation_limit:MAC_position")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -226,7 +225,7 @@ class _ComputeAeroCoeffTO(om.ExplicitComponent):
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL0", val=np.nan)
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha_isolated", units="rad**-1")
-        self.add_input("data:aerodynamics:elevator:low_speed:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:elevator:low_speed:CL_delta", val=np.nan, units="rad**-1")
         self.add_input("data:mission:sizing:takeoff:elevator_angle", val=np.nan, units="rad")
 
         self.add_output("cl_htp")
@@ -243,11 +242,11 @@ class _ComputeAeroCoeffTO(om.ExplicitComponent):
         cl_alpha_isolated_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha_isolated"]
         cl_alpha_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha"]
         cm0_wing = inputs["data:aerodynamics:wing:low_speed:CM0_clean"]
-        cl_alpha_elev = inputs["data:aerodynamics:elevator:low_speed:CL_alpha"]
+        cl_delta_elev = inputs["data:aerodynamics:elevator:low_speed:CL_delta"]
 
         # Calculate elevator max. additional lift
         elev_angle = inputs["data:mission:sizing:takeoff:elevator_angle"]
-        cl_elev = cl_alpha_elev * elev_angle
+        cl_elev = cl_delta_elev * elev_angle
 
         # Define alpha for TO
         # Define angle of attack (aoa)

@@ -42,15 +42,17 @@ class _ComputeStaticMargin(om.ExplicitComponent):
     def setup(self):
         self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan)
         self.add_input("data:aerodynamics:cruise:neutral_point:stick_fixed:x", val=np.nan)
-        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
+        self.add_input("data:aerodynamics:cruise:neutral_point:stick_free:x", val=np.nan)
 
-        self.add_output("data:handling_qualities:static_margin")
+        self.add_output("data:handling_qualities:stick_fixed_static_margin")
+        self.add_output("data:handling_qualities:stick_free_static_margin")
 
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         cg_ratio = inputs["data:weight:aircraft:CG:aft:MAC_position"]
-        ac_ratio = inputs["data:aerodynamics:cruise:neutral_point:stick_fixed:x"]
-        wing_position = inputs["data:geometry:wing:MAC:at25percent:x"]
+        ac_ratio_fixed = inputs["data:aerodynamics:cruise:neutral_point:stick_fixed:x"]
+        ac_ratio_free = inputs["data:aerodynamics:cruise:neutral_point:stick_free:x"]
 
-        outputs["data:handling_qualities:static_margin"] = ac_ratio - cg_ratio
+        outputs["data:handling_qualities:stick_fixed_static_margin"] = ac_ratio_fixed - cg_ratio
+        outputs["data:handling_qualities:stick_free_static_margin"] = ac_ratio_free - cg_ratio

@@ -28,6 +28,8 @@ from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 from ..compute_static_margin import ComputeStaticMargin
 from ..tail_sizing import UpdateVTArea, UpdateHTArea
+from ..tail_sizing.compute_to_rotation_limit import ComputeTORotationLimitGroup
+from ..tail_sizing.compute_balked_landing_limit import ComputeBalkedLandingLimit
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ...propulsion.propulsion import IPropulsion
 
@@ -136,7 +138,7 @@ def test_update_ht_area():
     problem = run_system(UpdateHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     ht_area = problem.get_val("data:geometry:horizontal_tail:area", units="m**2")
     # FIXME: error on obtained value!
-    assert ht_area == pytest.approx(6.00, abs=1e-2)  # old-version obtained value 3.9m²
+    assert ht_area == pytest.approx(3.780, abs=1e-2)  # old-version obtained value 3.9m²
 
 
 def test_compute_static_margin():
@@ -145,8 +147,40 @@ def test_compute_static_margin():
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
-    input_vars.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.20)
+    input_vars.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.576)
 
     problem = run_system(ComputeStaticMargin(), input_vars)
-    static_margin = problem["data:handling_qualities:static_margin"]
-    assert static_margin == pytest.approx(0.58, rel=1e-2)
+    stick_fixed_static_margin = problem["data:handling_qualities:stick_fixed_static_margin"]
+    assert stick_fixed_static_margin == pytest.approx(0.206, rel=1e-2)
+
+    stick_free_static_margin = problem["data:handling_qualities:stick_free_static_margin"]
+    assert stick_free_static_margin == pytest.approx(0.147, rel=1e-2)
+
+
+def test_compute_to_rotation_limit():
+    """ Tests the computation of the forward most possible CG location for the TO rotation in case HTP area is fixed"""
+
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
+    reader.path_separator = ":"
+    input_vars = reader.read().to_ivc()
+    input_vars.add_output("data:geometry:horizontal_tail:area", 3.78)
+
+    problem = run_system(ComputeTORotationLimitGroup(propulsion_id=ENGINE_WRAPPER), input_vars)
+    to_rotation_limit = problem["data:handling_qualities:to_rotation_limit:x"]
+    assert to_rotation_limit == pytest.approx(2.99, rel=1e-2)
+    to_rotation_limit_ratio = problem["data:handling_qualities:to_rotation_limit:MAC_position"]
+    assert to_rotation_limit_ratio == pytest.approx(-0.0419, rel=1e-2)
+
+def test_balked_landing_limit():
+    """ Tests the computation of the forward most possible CG location for a balked landing in case HTP area is fixed"""
+
+    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
+    reader.path_separator = ":"
+    input_vars = reader.read().to_ivc()
+    input_vars.add_output("data:geometry:horizontal_tail:area", 3.78)
+
+    problem = run_system(ComputeBalkedLandingLimit(propulsion_id=ENGINE_WRAPPER), input_vars)
+    balked_landing_limit = problem["data:handling_qualities:balked_landing_limit:x"]
+    assert balked_landing_limit == pytest.approx(3.43, rel=1e-2)
+    balked_landing_limit_ratio = problem["data:handling_qualities:balked_landing_limit:MAC_position"]
+    assert balked_landing_limit_ratio == pytest.approx(0.24, rel=1e-2)

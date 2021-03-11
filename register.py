@@ -53,6 +53,7 @@ OpenMDAOSystemRegistry.register_system(
     "fastga.geometry.legacy",
     domain=ModelDomain.GEOMETRY
 )
+
 OpenMDAOSystemRegistry.register_system(
     GeometryFixedFuselage,
     "fastga.geometry.alternate",

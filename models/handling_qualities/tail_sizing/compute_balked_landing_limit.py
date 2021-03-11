@@ -51,7 +51,7 @@ class aircraft_equilibrium_limit(om.ExplicitComponent):
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha_isolated", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_min", val=np.nan, units="deg")
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_max", val=np.nan, units="deg")
-        self.add_input("data:aerodynamics:elevator:low_speed:CL_alpha", np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:elevator:low_speed:CL_delta", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:flaps:landing:CM", val=np.nan)
         self.add_input("data:aerodynamics:flaps:landing:CL", val=np.nan)
         self.add_input("data:aerodynamics:flaps:landing:CD", val=np.nan)
@@ -72,7 +72,7 @@ class aircraft_equilibrium_limit(om.ExplicitComponent):
 
         cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
         cl_alpha_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha"]
-        cl_delta_htp = inputs["data:aerodynamics:elevator:low_speed:CL_alpha"]
+        cl_delta_htp = inputs["data:aerodynamics:elevator:low_speed:CL_delta"]
         cm_flaps = inputs["data:aerodynamics:flaps:landing:CM"]
         cl_flaps = inputs["data:aerodynamics:flaps:landing:CL"]
         cl_max_flaps = inputs["data:aerodynamics:flaps:landing:CL_max"]
@@ -235,7 +235,7 @@ class ComputeBalkedLandingLimit(aircraft_equilibrium_limit):
         coeff_k_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:induced_drag_coefficient"]
         cl_alpha_wing = inputs["data:aerodynamics:wing:low_speed:CL_alpha"]
         cl_alpha_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha"]
-        cl_delta_htp = inputs["data:aerodynamics:elevator:low_speed:CL_alpha"]
+        cl_delta_htp = inputs["data:aerodynamics:elevator:low_speed:CL_delta"]
         cd_flaps = inputs["data:aerodynamics:flaps:landing:CD"]
         cl_flaps = inputs["data:aerodynamics:flaps:landing:CL"]
         cd_0 = inputs["data:aerodynamics:aircraft:low_speed:CD0"]

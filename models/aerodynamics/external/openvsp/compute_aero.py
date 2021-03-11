@@ -19,7 +19,7 @@ import numpy as np
 from openmdao.core.group import Group
 
 from .openvsp import OPENVSPSimpleGeometry, DEFAULT_WING_AIRFOIL, DEFAULT_HTP_AIRFOIL
-from ...constants import SPAN_MESH_POINT
+from ...constants import SPAN_MESH_POINT, MACH_NB_PTS
 from ...components.compute_reynolds import ComputeUnitReynolds
 
 INPUT_AOA = 10.0  # only one value given since calculation is done by default around 0.0!
@@ -82,6 +82,9 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha_isolated", units="rad**-1")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient")
+            self.add_output("data:aerodynamics:aircraft:mach_interpolation:mach_vector", shape=MACH_NB_PTS + 1)
+            self.add_output("data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector", shape=MACH_NB_PTS + 1,
+                            units="rad**-1")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -105,6 +108,11 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
         cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp, \
         cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp = self.compute_aero_coef(
             inputs, outputs, altitude, mach, INPUT_AOA)
+
+        if self.options["low_speed_aero"]:
+            pass
+        else:
+            mach_interp, cl_alpha_interp = self.compute_cl_alpha_mach(inputs, outputs, INPUT_AOA, altitude, mach)
 
         # Defining outputs -----------------------------------------------------------------------------
         if self.options["low_speed_aero"]:
@@ -130,3 +138,6 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha'] = cl_alpha_htp
             outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha_isolated'] = cl_alpha_htp_isolated
             outputs["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"] = coef_k_htp
+            outputs["data:aerodynamics:aircraft:mach_interpolation:mach_vector"] = mach_interp
+            outputs["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"] = cl_alpha_interp
+
