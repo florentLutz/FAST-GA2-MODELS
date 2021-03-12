@@ -67,7 +67,7 @@ class ComputeVh(om.ExplicitComponent):
         self.add_input("data:aerodynamics:aircraft:cruise:CD0", val=np.nan)
         self.add_input("data:aerodynamics:wing:cruise:induced_drag_coefficient", val=np.nan)
 
-        self.add_output("data:TLAR:v_max_sl", units="kn")
+        self.add_output("data:TLAR:v_max_sl", units="m/s")
 
         self.declare_partials("*", "*", method="fd")
 

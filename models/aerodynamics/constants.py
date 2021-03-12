@@ -12,5 +12,5 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 POLAR_POINT_COUNT = 150
-SPAN_MESH_POINT = 100
+SPAN_MESH_POINT = 50
 MACH_NB_PTS = 5

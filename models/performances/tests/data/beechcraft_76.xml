@@ -34,8 +34,12 @@
 			</aircraft>
 			<horizontal_tail>
 				<cruise>
-					<induced_drag_coefficient>2.3486</induced_drag_coefficient>
+					<induced_drag_coefficient>0.715</induced_drag_coefficient>
+					<CL_alpha>0.6826</CL_alpha>
 				</cruise>
+				<low_speed>
+					<CL_alpha>0.6760</CL_alpha>
+				</low_speed>
 			</horizontal_tail>
 			<flaps>
 				<landing>

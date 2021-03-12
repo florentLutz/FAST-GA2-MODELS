@@ -431,7 +431,7 @@ def _test_vlm_comp_low_speed():
     results_folder.cleanup()
 
 
-def _test_openvsp_comp_high_speed():
+def test_openvsp_comp_high_speed():
     """ Tests openvsp components @ high speed """
 
     # Create result temporary directory
@@ -441,10 +441,12 @@ def _test_openvsp_comp_high_speed():
     # noinspection PyTypeChecker
     ivc = get_indep_var_comp(list_inputs(ComputeAEROopenvsp()), __file__, XML_FILE)
 
+    mach_interpolation = False
     # Run problem and check obtained value(s) is/(are) correct
     start = time.time()
     # noinspection PyTypeChecker
-    problem = run_system(ComputeAEROopenvsp(result_folder_path=results_folder.name), ivc)
+    problem = run_system(ComputeAEROopenvsp(result_folder_path=results_folder.name,
+                                            compute_mach_interpolation=mach_interpolation), ivc)
     stop = time.time()
     duration_1st_run = stop - start
     cl0_wing = problem["data:aerodynamics:wing:cruise:CL0_clean"]
@@ -455,10 +457,11 @@ def _test_openvsp_comp_high_speed():
     assert cm0 == pytest.approx(-0.0265, abs=1e-4)
     coef_k_wing = problem["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
     assert coef_k_wing == pytest.approx(0.0482, abs=1e-4)
-    cl_alpha_vector = problem["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"]
-    assert cl_alpha_vector == pytest.approx([5.20, 5.20, 5.24, 5.30, 5.37, 5.45], abs=1e-2)
-    mach_vector = problem["data:aerodynamics:aircraft:mach_interpolation:mach_vector"]
-    assert mach_vector == pytest.approx([0., 0.15, 0.21, 0.28, 0.34, 0.39], abs=1e-2)
+    if mach_interpolation:
+        cl_alpha_vector = problem["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"]
+        assert cl_alpha_vector == pytest.approx([5.20, 5.20, 5.24, 5.30, 5.37, 5.45], abs=1e-2)
+        mach_vector = problem["data:aerodynamics:aircraft:mach_interpolation:mach_vector"]
+        assert mach_vector == pytest.approx([0., 0.15, 0.21, 0.28, 0.34, 0.39], abs=1e-2)
     cl0_htp = problem["data:aerodynamics:horizontal_tail:cruise:CL0"]
     assert cl0_htp == pytest.approx(-0.0058, abs=1e-4)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
@@ -481,7 +484,7 @@ def _test_openvsp_comp_high_speed():
     results_folder.cleanup()
 
 
-def _test_openvsp_comp_low_speed():
+def test_openvsp_comp_low_speed():
     """ Tests openvsp components @ low speed """
 
     # Create result temporary directory
@@ -544,6 +547,7 @@ def _test_openvsp_comp_low_speed():
          0.11321936, 0.11022672, 0.10689925, 0.1019831, 0.0968037,
          0.08927591, 0.08074826, 0.06745917, 0.05250057]
     )
+    test = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:Y_vector")
     y, cl = reshape_curve(problem.get_val("data:aerodynamics:horizontal_tail:low_speed:Y_vector", "m"),
                           problem["data:aerodynamics:horizontal_tail:low_speed:CL_vector"])
     assert np.max(np.abs(y_vector_htp - y)) <= 1e-3

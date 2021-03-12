@@ -28,6 +28,7 @@ INPUT_AOA = 10.0  # only one value given since calculation is done by default ar
 class ComputeAEROopenvsp(Group):
     def initialize(self):
         self.options.declare("low_speed_aero", default=False, types=bool)
+        self.options.declare("compute_mach_interpolation", default=False, types=bool)
         self.options.declare("result_folder_path", default="", types=str)
         self.options.declare("openvsp_exe_path", default="", types=str, allow_none=True)
         self.options.declare("wing_airfoil_file", default=DEFAULT_WING_AIRFOIL, types=str, allow_none=True)
@@ -39,6 +40,7 @@ class ComputeAEROopenvsp(Group):
         self.add_subsystem("aero_openvsp",
                            _ComputeAEROopenvsp(
                                low_speed_aero=self.options["low_speed_aero"],
+                               compute_mach_interpolation=self.options["compute_mach_interpolation"],
                                result_folder_path=self.options["result_folder_path"],
                                wing_airfoil_file=self.options["wing_airfoil_file"],
                                htp_airfoil_file=self.options["htp_airfoil_file"],
@@ -50,6 +52,7 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
     def initialize(self):
         super().initialize()
         self.options.declare("low_speed_aero", default=False, types=bool)
+        self.options.declare("compute_mach_interpolation", default=False, types=bool)
 
     def setup(self):
         super().setup()
@@ -65,6 +68,7 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             self.add_output("data:aerodynamics:wing:low_speed:CM0_clean")
             self.add_output("data:aerodynamics:wing:low_speed:Y_vector", shape=SPAN_MESH_POINT, units="m")
             self.add_output("data:aerodynamics:wing:low_speed:CL_vector", shape=SPAN_MESH_POINT)
+            self.add_output("data:aerodynamics:wing:low_speed:chord_vector", shape=SPAN_MESH_POINT, units="m")
             self.add_output("data:aerodynamics:wing:low_speed:induced_drag_coefficient")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL0")
             self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_ref")
@@ -82,8 +86,9 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:CL_alpha_isolated", units="rad**-1")
             self.add_output("data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient")
-            self.add_output("data:aerodynamics:aircraft:mach_interpolation:mach_vector", shape=MACH_NB_PTS + 1)
-            self.add_output("data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector", shape=MACH_NB_PTS + 1,
+            if self.options["compute_mach_interpolation"]:
+                self.add_output("data:aerodynamics:aircraft:mach_interpolation:mach_vector", shape=MACH_NB_PTS + 1)
+                self.add_output("data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector", shape=MACH_NB_PTS + 1,
                             units="rad**-1")
 
         self.declare_partials("*", "*", method="fd")
@@ -105,14 +110,15 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
             mach = inputs["data:aerodynamics:cruise:mach"]
 
-        cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp, \
+        cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, chord_vector_wing, coef_k_wing, cl_0_htp, \
         cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp = self.compute_aero_coef(
             inputs, outputs, altitude, mach, INPUT_AOA)
 
         if self.options["low_speed_aero"]:
             pass
         else:
-            mach_interp, cl_alpha_interp = self.compute_cl_alpha_mach(inputs, outputs, INPUT_AOA, altitude, mach)
+            if self.options["compute_mach_interpolation"]:
+                mach_interp, cl_alpha_interp = self.compute_cl_alpha_mach(inputs, outputs, INPUT_AOA, altitude, mach)
 
         # Defining outputs -----------------------------------------------------------------------------
         if self.options["low_speed_aero"]:
@@ -121,6 +127,7 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             outputs['data:aerodynamics:wing:low_speed:CM0_clean'] = cm_0_wing
             outputs['data:aerodynamics:wing:low_speed:Y_vector'] = y_vector_wing
             outputs['data:aerodynamics:wing:low_speed:CL_vector'] = cl_vector_wing
+            outputs['data:aerodynamics:wing:low_speed:chord_vector'] = chord_vector_wing
             outputs["data:aerodynamics:wing:low_speed:induced_drag_coefficient"] = coef_k_wing
             outputs['data:aerodynamics:horizontal_tail:low_speed:CL0'] = cl_0_htp
             outputs['data:aerodynamics:horizontal_tail:low_speed:CL_ref'] = cl_X_htp
@@ -138,6 +145,7 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha'] = cl_alpha_htp
             outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha_isolated'] = cl_alpha_htp_isolated
             outputs["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"] = coef_k_htp
-            outputs["data:aerodynamics:aircraft:mach_interpolation:mach_vector"] = mach_interp
-            outputs["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"] = cl_alpha_interp
+            if self.options["compute_mach_interpolation"]:
+                outputs["data:aerodynamics:aircraft:mach_interpolation:mach_vector"] = mach_interp
+                outputs["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"] = cl_alpha_interp
 

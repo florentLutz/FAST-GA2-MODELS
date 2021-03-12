@@ -16,9 +16,9 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
-			<NPAX_des>2.0<!--top-level requirement: number of passengers for the design mission, assuming a classic eco/business class repartition--></NPAX_des>
-			<m_lug_des units="kg">10.<!--top-level requirement: luggage mass per passenger for the design mission--></m_lug_des>
-			<range units="NM">890.0</range>
+			<NPAX_design>2.0<!--top-level requirement: number of passengers for the design mission, assuming a classic eco/business class repartition--></NPAX_design>
+			<luggage_mass_design units="kg">20.<!--top-level requirement: luggage mass per passenger for the design mission--></luggage_mass_design>
+			<range units="NM">730.0</range>
 			<v_approach units="kn">79.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">160.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">202.6<!--top-level requirement: limit speed--></v_limit>
@@ -44,7 +44,7 @@
 					</passenger>
 				</seats>
 				<luggage>
-						<max_luggage_weight units="kg">60.<!--maximum luggage weight in the luggage compartiment--></max_luggage_weight>
+						<mass_max units="kg">60.<!--maximum luggage weight in the luggage compartiment--></mass_max>
 				</luggage>
 			</cabin>
 			<has_T_tail>0.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>

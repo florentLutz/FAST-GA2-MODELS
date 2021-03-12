@@ -36,10 +36,12 @@ class AircraftEquilibrium(om.ExplicitComponent):
         self.add_input("data:aerodynamics:wing:cruise:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:wing:cruise:CL0_clean", np.nan)
         self.add_input("data:aerodynamics:wing:cruise:CM0_clean", np.nan)
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:CL_alpha", np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CM0_clean", np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean", np.nan)
+        self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", np.nan)
         self.add_input("data:weight:aircraft:CG:aft:x", np.nan, units="m")
         self.add_input("data:weight:aircraft:in_flight_variation:fixed_mass_comp:equivalent_moment", np.nan,
                        units="kg*m")
@@ -48,7 +50,7 @@ class AircraftEquilibrium(om.ExplicitComponent):
 
 
     @staticmethod
-    def found_cl_repartition(inputs, load_factor, mass, dynamic_pressure, low_speed):
+    def found_cl_repartition(inputs, load_factor, mass, dynamic_pressure, low_speed, x_cg=-1.0):
 
         x0_wing = inputs["data:geometry:wing:MAC:leading_edge:x:local"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
@@ -60,19 +62,22 @@ class AircraftEquilibrium(om.ExplicitComponent):
         x_htp = x_wing + inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
         if low_speed:
             cl_alpha_wing = inputs["data:aerodynamics:wing:low_speed:CL_alpha"]
+            cl_alpha_htp = inputs["data:aerodynamics:horizontal_tail:low_speed:CL_alpha"]
             cl0_wing = inputs["data:aerodynamics:wing:low_speed:CL0_clean"]
             cm0_wing = inputs["data:aerodynamics:wing:low_speed:CM0_clean"]
         else:
             cl_alpha_wing = inputs["data:aerodynamics:wing:cruise:CL_alpha"]
+            cl_alpha_htp = inputs["data:aerodynamics:horizontal_tail:cruise:CL_alpha"]
             cl0_wing = inputs["data:aerodynamics:wing:cruise:CL0_clean"]
             cm0_wing = inputs["data:aerodynamics:wing:cruise:CM0_clean"]
         cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
 
-        c1 = inputs["data:weight:aircraft:in_flight_variation:fixed_mass_comp:equivalent_moment"]
-        cg_tank = inputs["data:weight:propulsion:tank:CG:x"]
-        c3 = inputs["data:weight:aircraft:in_flight_variation:fixed_mass_comp:mass"]
-        fuel_mass = mass - c3
-        x_cg = (c1 + cg_tank * fuel_mass) / (c3 + fuel_mass)
+        if x_cg < 0.0:
+            c1 = inputs["data:weight:aircraft:in_flight_variation:fixed_mass_comp:equivalent_moment"]
+            cg_tank = inputs["data:weight:propulsion:tank:CG:x"]
+            c3 = inputs["data:weight:aircraft:in_flight_variation:fixed_mass_comp:mass"]
+            fuel_mass = mass - c3
+            x_cg = (c1 + cg_tank * fuel_mass) / (c3 + fuel_mass)
 
         # Calculate cm_alpha_fus from Raymer equations (figure 16.14, eqn 16.22)
         x0_25 = x_wing - 0.25 * l0_wing - x0_wing + 0.25 * l1_wing
@@ -93,10 +98,17 @@ class AircraftEquilibrium(om.ExplicitComponent):
         inv_a = np.linalg.inv(a)
         CL = np.dot(inv_a, b)
 
+        CL_wing = CL[0]
+        CL_tail = CL[1]
+
+        alpha_avion = (CL_wing - cl0_wing) / cl_alpha_wing
+        cl_htp_only = alpha_avion * cl_alpha_htp
+        cl_elevator = CL_tail - cl_htp_only
+
         # Return equilibrated lift coefficients if low speed maximum clean Cl not exceeded otherwise only cl_wing, 3rd
         # term is an error flag returned by the function
         if CL[0] < cl_max_clean:
-            return float(CL[0]), float(CL[1]), False
+            return float(CL_wing), float(cl_htp_only), cl_elevator, False
         else:
             return float(mass * g * load_factor / (dynamic_pressure * wing_area)), 0.0, True
 

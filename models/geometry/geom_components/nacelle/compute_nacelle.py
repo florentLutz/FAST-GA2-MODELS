@@ -46,6 +46,7 @@ class ComputeNacelleGeometry(om.ExplicitComponent):
         self.add_output("data:geometry:propulsion:nacelle:width", units="m")
         self.add_output("data:geometry:propulsion:nacelle:wet_area", units="m**2")
         self.add_output("data:geometry:propulsion:propeller:depth", units="m")
+        self.add_output("data:geometry:propulsion:propeller:diameter", units="m")
         self.add_output("data:geometry:landing_gear:height", units="m")
         self.add_output("data:geometry:propulsion:nacelle:y", units="m")
         
@@ -78,5 +79,6 @@ class ComputeNacelleGeometry(om.ExplicitComponent):
         outputs["data:geometry:propulsion:nacelle:width"] = nac_width
         outputs["data:geometry:propulsion:nacelle:wet_area"] = nac_wet_area
         outputs["data:geometry:propulsion:propeller:depth"] = prop_depth
+        outputs["data:geometry:propulsion:propeller:diameter"] = prop_dia
         outputs["data:geometry:landing_gear:height"] = lg_height
         outputs["data:geometry:propulsion:nacelle:y"] = y_nacelle

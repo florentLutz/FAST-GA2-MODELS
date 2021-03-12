@@ -92,7 +92,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         cl_alpha_aircraft parameter.
 
         """
-        _, cl_alpha_wing, _, _, _, _, _, _, cl_alpha_htp, _, _, _, _ = self.compute_aero_coef(
+        _, cl_alpha_wing, _, _, _, _, _, _, _, cl_alpha_htp, _, _, _, _ = self.compute_aero_coef(
             inputs, outputs, altitude, mach, aoa_angle)
         return float(cl_alpha_wing + cl_alpha_htp)
 
@@ -189,6 +189,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             cl_alpha_wing = (cl_X_wing - cl_0_wing) / (aoa_angle * math.pi / 180)
             y_vector_wing = wing_0["y_vector"]
             cl_vector_wing = (np.array(wing_0["cl_vector"]) * k_fus).tolist()
+            chord_vector_wing = wing_0["chord_vector"]
             k_fus = 1 - 2 * (width_max / span_wing) ** 2  # Fuselage correction
             # Full aircraft correction: Wing lift is 105% of total lift, so: CDi = (CL*1.05)^2/(piAe) -> e' = e/1.05^2
             coef_e = float(wing_X["coef_e"] * k_fus / 1.05 ** 2)
@@ -210,12 +211,14 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             if SPAN_MESH_POINT < len(y_vector_wing):
                 y_interp = np.linspace(y_vector_wing[0], y_vector_wing[-1], SPAN_MESH_POINT)
                 cl_vector_wing = np.interp(y_interp, y_vector_wing, cl_vector_wing)
+                chord_vector_wing = np.interp(y_interp, y_vector_wing, chord_vector_wing)
                 y_vector_wing = y_interp
                 warnings.warn("Defined maximum span mesh in fast aerodynamics\\constants.py exceeded!")
             else:
                 additional_zeros = list(np.zeros(SPAN_MESH_POINT - len(y_vector_wing)))
                 y_vector_wing.extend(additional_zeros)
                 cl_vector_wing.extend(additional_zeros)
+                chord_vector_wing.extend(additional_zeros)
             if SPAN_MESH_POINT < len(y_vector_htp):
                 y_interp = np.linspace(y_vector_htp[0], y_vector_htp[-1], SPAN_MESH_POINT)
                 cl_vector_htp = np.interp(y_interp, y_vector_htp, cl_vector_htp)
@@ -228,8 +231,9 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
 
             # Save results to defined path -----------------------------------------------------------------------------
             if self.options["result_folder_path"] != "":
-                results = [cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp,
-                           cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp]
+                results = [cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, chord_vector_wing,
+                           coef_k_wing, cl_0_htp, cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp,
+                           cl_vector_htp, coef_k_htp]
                 self.save_results(result_file_path, results)
 
         # Else retrieved results are used, eventually adapted with new area ratio
@@ -241,6 +245,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             cm_0_wing = float(data.loc["cm_0_wing", 0])
             y_vector_wing = np.array([float(i) for i in data.loc["y_vector_wing", 0][1:-2].split(',')])
             cl_vector_wing = np.array([float(i) for i in data.loc["cl_vector_wing", 0][1:-2].split(',')])
+            chord_vector_wing = np.array([float(i) for i in data.loc["chord_vector_wing", 0][1:-2].split(',')])
             coef_k_wing = float(data.loc["coef_k_wing", 0])
             cl_0_htp = float(data.loc["cl_0_htp", 0]) * (area_ratio / saved_area_ratio)
             cl_X_htp = float(data.loc["cl_X_htp", 0]) * (area_ratio / saved_area_ratio)
@@ -250,8 +255,9 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
             cl_vector_htp = np.array([float(i) for i in data.loc["cl_vector_htp", 0][1:-2].split(',')])
             coef_k_htp = float(data.loc["coef_k_htp", 0]) * (area_ratio / saved_area_ratio)
 
-        return cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, coef_k_wing, cl_0_htp,\
-               cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp
+        return cl_0_wing, cl_alpha_wing, cm_0_wing, y_vector_wing, cl_vector_wing, chord_vector_wing, \
+               coef_k_wing, cl_0_htp, cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, \
+               cl_vector_htp, coef_k_htp
 
     def compute_wing(self, inputs, outputs, altitude, mach, aoa_angle):
         """
@@ -419,6 +425,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
 
         # Open .lod file and extract data
         wing_y_vect = []
+        wing_chord_vect = []
         wing_cl_vect = []
         wing_cd_vect = []
         wing_cm_vect = []
@@ -429,6 +436,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
                 line.append('**')
                 if line[0] == '1':
                     wing_y_vect.append(float(line[2]))
+                    wing_chord_vect.append(float(line[3]))
                     wing_cl_vect.append(float(line[5]))
                     wing_cd_vect.append(float(line[6]))
                     wing_cm_vect.append(float(line[12]))
@@ -448,6 +456,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         # Return values
         wing = {'y_vector': wing_y_vect,
                 'cl_vector': wing_cl_vect,
+                'chord_vector': wing_chord_vect,
                 'cd_vector': wing_cd_vect,
                 'cm_vector': wing_cm_vect,
                 'cl': cl_wing,
@@ -971,9 +980,9 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
     @staticmethod
     def save_results(result_file_path, results):
 
-        labels = ["cl_0_wing", "cl_alpha_wing", "cm_0_wing", "y_vector_wing", "cl_vector_wing", "coef_k_wing",
-                  "cl_0_htp", "cl_X_htp", "cl_alpha_htp", "cl_alpha_htp_isolated", "y_vector_htp", "cl_vector_htp",
-                  "coef_k_htp"]
+        labels = ["cl_0_wing", "cl_alpha_wing", "cm_0_wing", "y_vector_wing", "cl_vector_wing", "chord_vector_wing",
+                  "coef_k_wing", "cl_0_htp", "cl_X_htp", "cl_alpha_htp", "cl_alpha_htp_isolated", "y_vector_htp",
+                  "cl_vector_htp", "coef_k_htp"]
         data = pd.DataFrame(results, index=labels)
         data.to_csv(result_file_path)
 

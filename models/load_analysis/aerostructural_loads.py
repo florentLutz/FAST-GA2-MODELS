@@ -21,17 +21,17 @@ import openmdao.api as om
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ..aerodynamics.constants import SPAN_MESH_POINT_OPENVSP, MACH_NB_PTS
+from ..aerodynamics.constants import SPAN_MESH_POINT, MACH_NB_PTS
 from ..aerodynamics.external.openvsp.compute_vn import ComputeVNopenvsp
 from fastoad.utils.physics.atmosphere import Atmosphere
 from scipy.integrate import trapz, cumtrapz
 from scipy.interpolate import interp1d
-from ..performances.mission import aircraft_equilibrium
+from ..aerodynamics.lift_equilibrium import AircraftEquilibrium
 
 NB_POINTS_POINT_MASS = 5
 # MUST BE AN EVEN NUMBER
 POINT_MASS_SPAN_RATIO = 0.01
-SPAN_MESH_POINT_LOADS = int(1.5 * SPAN_MESH_POINT_OPENVSP)
+SPAN_MESH_POINT_LOADS = int(1.5 * SPAN_MESH_POINT)
 
 
 class AerostructuralLoad(ComputeVNopenvsp):
@@ -50,13 +50,13 @@ class AerostructuralLoad(ComputeVNopenvsp):
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
         self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
 
-        nans_array_OV = np.full(SPAN_MESH_POINT_OPENVSP, np.nan)
+        nans_array_OV = np.full(SPAN_MESH_POINT, np.nan)
         nans_array_M = np.full(MACH_NB_PTS+1, np.nan)
-        self.add_input("data:aerodynamics:wing:low_speed:Y_vector", val=nans_array_OV, shape=SPAN_MESH_POINT_OPENVSP,
+        self.add_input("data:aerodynamics:wing:low_speed:Y_vector", val=nans_array_OV, shape=SPAN_MESH_POINT,
                        units="m")
-        self.add_input("data:aerodynamics:wing:low_speed:chord_vector", val=nans_array_OV, shape=SPAN_MESH_POINT_OPENVSP,
+        self.add_input("data:aerodynamics:wing:low_speed:chord_vector", val=nans_array_OV, shape=SPAN_MESH_POINT,
                        units="m")
-        self.add_input("data:aerodynamics:wing:low_speed:CL_vector", val=nans_array_OV, shape=SPAN_MESH_POINT_OPENVSP)
+        self.add_input("data:aerodynamics:wing:low_speed:CL_vector", val=nans_array_OV, shape=SPAN_MESH_POINT)
         self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:cruise:CL0_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:cruise:CM0_clean", val=np.nan)
@@ -73,10 +73,6 @@ class AerostructuralLoad(ComputeVNopenvsp):
         self.add_input("data:aerodynamics:aircraft:mach_interpolation:mach_vector", val=nans_array_M,
                        shape=MACH_NB_PTS + 1)
 
-        self.add_input("data:weight:aircraft:in_flight_variation:C1", val=np.nan, units="m*kg")
-        self.add_input("data:weight:aircraft:in_flight_variation:C2", val=np.nan, units="m")
-        self.add_input("data:weight:aircraft:in_flight_variation:C3", val=np.nan, units="kg")
-
         self.add_input("data:weight:aircraft:MZFW", val=np.nan, units="kg")
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:weight:propulsion:engine:mass", val=np.nan, units="kg")
@@ -85,6 +81,10 @@ class AerostructuralLoad(ComputeVNopenvsp):
         self.add_input("data:weight:aircraft_empty:CG:z", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:CG:aft:x", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:CG:fwd:x", val=np.nan, units="m")
+        self.add_input("data:weight:aircraft:in_flight_variation:fixed_mass_comp:equivalent_moment", np.nan,
+                       units="kg*m")
+        self.add_input("data:weight:propulsion:tank:CG:x", np.nan, units="m")
+        self.add_input("data:weight:aircraft:in_flight_variation:fixed_mass_comp:mass", np.nan, units="kg")
 
         self.add_input("data:geometry:wing:root:virtual_chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
@@ -184,7 +184,7 @@ class AerostructuralLoad(ComputeVNopenvsp):
             for load_factor in load_factor_list:
 
                 for x_cg in cg_array:
-                    cl_wing, cl_htp, _ = aircraft_equilibrium.found_cl_repartition(inputs, load_factor, mass,
+                    cl_wing, _, _, _ = AircraftEquilibrium.found_cl_repartition(inputs, load_factor, mass,
                                                                                    dynamic_pressure, False, x_cg)
                     cl_s_actual = cl_s * cl_wing / cl_0
                     lift_section = FoS * dynamic_pressure * cl_s_actual

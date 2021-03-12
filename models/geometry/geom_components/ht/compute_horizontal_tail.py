@@ -17,7 +17,7 @@
 import openmdao.api as om
 
 from .components import ComputeHTChord, ComputeHTDistance, ComputeHTmacFD, ComputeHTmacFL, ComputeHTSweep, \
-    ComputeHTWetArea
+    ComputeHTWetArea, ComputeHTEfficiency
 
 
 class ComputeHorizontalTailGeometryFD(om.Group):
@@ -29,6 +29,7 @@ class ComputeHorizontalTailGeometryFD(om.Group):
         self.add_subsystem("ht_sweep", ComputeHTSweep(), promotes=["*"])
         self.add_subsystem("ht_wet_area", ComputeHTWetArea(), promotes=["*"])
         self.add_subsystem("ht_distance", ComputeHTDistance(), promotes=["*"])
+        self.add_subsystem("ht_eff", ComputeHTEfficiency(), promotes=["*"])
 
 
 class ComputeHorizontalTailGeometryFL(om.Group):

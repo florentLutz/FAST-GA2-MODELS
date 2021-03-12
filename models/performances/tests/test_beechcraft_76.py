@@ -263,11 +263,11 @@ def test_compute_climb():
     v_cas = problem.get_val("data:mission:sizing:main_route:climb:v_cas", units="kn")
     assert v_cas == pytest.approx(71.5, abs=1)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:climb:fuel", units="kg")
-    assert fuel_mass == pytest.approx(5.06, abs=1e-2)
+    assert fuel_mass == pytest.approx(10.072, abs=1e-2)
     distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="m") / 1000.0  # conversion to km
-    assert distance == pytest.approx(15.85, abs=1e-2)
+    assert distance == pytest.approx(31.97, abs=1e-2)
     duration = problem.get_val("data:mission:sizing:main_route:climb:duration", units="min")
-    assert duration == pytest.approx(6.15, abs=1e-2)
+    assert duration == pytest.approx(12.24, abs=1e-2)
 
 
 def test_compute_cruise():
@@ -289,7 +289,7 @@ def test_compute_cruise():
     register_wrappers()
     problem = run_system(group, ivc)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg")
-    assert fuel_mass == pytest.approx(158.4, abs=1e-1)
+    assert fuel_mass == pytest.approx(198.29, abs=1e-1)
     duration = problem.get_val("data:mission:sizing:main_route:cruise:duration", units="h")
     assert duration == pytest.approx(4.71, abs=1e-2)
 
@@ -312,7 +312,7 @@ def test_compute_descent():
     register_wrappers()
     problem = run_system(group, ivc)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:descent:fuel", units="kg")
-    assert fuel_mass == pytest.approx(0.32, abs=1e-2)
+    assert fuel_mass == pytest.approx(1.70, abs=1e-2)
     distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="m") / 1000  # conversion to km
     assert distance == pytest.approx(48.73, abs=1e-2)
     duration = problem.get_val("data:mission:sizing:main_route:descent:duration", units="min")
@@ -332,7 +332,7 @@ def test_loop_cruise_distance():
     # noinspection PyTypeChecker
     problem = run_system(Sizing(propulsion_id=ENGINE_WRAPPER), ivc)
     m_total = problem.get_val("data:mission:sizing:fuel", units="kg")
-    assert m_total == pytest.approx(184, abs=1)
+    assert m_total == pytest.approx(233.12, abs=1)
     climb_distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="NM")
     cruise_distance = problem.get_val("data:mission:sizing:main_route:cruise:distance", units="NM")
     descent_distance = problem.get_val("data:mission:sizing:main_route:descent:distance", units="NM")

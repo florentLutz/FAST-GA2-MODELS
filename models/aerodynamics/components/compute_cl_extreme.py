@@ -206,7 +206,7 @@ class ComputeHtp3DExtremeCL(ExplicitComponent):
 
         nans_array = np.full(SPAN_MESH_POINT, np.nan)
         self.add_input("data:geometry:horizontal_tail:span", val=np.nan, units="m")
-        self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="m**0")
+        self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:tip:CL_max_2D", val=np.nan)
         self.add_input("data:aerodynamics:horizontal_tail:low_speed:root:CL_max_2D", val=np.nan)
@@ -219,8 +219,8 @@ class ComputeHtp3DExtremeCL(ExplicitComponent):
 
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_max_clean")
         self.add_output("data:aerodynamics:horizontal_tail:low_speed:CL_min_clean")
-        self.add_output("data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_max")
-        self.add_output("data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_min")
+        self.add_output("data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_max", units="deg")
+        self.add_output("data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_min", units="deg")
 
         self.declare_partials("*", "*", method="fd")
 

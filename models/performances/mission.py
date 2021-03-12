@@ -194,15 +194,15 @@ class _compute_climb(AircraftEquilibrium):
         v_tas = max(mach * atm.speed_of_sound, 1.3*vs1)
         mach = v_tas/atm.speed_of_sound
         # Define specific time step ~POINTS_NB_CLIMB points for calculation (with ground conditions)
-        cl_wing, cl_htp, _ = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
-        cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
+        cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
+        cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (abs(cl_htp_only)+abs(cl_elevator)) ** 2
         flight_point = FlightPoint(
             mach=mach, altitude=SAFETY_HEIGHT, engine_setting=EngineSetting.CLIMB,
             thrust_rate=thrust_rate
         )  # with engine_setting as EngineSetting
         propulsion_model.compute_flight_points(flight_point)
         thrust = float(flight_point.thrust)
-        climb_rate = thrust / (mass_t * g) - cd / (cl_wing + cl_htp)
+        climb_rate = thrust / (mass_t * g) - cd / (cl_wing + cl_htp_only + cl_elevator)
         time_step = ((cruise_altitude - SAFETY_HEIGHT) / (v_tas * math.sin(climb_rate))) / float(POINTS_NB_CLIMB)
 
         while altitude_t < cruise_altitude:
@@ -226,11 +226,12 @@ class _compute_climb(AircraftEquilibrium):
             thrust = float(flight_point.thrust)
 
             # Calculate equilibrium and induced drag
-            cl_wing, cl_htp, _ = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
-            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
+            cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t,
+                                                                             (0.5 * atm.density * v_tas ** 2), False)
+            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (abs(cl_htp_only) + abs(cl_elevator)) ** 2
 
             # Calculate climb rate and height increase
-            climb_rate = thrust / (mass_t * g) - cd / (cl_wing + cl_htp)
+            climb_rate = thrust / (mass_t * g) - cd / (cl_wing + cl_htp_only + cl_elevator)
             v_z = v_tas * math.sin(climb_rate)
             v_x = v_tas * math.cos(climb_rate)
             time_step = min(time_step, (cruise_altitude - altitude_t) / v_z)
@@ -346,8 +347,9 @@ class _compute_cruise(AircraftEquilibrium):
         while distance_t < cruise_distance:
 
             # Calculate equilibrium and induced drag
-            cl_wing, cl_htp, _ = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
-            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
+            cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t,
+                                                                             (0.5 * atm.density * v_tas ** 2), False)
+            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (abs(cl_htp_only) + abs(cl_elevator)) ** 2
             drag = 0.5 * atm.density * wing_area * cd * v_tas ** 2
 
             # Evaluate sfc
@@ -491,9 +493,9 @@ class _compute_descent(AircraftEquilibrium):
             )
             v_tas = mach * atm.speed_of_sound
             # Calculate equilibrium and induced drag
-            cl_wing, cl_htp, _ = self.found_cl_repartition(inputs, 1.0, mass_t * math.cos(descent_rate),
-                                                           (0.5 * atm.density * v_tas ** 2), False)
-            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * cl_htp ** 2
+            cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t,
+                                                                             (0.5 * atm.density * v_tas ** 2), False)
+            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (abs(cl_htp_only) + abs(cl_elevator)) ** 2
             cl = ((mass_t * g) * math.cos(descent_rate) / (0.5 * atm.density * wing_area * v_tas**2))
             cl_cd = cl/cd
             drag = 0.5 * atm.density * wing_area * cd * v_tas**2

@@ -33,6 +33,7 @@ class AerodynamicsLowSpeed(Group):
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
         self.options.declare("use_openvsp", default=False, types=bool)
+        self.options.declare("compute_mach_interpolation", default=False, types=bool)
         self.options.declare("result_folder_path", default="", types=str)
         self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
         self.options.declare('htp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
@@ -51,6 +52,7 @@ class AerodynamicsLowSpeed(Group):
             self.add_subsystem("aero_openvsp",
                                ComputeAEROopenvsp(
                                    low_speed_aero=True,
+                                   compute_mach_interpolation=self.options["compute_mach_interpolation"],
                                    result_folder_path=self.options["result_folder_path"],
                                    wing_airfoil_file=self.options["wing_airfoil_file"],
                                    htp_airfoil_file=self.options["htp_airfoil_file"],

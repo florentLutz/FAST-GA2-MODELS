@@ -21,20 +21,20 @@ from openmdao.core.component import Component
 import pytest
 from typing import Union
 
-from fastoad.io import VariableIO
 from fastoad.utils.physics import Atmosphere
 from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad import BundleLoader
 from fastoad.base.flight_point import FlightPoint
 from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
+from fastoad.io import VariableIO
 
 from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs, Timer
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ..aerostructural_loads import AerostructuralLoad
 from ...propulsion.propulsion import IPropulsion
 
-XML_FILE = "cirrus_sr22.xml"
-ENGINE_WRAPPER = "test.wrapper.performances.cirrus.dummy_engine"
+XML_FILE = "beechcraft_76.xml"
+ENGINE_WRAPPER = "test.wrapper.performances.beechcraft.dummy_engine"
 
 
 class DummyEngine(AbstractFuelPropulsion):
@@ -45,8 +45,8 @@ class DummyEngine(AbstractFuelPropulsion):
 
         """
         super().__init__()
-        self.max_power = 231000.0
-        self.max_thrust = 5417.0
+        self.max_power = 130000.0
+        self.max_thrust = 5800.0 / 2.0
 
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
 
@@ -64,7 +64,7 @@ class DummyEngine(AbstractFuelPropulsion):
             flight_points.thrust_rate = float(thrust) / max_thrust
         else:
             flight_points.thrust = max_thrust * np.array(flight_points.thrust_rate)
-        sfc_pmax = 8.5080e-08  # fixed whatever the thrust ratio, sfc for ONE 130kW engine !
+        sfc_pmax = 7.96359441e-08  # fixed whatever the thrust ratio, sfc for ONE 130kW engine !
         sfc = sfc_pmax * flight_points.thrust_rate * mach * Atmosphere(altitude).speed_of_sound
 
         flight_points['sfc'] = sfc
@@ -79,7 +79,7 @@ class DummyEngine(AbstractFuelPropulsion):
         return 0.0
 
     def compute_sl_thrust(self) -> float:
-        return 5417.0
+        return 5800.0
 
 
 @RegisterPropulsion(ENGINE_WRAPPER)
@@ -104,17 +104,17 @@ def test_compute_shear_stress():
     register_wrappers()
     problem = run_system(AerostructuralLoad(), ivc)
     shear_max_mass_condition = problem.get_val("data:loads:max_shear:mass", units="kg")
-    assert shear_max_mass_condition == pytest.approx(1642.45, abs=1e-1)
+    assert shear_max_mass_condition == pytest.approx(1639.00, abs=1e-1)
     shear_max_lf_condition = problem.get_val("data:loads:max_shear:load_factor")
-    assert shear_max_lf_condition == pytest.approx(3.996, abs=1e-2)
+    assert shear_max_lf_condition == pytest.approx(4.047, abs=1e-2)
     shear_max_cg_position = problem.get_val("data:loads:max_shear:cg_position", units="m")
-    assert shear_max_cg_position == pytest.approx(2.432, abs=1e-2)
+    assert shear_max_cg_position == pytest.approx(2.759, abs=1e-2)
     lift_shear_diagram = problem.get_val("data:loads:max_shear:lift_shear", units="N")
     lift_root_shear = lift_shear_diagram[0]
-    assert lift_root_shear == pytest.approx(53047.77, abs=1)
+    assert lift_root_shear == pytest.approx(48693.224, abs=1)
     weight_shear_diagram = problem.get_val("data:loads:max_shear:weight_shear", units="N")
     weight_root_shear = weight_shear_diagram[0]
-    assert weight_root_shear == pytest.approx(-13875.347, abs=1)
+    assert weight_root_shear == pytest.approx(-23378.89, abs=1)
 
 def test_compute_root_bending_moment():
 
@@ -124,14 +124,14 @@ def test_compute_root_bending_moment():
     register_wrappers()
     problem = run_system(AerostructuralLoad(), ivc)
     max_rbm_mass_condition = problem.get_val("data:loads:max_rbm:mass", units="kg")
-    assert max_rbm_mass_condition == pytest.approx(1642.45, abs=1e-1)
+    assert max_rbm_mass_condition == pytest.approx(1639.00, abs=1e-1)
     max_rbm_lf_condition = problem.get_val("data:loads:max_rbm:load_factor")
-    assert max_rbm_lf_condition == pytest.approx(3.996, abs=1e-2)
+    assert max_rbm_lf_condition == pytest.approx(4.047, abs=1e-2)
     max_rbm_cg_position = problem.get_val("data:loads:max_rbm:cg_position", units="m")
-    assert max_rbm_cg_position == pytest.approx(2.432, abs=1e-2)
+    assert max_rbm_cg_position == pytest.approx(2.759, abs=1e-2)
     lift_rbm_diagram = problem.get_val("data:loads:max_rbm:lift_rbm", units="N*m")
     lift_rbm = lift_rbm_diagram[0]
-    assert lift_rbm == pytest.approx(135064.087, abs=1)
+    assert lift_rbm == pytest.approx(130143.626, abs=1)
     weight_rbm_diagram = problem.get_val("data:loads:max_rbm:weight_rbm", units="N*m")
     weight_rbm = weight_rbm_diagram[0]
-    assert weight_rbm == pytest.approx(-32402.56, abs=1)
+    assert weight_rbm == pytest.approx(-49389.333, abs=1)

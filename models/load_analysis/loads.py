@@ -23,5 +23,8 @@ class Loads(om.Group):
         self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
-        self.add_subsystem("aerostructural_loads", AerostructuralLoad(compute_cl_alpha=True), promotes=["*"])
-
+        # self.add_subsystem("aerostructural_loads", AerostructuralLoad(compute_cl_alpha=True), promotes=["*"])
+        self.add_subsystem("vn_diagram_no_vh", ComputeVNopenvspNoVH(
+            propulsion_id=self.options["propulsion_id"],
+            compute_cl_alpha=True),
+                           promotes=["*"])

@@ -19,11 +19,13 @@ driver = "om.ScipyOptimizeDriver(tol=1e-2, optimizer='COBYLA')"
         propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
         result_folder_path = "D:/tmp"
         use_openvsp = true
+        compute_mach_interpolation = false
     [model.aicraft.aerodynamics_lowspeed]
         id = "fastga.aerodynamics.lowspeed.legacy"
         propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
         result_folder_path = "D:/tmp"
         use_openvsp = true
+        compute_mach_interpolation = false
     [model.aicraft.cycle]
         nonlinear_solver = "om.NonlinearBlockGS(maxiter=50, err_on_non_converge=True, iprint=2, debug_print=True, rtol=1e-5)"
         linear_solver = "om.LinearBlockGS(maxiter=10, err_on_non_converge=True, iprint=2, rtol=1e-5)"
@@ -37,9 +39,6 @@ driver = "om.ScipyOptimizeDriver(tol=1e-2, optimizer='COBYLA')"
             propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
     [model.aicraft.handling_qualities]
         id = "fastga.handling_qualities.all_handling_qualities"
-        propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-    [model.aicraft.loads]
-        id = "fastga.loads.legacy"
         propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
 
 
