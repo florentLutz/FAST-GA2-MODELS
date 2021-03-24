@@ -130,7 +130,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
         super().setup()
         nans_array = np.full(MACH_NB_PTS + 1, np.nan)
         self.add_input("data:TLAR:category", val=3.0)
-        self.add_input("data:TLAR:level", val=1.0)
+        self.add_input("data:TLAR:level", val=2.0)
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
         self.add_input("data:TLAR:v_max_sl", val=np.nan, units="kn")
         self.add_input("data:aerodynamics:aircraft:landing:CL_max", val=np.nan)

@@ -124,6 +124,8 @@ class _UpdateArea(om.ExplicitComponent):
         self.add_input("data:weight:aircraft:MLW", val=np.nan, units="kg")
         self.add_input("data:weight:aircraft:CG:aft:x", val=np.nan, units="m")
         self.add_input("data:weight:airframe:landing_gear:main:CG:x", val=np.nan, units="m")
+        self.add_input("data:weight:aircraft_empty:CG:z", val=np.nan, units="m")
+        self.add_input("data:weight:propulsion:engine:CG:z", val=np.nan, units="m")
         self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CM0_clean", val=np.nan)
         self.add_input("data:aerodynamics:aircraft:landing:CL_max", val=np.nan)
@@ -159,10 +161,11 @@ class _UpdateArea(om.ExplicitComponent):
         x_wing_aero_center = inputs["data:geometry:wing:MAC:at25percent:x"]
         lp_ht = inputs["data:geometry:horizontal_tail:MAC:at25percent:x:from_wingMAC25"]
         wing_mac = inputs["data:geometry:wing:MAC:length"]
-        z_eng = inputs["data:geometry:propulsion:nacelle:height"]/2
         mtow = inputs["data:weight:aircraft:MTOW"]
         mlw = inputs["data:weight:aircraft:MLW"]
         x_cg_aft = inputs["data:weight:aircraft:CG:aft:x"]
+        z_cg_aircraft = inputs["data:weight:aircraft_empty:CG:z"]
+        z_cg_engine = inputs["data:weight:propulsion:engine:CG:z"]
         x_lg = inputs["data:weight:airframe:landing_gear:main:CG:x"]
         cl0_clean = inputs["data:aerodynamics:wing:low_speed:CL0_clean"]
         cl_max_clean = inputs["data:aerodynamics:wing:low_speed:CL_max_clean"]
@@ -176,6 +179,8 @@ class _UpdateArea(om.ExplicitComponent):
         cm_landing = inputs["data:aerodynamics:wing:low_speed:CM0_clean"] + inputs["data:aerodynamics:flaps:landing:CM"]
         cm_takeoff = inputs["data:aerodynamics:wing:low_speed:CM0_clean"] + inputs["data:aerodynamics:flaps:takeoff:CM"]
         cl_alpha_htp_isolated = inputs["low_speed:cl_alpha_htp_isolated"]
+
+        z_eng = z_cg_aircraft - z_cg_engine
 
         # Conditions for calculation
         atm = Atmosphere(0.0)

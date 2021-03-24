@@ -36,8 +36,8 @@ class Compute2DHingeMomentsTail(ExplicitComponent):
         self.add_input("data:geometry:horizontal_tail:area", val=np.nan, units="m**2")
         self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
         self.add_input("data:aerodynamics:horizontal_tail:cruise:CL_alpha", val=np.nan, units="rad**-1")
-        self.add_input("data:TLAR:v_cruise", val=np.nan, units="kn")
-        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
+        self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
+        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="m")
 
         self.add_output("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D",
                         units="rad**-1")
@@ -147,8 +147,8 @@ class Compute2DHingeMomentsTail(ExplicitComponent):
 
         # Step 5.
 
-        sos_cruise = Atmosphere(cruise_alt).speed_of_sound
-        mach = v_cruise * 0.5144 / sos_cruise
+        sos_cruise = Atmosphere(cruise_alt, altitude_in_feet=False).speed_of_sound
+        mach = v_cruise / sos_cruise
         beta = math.sqrt(1. - mach ** 2.0)
 
         ch_alpha_fin = ch_alpha_balance / beta
@@ -276,7 +276,7 @@ class Compute3DHingeMomentsTail(ExplicitComponent):
     def setup(self):
         self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D", val=np.nan, units="rad**-1")
-        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="rad")
+        self.add_input("data:geometry:horizontal_tail:sweep_25", val=np.nan, units="deg")
         self.add_input("data:geometry:horizontal_tail:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:horizontal_tail:elevator_chord_ratio", val=np.nan)
 
@@ -289,7 +289,7 @@ class Compute3DHingeMomentsTail(ExplicitComponent):
 
         ch_alpha_2d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_alpha_2D"]
         ch_delta_2d = inputs["data:aerodynamics:horizontal_tail:cruise:hinge_moment:CH_delta_2D"]
-        sweep_25_ht = inputs["data:geometry:horizontal_tail:sweep_25"]
+        sweep_25_ht = inputs["data:geometry:horizontal_tail:sweep_25"]*math.pi/180.
         ar_ht = inputs["data:geometry:horizontal_tail:aspect_ratio"]
         elevator_chord_ratio = inputs["data:geometry:horizontal_tail:elevator_chord_ratio"]
 

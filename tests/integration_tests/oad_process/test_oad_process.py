@@ -33,9 +33,9 @@ NOTEBOOKS_PATH = PATH[0] + os.path.sep
 for folder in PATH[1:len(PATH) - 3]:
     NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, folder)
 NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, "notebooks")
-# XML_NAME = "beechcraft_76.xml"
+XML_NAME = "beechcraft_76.xml"
 # XML_NAME = "socata_tb20.xml"
-XML_NAME = "cirrus_sr22.xml"
+# XML_NAME = "cirrus_sr22.xml"
 
 
 @pytest.fixture(scope="module")
@@ -48,8 +48,8 @@ def test_oad_process(cleanup):
     """
     Test the overall aircraft design process without and with optimization.
     """
-    test = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_4.toml"))
-    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_4.toml")).get_problem()
+    test = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_5.toml"))
+    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_5.toml")).get_problem()
     recorder = om.SqliteRecorder("cases.sql")
 
     ref_inputs = pth.join(INPUT_FOLDER_PATH, XML_NAME)

@@ -31,6 +31,7 @@ from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs, Timer
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ..aerostructural_loads import AerostructuralLoad
+from ..private.wing_mass_estimation import AerostructuralLoadsAlternate
 from ...propulsion.propulsion import IPropulsion
 
 XML_FILE = "cirrus_sr22.xml"
@@ -96,7 +97,7 @@ class DummyEngineWrapper(IOMPropulsionWrapper):
 BundleLoader().context.install_bundle(__name__).start()
 
 
-def test_compute_shear_stress():
+def _test_compute_shear_stress():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(AerostructuralLoad()), __file__, XML_FILE)
@@ -116,7 +117,8 @@ def test_compute_shear_stress():
     weight_root_shear = weight_shear_diagram[0]
     assert weight_root_shear == pytest.approx(-13875.347, abs=1)
 
-def test_compute_root_bending_moment():
+
+def _test_compute_root_bending_moment():
 
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(AerostructuralLoad()), __file__, XML_FILE)
@@ -135,3 +137,28 @@ def test_compute_root_bending_moment():
     weight_rbm_diagram = problem.get_val("data:loads:max_rbm:weight_rbm", units="N*m")
     weight_rbm = weight_rbm_diagram[0]
     assert weight_rbm == pytest.approx(-32402.56, abs=1)
+
+
+def test_compute_aerostructural_load_alternate():
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(AerostructuralLoadsAlternate()), __file__, XML_FILE)
+
+    register_wrappers()
+    problem = run_system(AerostructuralLoadsAlternate(), ivc)
+    web_mass = problem.get_val("data:weight:airframe:wing:primary_structure:web_mass", units="kg")
+    assert web_mass == pytest.approx(1.278, abs=1e-3)
+    upper_flange_mass = problem.get_val("data:weight:airframe:wing:primary_structure:upper_flange_mass", units="kg")
+    assert upper_flange_mass == pytest.approx(6.049, abs=1e-3)
+    lower_flange_mass = problem.get_val("data:weight:airframe:wing:primary_structure:lower_flange_mass", units="kg")
+    assert lower_flange_mass == pytest.approx(8.081, abs=1e-3)
+    skin_mass = problem.get_val("data:weight:airframe:wing:primary_structure:skin_mass", units="kg")
+    assert skin_mass == pytest.approx(101.647, abs=1e-3)
+    ribs_mass = problem.get_val("data:weight:airframe:wing:primary_structure:ribs_mass", units="kg")
+    assert ribs_mass == pytest.approx(10.190, abs=1e-3)
+    misc_mass = problem.get_val("data:weight:airframe:wing:primary_structure:misc_mass", units="kg")
+    assert misc_mass == pytest.approx(28.444, abs=1e-3)
+    secondary_structure_mass = problem.get_val("data:weight:airframe:wing:secondary_structure:mass", units="kg")
+    assert secondary_structure_mass == pytest.approx(51.897, abs=1e-3)
+    wing_mass = problem.get_val("data:weight:airframe:wing:analytical_mass", units="kg")
+    assert wing_mass == pytest.approx(207.589, abs=1e-3)

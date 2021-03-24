@@ -33,6 +33,7 @@ from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad import BundleLoader
 from fastoad.base.flight_point import FlightPoint
 from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
+from scipy import integrate
 
 from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 from ..components.cd0 import Cd0
@@ -40,6 +41,7 @@ from ..external.xfoil import XfoilPolar
 from ..external.xfoil import resources
 from ..external.vlm import ComputeAEROvlm, ComputeVNvlmNoVH
 from ..external.openvsp import ComputeAEROopenvsp, ComputeVNopenvspNoVH
+from ..external.openvsp.compute_aero_slipstream import ComputeSlipstreamOpenvsp
 from ..components import ComputeExtremeCL, ComputeUnitReynolds, ComputeCnBetaFuselage, ComputeLDMax, \
     ComputeDeltaHighLift, Compute2DHingeMomentsTail, Compute3DHingeMomentsTail
 from ..aerodynamics_high_speed import AerodynamicsHighSpeed
@@ -431,7 +433,7 @@ def _test_vlm_comp_low_speed():
     results_folder.cleanup()
 
 
-def test_openvsp_comp_high_speed():
+def _test_openvsp_comp_high_speed():
     """ Tests openvsp components @ high speed """
 
     # Create result temporary directory
@@ -484,7 +486,7 @@ def test_openvsp_comp_high_speed():
     results_folder.cleanup()
 
 
-def test_openvsp_comp_low_speed():
+def _test_openvsp_comp_low_speed():
     """ Tests openvsp components @ low speed """
 
     # Create result temporary directory
@@ -633,7 +635,7 @@ def _test_high_lift():
     assert cl_delta_elev == pytest.approx(0.6167, abs=1e-4)
 
 
-def test_extreme_cl():
+def _test_extreme_cl():
     """ Tests maximum/minimum cl component with default result cl=f(y) curve"""
 
     # Clear saved polar results (for wing and htp airfoils)
@@ -886,3 +888,50 @@ def _test_v_n_diagram_openvsp():
     load_factor_array = problem["data:flight_domain:load_factor"]
     assert np.max(np.abs(velocity_vect - velocity_array)) <= 1e-3
     assert np.max(np.abs(load_factor_vect - load_factor_array)) <= 1e-3
+
+
+def test_slipstream_openvsp():
+    register_wrappers()
+
+    # Create result temporary directory
+    results_folder = _create_tmp_directory()
+
+    # Research independent input value in .xml file
+    # noinspection PyTypeChecker
+    ivc = get_indep_var_comp(list_inputs(ComputeSlipstreamOpenvsp(
+        propulsion_id=ENGINE_WRAPPER,
+        result_folder_path=results_folder.name,
+    )), __file__, XML_FILE)
+    ivc.add_output("data:aerodynamics:wing:cruise:CL0_clean", val=0.1173)
+    ivc.add_output("data:aerodynamics:wing:cruise:CL_alpha", val=4.5996, units="rad**-1")
+    ivc.add_output("data:aerodynamics:wing:low_speed:CL_max_clean", val=1.4465)
+    # Run problem and check obtained value(s) is/(are) correct
+    start = time.time()
+    # noinspection PyTypeChecker
+    problem = run_system(ComputeSlipstreamOpenvsp(propulsion_id=ENGINE_WRAPPER,
+                                                  result_folder_path=results_folder.name,
+                                                  ), ivc)
+    stop = time.time()
+    duration_1st_run = stop - start
+    y_vector_prop_on = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:Y_vector", units="m")
+    y_result_prop_on = np.array([0.04, 0.13, 0.21, 0.3, 0.39, 0.47, 0.56, 0.69, 0.86, 1.04, 1.22,
+                         1.39, 1.57, 1.75, 1.93, 2.11, 2.29, 2.47, 2.65, 2.83, 3.01, 3.19,
+                         3.37, 3.55, 3.73, 3.91, 4.09, 4.26, 4.44, 4.61, 4.78, 4.95, 5.12,
+                         5.29, 5.45, 5.62, 5.78, 5.94, 6.1, 0., 0., 0., 0., 0.,
+                         0., 0., 0., 0., 0., 0.])
+    assert np.max(np.abs(y_vector_prop_on-y_result_prop_on)) <= 1e-2
+    cl_vector_prop_on = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CL_vector")
+    cl_result_prop_on = np.array([1.657, 1.655, 1.655, 1.655, 1.654, 1.653, 1.658, 1.649, 1.645,
+                                  1.65, 1.659, 1.714, 1.737, 1.752, 1.737, 1.658, 1.627, 1.606,
+                                  1.594, 1.571, 1.535, 1.529, 1.518, 1.506, 1.484, 1.465, 1.439,
+                                  1.414, 1.378, 1.348, 1.309, 1.271, 1.22, 1.171, 1.1, 1.024,
+                                  0.923, 0.793, 0.758, 0., 0., 0., 0., 0., 0.,
+                                  0., 0., 0., 0., 0.])
+    assert np.max(np.abs(cl_vector_prop_on - cl_result_prop_on)) <= 1e-2
+    ct = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CT_ref")
+    assert ct == pytest.approx(0.0483, abs=1e-4)
+    cl_vector_prop_off = problem.get_val("data:aerodynamics:slipstream:wing:prop_off:CL_vector")
+    y_vector_prop_off = problem.get_val("data:aerodynamics:slipstream:wing:prop_off:Y_vector")
+    delta_cl = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CL") - \
+               problem.get_val("data:aerodynamics:slipstream:wing:prop_off:CL")
+    assert delta_cl == pytest.approx(0.00565, abs=1e-4)

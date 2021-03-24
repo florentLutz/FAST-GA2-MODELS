@@ -17,6 +17,7 @@
 
 from .aerodynamics_high_speed import AerodynamicsHighSpeed
 from .aerodynamics_low_speed import AerodynamicsLowSpeed
+from .external.openvsp.compute_aero_slipstream import ComputeSlipstreamOpenvsp
 from openmdao.api import Group
 
 
@@ -25,6 +26,8 @@ class Aerodynamics(Group):
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
         self.options.declare("use_openvsp", default=False, types=bool)
+        self.options.declare("compute_mach_interpolation", default=False, types=bool)
+        self.options.declare("compute_slipstream", default=False, types=bool)
         self.options.declare("result_folder_path", default="", types=str)
         self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
         self.options.declare('htp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
@@ -35,6 +38,7 @@ class Aerodynamics(Group):
                            AerodynamicsLowSpeed(
                                propulsion_id=self.options["propulsion_id"],
                                use_openvsp=self.options["use_openvsp"],
+                               compute_mach_interpolation=self.options["compute_mach_interpolation"],
                                result_folder_path=self.options["result_folder_path"],
                                wing_airfoil_file=self.options["wing_airfoil_file"],
                                htp_airfoil_file=self.options["htp_airfoil_file"],
@@ -45,6 +49,8 @@ class Aerodynamics(Group):
                            AerodynamicsHighSpeed(
                                propulsion_id=self.options["propulsion_id"],
                                use_openvsp=self.options["use_openvsp"],
+                               compute_mach_interpolation=self.options["compute_mach_interpolation"],
+                               compute_slipstream=self.options["compute_slipstream"],
                                result_folder_path=self.options["result_folder_path"],
                                wing_airfoil_file=self.options["wing_airfoil_file"],
                                htp_airfoil_file=self.options["htp_airfoil_file"],

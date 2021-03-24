@@ -17,6 +17,7 @@ available through OpenMDAOSystemRegistry
 
 from .models.aerodynamics.aerodynamics_high_speed import AerodynamicsHighSpeed
 from .models.aerodynamics.aerodynamics_low_speed import AerodynamicsLowSpeed
+from .models.aerodynamics.aerodynamics import Aerodynamics
 from .models.geometry import GeometryFixedFuselage, GeometryFixedTailDistance
 from .models.handling_qualities.compute_static_margin import ComputeStaticMargin
 from .models.handling_qualities.handling_qualities import ComputeHandlingQualities
@@ -26,6 +27,7 @@ from .models.weight.mass_breakdown.update_mtow import UpdateMTOW
 from .models.performances.sizing import Sizing
 from .models.weight.weight import Weight
 from .models.load_analysis.loads import Loads
+from .models.load_analysis.private.wing_mass_estimation import AerostructuralLoadsAlternate
 from fastoad.module_management import OpenMDAOSystemRegistry
 from fastoad.module_management.constants import ModelDomain
 
@@ -45,6 +47,11 @@ OpenMDAOSystemRegistry.register_system(
 OpenMDAOSystemRegistry.register_system(
     AerodynamicsHighSpeed,
     "fastga.aerodynamics.highspeed.legacy",
+    domain=ModelDomain.AERODYNAMICS
+)
+OpenMDAOSystemRegistry.register_system(
+    Aerodynamics,
+    "fastga.aerodynamics.legacy",
     domain=ModelDomain.AERODYNAMICS
 )
 
@@ -112,5 +119,11 @@ OpenMDAOSystemRegistry.register_system(
 OpenMDAOSystemRegistry.register_system(
     Loads,
     "fastga.loads.legacy",
+    domain=ModelDomain.OTHER
+)
+
+OpenMDAOSystemRegistry.register_system(
+    AerostructuralLoadsAlternate,
+    "fastga.loads.alternate",
     domain=ModelDomain.OTHER
 )

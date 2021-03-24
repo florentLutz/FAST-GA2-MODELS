@@ -25,6 +25,7 @@ from .components.hinge_moments_elevator import Compute2DHingeMomentsTail, Comput
 
 from .external.vlm import ComputeAEROvlm
 from .external.openvsp import ComputeAEROopenvsp
+from .external.openvsp.compute_aero_slipstream import _ComputeSlipstreamOpenvsp
 
 
 class AerodynamicsHighSpeed(Group):
@@ -36,6 +37,7 @@ class AerodynamicsHighSpeed(Group):
         self.options.declare("propulsion_id", default="", types=str)
         self.options.declare("use_openvsp", default=False, types=bool)
         self.options.declare("compute_mach_interpolation", default=False, types=bool)
+        self.options.declare("compute_slipstream", default=False, types=bool)
         self.options.declare("result_folder_path", default="", types=str)
         self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
         self.options.declare('htp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
@@ -58,6 +60,7 @@ class AerodynamicsHighSpeed(Group):
                                    result_folder_path=self.options["result_folder_path"],
                                    wing_airfoil_file=self.options["wing_airfoil_file"],
                                    htp_airfoil_file=self.options["htp_airfoil_file"],
+                                   propulsion_id=self.options["propulsion_id"],
                                ), promotes=["*"])
         self.add_subsystem("Cd0_all",
                            Cd0(
@@ -71,3 +74,9 @@ class AerodynamicsHighSpeed(Group):
         self.add_subsystem("clAlpha_vt", ComputeClalphaVT(), promotes=["*"])
         self.add_subsystem("ch_ht_2d", Compute2DHingeMomentsTail(), promotes=["*"])
         self.add_subsystem("ch_ht_3d", Compute3DHingeMomentsTail(), promotes=["*"])
+        if self.options["compute_slipstream"]:
+            self.add_subsystem("aero_slipstream_openvsp",
+                               _ComputeSlipstreamOpenvsp(propulsion_id=self.options["propulsion_id"],
+                                                         result_folder_path=self.options["result_folder_path"],
+                                                         wing_airfoil_file=self.options["wing_airfoil_file"],
+                                                         ), promotes=["*"])

@@ -195,7 +195,7 @@ class _compute_climb(AircraftEquilibrium):
         mach = v_tas/atm.speed_of_sound
         # Define specific time step ~POINTS_NB_CLIMB points for calculation (with ground conditions)
         cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
-        cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (abs(cl_htp_only)+abs(cl_elevator)) ** 2
+        cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (cl_htp_only + cl_elevator) ** 2
         flight_point = FlightPoint(
             mach=mach, altitude=SAFETY_HEIGHT, engine_setting=EngineSetting.CLIMB,
             thrust_rate=thrust_rate
@@ -228,7 +228,7 @@ class _compute_climb(AircraftEquilibrium):
             # Calculate equilibrium and induced drag
             cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t,
                                                                              (0.5 * atm.density * v_tas ** 2), False)
-            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (abs(cl_htp_only) + abs(cl_elevator)) ** 2
+            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (cl_htp_only + cl_elevator) ** 2
 
             # Calculate climb rate and height increase
             climb_rate = thrust / (mass_t * g) - cd / (cl_wing + cl_htp_only + cl_elevator)
@@ -349,7 +349,7 @@ class _compute_cruise(AircraftEquilibrium):
             # Calculate equilibrium and induced drag
             cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t,
                                                                              (0.5 * atm.density * v_tas ** 2), False)
-            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (abs(cl_htp_only) + abs(cl_elevator)) ** 2
+            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (cl_htp_only + cl_elevator) ** 2
             drag = 0.5 * atm.density * wing_area * cd * v_tas ** 2
 
             # Evaluate sfc
@@ -495,7 +495,7 @@ class _compute_descent(AircraftEquilibrium):
             # Calculate equilibrium and induced drag
             cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t,
                                                                              (0.5 * atm.density * v_tas ** 2), False)
-            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (abs(cl_htp_only) + abs(cl_elevator)) ** 2
+            cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (cl_htp_only + cl_elevator) ** 2
             cl = ((mass_t * g) * math.cos(descent_rate) / (0.5 * atm.density * wing_area * v_tas**2))
             cl_cd = cl/cd
             drag = 0.5 * atm.density * wing_area * cd * v_tas**2

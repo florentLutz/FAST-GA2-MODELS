@@ -18,7 +18,7 @@
 		<TLAR>
 			<NPAX_design>2.0<!--top-level requirement: number of passengers for the design mission, assuming a classic eco/business class repartition--></NPAX_design>
 			<luggage_mass_design units="kg">40.<!--top-level requirement: luggage mass per passenger for the design mission--></luggage_mass_design>
-			<range units="NM">780.0</range>
+			<range units="NM">815.0</range>
 			<v_approach units="kn">78.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">164.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">192.0<!--top-level requirement: limit speed--></v_limit>
@@ -94,6 +94,11 @@
 				<sweep_25 units="deg">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
 				<taper_ratio>1.0<!--taper ratio of wing--></taper_ratio>
 				<thickness_ratio>0.12<!--mean thickness ratio of wing--></thickness_ratio>
+				<aileron>
+          			<chord_ratio is_input="True">0.26</chord_ratio>
+          			<max_deflection units="rad" is_input="True">40.0</max_deflection>
+          			<span_ratio is_input="True">0.32</span_ratio>
+        		</aileron>
 			</wing>
 		</geometry>
 		<handling_qualities>
@@ -106,6 +111,7 @@
 				<fuel_type>1.0<!--1=Avgas ICE engine / 2=Diesel ICE engine--></fuel_type>
 				<max_power units="W">130000.0<!--max power @ see level--></max_power>
 				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
+				<engine_rpm units="min**-1">2700.0</engine_rpm>
 			</IC_engine>
 		</propulsion>
 		<mission>

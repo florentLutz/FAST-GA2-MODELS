@@ -71,3 +71,5 @@ venv*/
 
 # Private DEP models
 models/aerodynamics/external/vlm/private/*
+models/load_analysis/private/*
+notebooks/tutorial/private/*

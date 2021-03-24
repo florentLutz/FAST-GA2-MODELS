@@ -113,8 +113,8 @@ def test_compute_climb():
     v_cas = problem.get_val("data:mission:sizing:main_route:climb:v_cas", units="kn")
     assert v_cas == pytest.approx(71.5, abs=1)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:climb:fuel", units="kg")
-    assert fuel_mass == pytest.approx(4.72, abs=1e-1)
+    assert fuel_mass == pytest.approx(5.107, abs=1e-1)
     distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="m") / 1000.0  # conversion to km
-    assert distance == pytest.approx(15.376, abs=1e-2)
+    assert distance == pytest.approx(16.660, abs=1e-2)
     duration = problem.get_val("data:mission:sizing:main_route:climb:duration", units="min")
-    assert duration == pytest.approx(5.220, abs=1e-2)
+    assert duration == pytest.approx(5.645, abs=1e-2)

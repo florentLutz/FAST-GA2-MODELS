@@ -14,6 +14,8 @@
 import openmdao.api as om
 
 from .aerostructural_loads import AerostructuralLoad
+from .structural_loads import StructuralLoads
+from .aerodynamic_loads import AerodynamicLoads
 from ..aerodynamics.external.openvsp.compute_vn import ComputeVNopenvspNoVH
 
 
@@ -23,8 +25,6 @@ class Loads(om.Group):
         self.options.declare("propulsion_id", default="", types=str)
 
     def setup(self):
-        # self.add_subsystem("aerostructural_loads", AerostructuralLoad(compute_cl_alpha=True), promotes=["*"])
-        self.add_subsystem("vn_diagram_no_vh", ComputeVNopenvspNoVH(
-            propulsion_id=self.options["propulsion_id"],
-            compute_cl_alpha=True),
-                           promotes=["*"])
+        self.add_subsystem("aerostructural_loads", AerostructuralLoad(compute_cl_alpha=True), promotes=["*"])
+        self.add_subsystem("structural_loads", StructuralLoads(compute_cl_alpha=True), promotes=["*"])
+        self.add_subsystem("aerodynamic_loads", AerodynamicLoads(compute_cl_alpha=True), promotes=["*"])

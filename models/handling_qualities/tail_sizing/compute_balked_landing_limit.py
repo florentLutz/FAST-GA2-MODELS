@@ -248,14 +248,14 @@ class ComputeBalkedLandingLimit(aircraft_equilibrium_limit):
         alpha_ac, delta_e, equilibrium_found = self.found_cl_repartition(inputs, 1.0, mass, dynamic_pressure, x_cg)
         cl_AOA_wing = cl_alpha_wing * alpha_ac
         cl_AOA_htp = cl_alpha_htp * alpha_ac
-        cl_delta_htp = cl_delta_htp * delta_e
+        cl_elevator = cl_delta_htp * delta_e
 
         cd_min = cd_0 + cd_flaps
 
-        cl = cl_AOA_wing + cl_AOA_htp + cl_delta_htp + cl_flaps
+        cl = cl_AOA_wing + cl_AOA_htp + cl_elevator + cl_flaps
         cd = cd_min + \
-            coeff_k_wing * (abs(cl_AOA_wing) + abs(cl_flaps)) ** 2.0 + \
-            coeff_k_htp * (abs(cl_AOA_htp) + abs(cl_delta_htp)) ** 2.0
+            coeff_k_wing * (cl_AOA_wing + cl_flaps) ** 2.0 + \
+            coeff_k_htp * (cl_AOA_htp + cl_elevator) ** 2.0
 
         flight_point = FlightPoint(
             mach=v_ref / sos, altitude=0.0, engine_setting=EngineSetting.TAKEOFF,

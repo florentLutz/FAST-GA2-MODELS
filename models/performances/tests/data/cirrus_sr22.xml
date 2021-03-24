@@ -195,10 +195,11 @@
 				<MTOW units="kg">1642.458<!--maximum takeoff weight--></MTOW>
 				<MLW units="kg">1641.458<!--maximum landing weight--></MLW>
 				<in_flight_variation>
-          			<C1 units="m*kg">3526.336220232555</C1>
-          			<C2 units="m">2.950074235755676</C2>
-          			<C3 units="kg">1367.737835694914</C3>
-        		</in_flight_variation>
+          			<fixed_mass_comp>
+            			<equivalent_moment units="kg*m" is_input="False">3310.763542761439</equivalent_moment>
+            			<mass units="kg" is_input="False">1361.330785629936</mass>
+          			</fixed_mass_comp>
+				</in_flight_variation>
 			</aircraft>
 			<airframe>
 				<landing_gear>
@@ -215,6 +216,11 @@
 						<z units="m" is_input="False">1.2569928419903225</z>
 					</CG>
 				</engine>
+				<tank>
+          			<CG>
+            			<x units="m" is_input="False">2.950074235755676</x>
+          			</CG>
+        		</tank>
 			</propulsion>
 		</weight>
 	</data>

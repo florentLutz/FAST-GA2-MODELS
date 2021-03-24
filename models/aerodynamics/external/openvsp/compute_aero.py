@@ -27,6 +27,7 @@ INPUT_AOA = 10.0  # only one value given since calculation is done by default ar
 
 class ComputeAEROopenvsp(Group):
     def initialize(self):
+        self.options.declare("propulsion_id", default="", types=str)
         self.options.declare("low_speed_aero", default=False, types=bool)
         self.options.declare("compute_mach_interpolation", default=False, types=bool)
         self.options.declare("result_folder_path", default="", types=str)
@@ -39,6 +40,7 @@ class ComputeAEROopenvsp(Group):
                            promotes=["*"])
         self.add_subsystem("aero_openvsp",
                            _ComputeAEROopenvsp(
+                               propulsion_id=self.options["propulsion_id"],
                                low_speed_aero=self.options["low_speed_aero"],
                                compute_mach_interpolation=self.options["compute_mach_interpolation"],
                                result_folder_path=self.options["result_folder_path"],

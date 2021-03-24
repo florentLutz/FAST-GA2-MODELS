@@ -59,6 +59,7 @@
 		<geometry>
 			<fuselage>
 				<maximum_width units="m">1.1978<!--maximum fuselage width--></maximum_width>
+				<maximum_height units="m" is_input="False">1.3378<!--maximum fuselage height--></maximum_height>
 				<length units="m">8.112081681384929<!--total fuselage length--></length>
 			</fuselage>
 			<horizontal_tail>
@@ -72,15 +73,23 @@
 			</horizontal_tail>
 			<landing_gear>
 				<height units="m">0.7746392389929502<!--height of landing gear--></height>
+				<type>1.0<!--0=non-retractable landing gears / 1=retractable landing gear--></type>
 			</landing_gear>
 			<propulsion>
 				<count>2.0</count>
         		<layout>1.0<!--position of engines (1=under the wing / 2=rear fuselage)--></layout>
         		<y_ratio>0.34</y_ratio>
+				<nacelle>
+					<width>0.9291288709126333</width>
+				</nacelle>
 			</propulsion>
 			<wing>
 				<area units="m**2">16.638<!--wing reference area--></area>
 				<span units="m">11.523362269754431<!--wing span--></span>
+				<thickness_ratio is_input="True">0.12<!--mean thickness ratio of wing--></thickness_ratio>
+				<sweep_25 units="rad" is_input="True">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
+        		<taper_ratio is_input="True">1.0<!--taper ratio of wing--></taper_ratio>
+        		<aspect_ratio is_input="True">7.981<!--taper ratio of wing--></aspect_ratio>
 				<MAC>
 					<length units="m">1.4438494261063064<!--length of mean aerodynamic chord of wing--></length>
 					<at25percent>
@@ -99,6 +108,11 @@
 				<tip>
 					<chord units="m">1.4438494261063064<!--chord length at wing tip--></chord>
 				</tip>
+				<aileron>
+          			<chord_ratio is_input="True">0.26</chord_ratio>
+          			<max_deflection units="rad" is_input="True">40.0</max_deflection>
+          			<span_ratio is_input="True">0.32</span_ratio>
+        		</aileron>
 			</wing>
 		</geometry>
 		<mission>
@@ -111,10 +125,6 @@
 				</main_route>
 			</sizing>
 		</mission>
-		<propulsion>
-			<IC_engine>
-			</IC_engine>
-		</propulsion>
 		<weight>
 			<aircraft_empty>
         		<CG>
