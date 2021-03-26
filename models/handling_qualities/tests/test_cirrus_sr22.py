@@ -94,13 +94,13 @@ def test_compute_static_margin():
 
     problem = run_system(ComputeStaticMargin(), input_vars)
     stick_fixed_static_margin = problem["data:handling_qualities:stick_fixed_static_margin"]
-    assert stick_fixed_static_margin == pytest.approx(0.07621, rel=1e-2)
+    assert stick_fixed_static_margin == pytest.approx(0.0479, rel=1e-2)
 
     free_elevator_factor = problem["data:aerodynamics:cruise:neutral_point:free_elevator_factor"]
-    assert free_elevator_factor == pytest.approx(0.7802, rel=1e-2)
+    assert free_elevator_factor == pytest.approx(0.7217, rel=1e-2)
 
     stick_free_static_margin = problem["data:handling_qualities:stick_free_static_margin"]
-    assert stick_free_static_margin == pytest.approx(0.01331, rel=1e-2)
+    assert stick_free_static_margin == pytest.approx(-0.0253, rel=1e-2)
 
 def test_compute_to_rotation_limit():
     """ Tests computation of static margin """

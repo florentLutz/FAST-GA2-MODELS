@@ -142,6 +142,7 @@
 			</horizontal_tail>
 			<landing_gear>
 				<height units="m">0.8421341304320644<!--height of landing gear--></height>
+				<type>0.0</type>
 			</landing_gear>
 			<propulsion>
 				<layout>3.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
@@ -150,6 +151,7 @@
 				<nacelle>
 					<height units="m">0.7546<!--nacelle height--></height>
 					<wet_area units="m**2">4.3197<!--wet area of nacelle--></wet_area>
+					<width units="m">1.1253790627855103</width>
 					<y units="m">0.0<!--Y-position of nacelle center--></y>
 				</nacelle>
 			</propulsion>

@@ -262,7 +262,7 @@ class ComputeFuselageGeometryCabinSizingFL(ExplicitComponent):
         cabin_length = l_instr + lpax + l_lug
         # Calculate nose length
         if prop_layout == 3.0:  # engine located in nose
-            _, _, propulsion_length, _ = propulsion_model.compute_dimensions()
+            _, _, propulsion_length, _, _, _ = propulsion_model.compute_dimensions()
             lav = propulsion_length
         else:
             lav = 1.7 * h_f

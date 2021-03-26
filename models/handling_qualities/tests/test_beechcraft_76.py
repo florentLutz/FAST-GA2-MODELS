@@ -137,8 +137,7 @@ def test_update_ht_area():
     # noinspection PyTypeChecker
     problem = run_system(UpdateHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     ht_area = problem.get_val("data:geometry:horizontal_tail:area", units="m**2")
-    # FIXME: error on obtained value!
-    assert ht_area == pytest.approx(3.780, abs=1e-2)  # old-version obtained value 3.9m²
+    assert ht_area == pytest.approx(3.843, abs=1e-2)  # old-version obtained value 3.9m²
 
 
 def test_compute_static_margin():

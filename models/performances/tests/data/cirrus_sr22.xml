@@ -16,13 +16,17 @@
 <FASTOAD_model>
 	<data>
 		<TLAR>
+			<NPAX_design>2.0</NPAX_design>
+			<range units="m">1648280.0<!--top-level requirement: design range--></range>
 			<v_approach units="kn">79.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">160.0<!--top-level requirement: cruise speed--></v_cruise>
+			<luggage_mass_design units="kg">20.0</luggage_mass_design>
 		</TLAR>
 		<aerodynamics>
 			<aircraft>
 				<cruise>
-					<CD0 is_input="False">0.02704605338362316<!--profile drag coefficient for whole aircraft w.r.t. data:aerodynamics:aircraft:cruise:CL--></CD0>
+					<CD0>0.02704605338362316<!--profile drag coefficient for whole aircraft w.r.t. data:aerodynamics:aircraft:cruise:CL--></CD0>
+					<optimal_CL>0.8435764973199226<!--lift coefficient at maximum lift/drag ratio in cruise conditions--></optimal_CL>
 				</cruise>
 				<low_speed>
 					<CD0 is_input="False">0.028748409702882855<!--profile drag coefficient for whole aircraft in low speed conditions (no high-lift) w.r.t. data:aerodynamics:aircraft:low_speed:CL--></CD0>
@@ -49,6 +53,7 @@
 				<takeoff>
 					<CL>0.26988<!--increment of CL due to flaps for takeoff phase--></CL>
 					<CM>-0.0459<!--increment of CM due to flaps for landing phase--></CM>
+					<CD is_input="False">0.0012229884728067709</CD>
 				</takeoff>
 			</flaps>
 			<horizontal_tail>
@@ -99,7 +104,25 @@
 			</wing>
 		</aerodynamics>
 		<geometry>
+			<cabin>
+        		<NPAX>3.0</NPAX>
+        		<length units="m" is_input="False">2.661891674668466<!--cabin length--></length>
+        		<luggage>
+          			<mass_max units="kg" is_input="True">60.0</mass_max>
+        		</luggage>
+        		<seats>
+          			<passenger>
+            			<NPAX_max>2.0</NPAX_max>
+            			<count_by_row is_input="True">3.0</count_by_row>
+            			<length units="m">0.8</length>
+          			</passenger>
+          			<pilot>
+            			<length units="m" is_input="True">0.75</length>
+          			</pilot>
+        		</seats>
+      		</cabin>
 			<fuselage>
+				<front_length units="m">1.2981691236759254<!--length of front non-cylindrical part of the fuselage--></front_length>
 				<length units="m">7.5355<!--total fuselage length--></length>
 				<maximum_width units="m">1.2720000<!--maximum fuselage width--></maximum_width>
 			</fuselage>
@@ -115,6 +138,9 @@
 				<elevator_chord_ratio is_input="True">0.3</elevator_chord_ratio>
 				<area>2.75</area>
 			</horizontal_tail>
+			<landing_gear>
+				<height units="m">0.8421341304320644<!--height of landing gear--></height>
+			</landing_gear>
 			<propulsion>
 				<layout>3.0<!--position of engines (1=under the wing / 2=rear fuselage / 3=nose)--></layout>
 				<count>1.0<!--number of engines--></count>
@@ -155,6 +181,16 @@
 		</geometry>
 		<mission>
 			<sizing>
+				<taxi_in>
+          			<duration units="s">300.0<!--duration of taxi-in phase in sizing mission--></duration>
+          			<speed units="m/s">15.433333333333334<!--speed during taxi-in phase in sizing mission--></speed>
+          			<thrust_rate>0.3<!--thrust rate (between 0.0 and 1.0) during taxi-in phase in sizing mission--></thrust_rate>
+        		</taxi_in>
+				<taxi_out>
+					<duration units="s">300.0<!--duration of taxi-out phase in sizing mission--></duration>
+          			<speed units="m/s">15.433333333333334<!--speed during taxi-out phase in sizing mission--></speed>
+          			<thrust_rate>0.3<!--thrust rate (between 0.0 and 1.0) during taxi-out phase in sizing mission--></thrust_rate>
+				</taxi_out>
 				<landing>
 					<elevator_angle units="deg">-25.0<!--elevator maximum angle during landing phase in sizing mission--></elevator_angle>
 				</landing>
@@ -165,9 +201,16 @@
 					<cruise>
 						<altitude units="ft">8000<!--altitude during cruise phase in sizing mission--></altitude>
 					</cruise>
+					<descent>
+						<descent_rate>0.03</descent_rate>
+					</descent>
+					<reserve>
+						<duration units="s" is_input="True">2700.0</duration>
+					</reserve>
 				</main_route>
 				<takeoff>
 					<elevator_angle units="deg">-25.0<!--elevator maximum angle during takeoff phase in sizing mission--></elevator_angle>
+					<friction_coefficient_no_brake>0.03<!--ground friction coefficient with no brake in sizing mission--></friction_coefficient_no_brake>
 					<thrust_rate>1.0<!--thrust rate (between 0.0 and 1.0) during takeoff phase in sizing mission--></thrust_rate>
 				</takeoff>
 			</sizing>
@@ -181,11 +224,14 @@
 		</propulsion>
 		<weight>
 			<aircraft_empty>
+				<mass units="kg">1021.2695007731536<!--mass of empty aircraft (=OWE - mass of crew)--></mass>
         		<CG>
-          			<z units="m" is_input="False">1.27308234263669</z>
+          			<z units="m">1.27308234263669</z>
+					<x units="m">2.2443441838658047<!--X-position center of gravity of empty aircraft--></x>
         		</CG>
       		</aircraft_empty>
 			<aircraft>
+				<payload units="kg">340.0<!--design payload weight--></payload>
 				<CG>
 					<aft>
 						<MAC_position is_input="False">0.36903229669916354<!--most aft X-position of center of gravity as ratio of mean aerodynamic chord--></MAC_position>
@@ -194,12 +240,6 @@
 				</CG>
 				<MTOW units="kg">1642.458<!--maximum takeoff weight--></MTOW>
 				<MLW units="kg">1641.458<!--maximum landing weight--></MLW>
-				<in_flight_variation>
-          			<fixed_mass_comp>
-            			<equivalent_moment units="kg*m" is_input="False">3310.763542761439</equivalent_moment>
-            			<mass units="kg" is_input="False">1361.330785629936</mass>
-          			</fixed_mass_comp>
-				</in_flight_variation>
 			</aircraft>
 			<airframe>
 				<landing_gear>
@@ -222,6 +262,13 @@
           			</CG>
         		</tank>
 			</propulsion>
+			<payload>
+				<rear_fret>
+          			<CG>
+            			<x units="m" is_input="False">3.754114961010158<!--rear fret: X-position of center of gravity--></x>
+          			</CG>
+        		</rear_fret>
+			</payload>
 		</weight>
 	</data>
 	<settings>

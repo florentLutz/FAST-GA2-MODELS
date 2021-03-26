@@ -35,7 +35,7 @@ for folder in PATH[1:len(PATH) - 3]:
 NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, "notebooks")
 XML_NAME = "beechcraft_76.xml"
 # XML_NAME = "socata_tb20.xml"
-# XML_NAME = "cirrus_sr22.xml"
+#XML_NAME = "cirrus_sr22.xml"
 
 
 @pytest.fixture(scope="module")

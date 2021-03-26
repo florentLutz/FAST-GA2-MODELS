@@ -110,7 +110,7 @@ class AircraftEquilibrium(om.ExplicitComponent):
         if CL[0] < cl_max_clean:
             return float(CL_wing), float(cl_htp_only), cl_elevator, False
         else:
-            return float(mass * g * load_factor / (dynamic_pressure * wing_area)), 0.0, True
+            return 1.05*float(mass * g * load_factor / (dynamic_pressure * wing_area)), 0.0, 0.0, True
 
     # TODO : IMPLEMENT IN THE ATMOSPHERE MODULE IN UTILS
     @staticmethod

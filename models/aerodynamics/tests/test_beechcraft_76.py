@@ -174,7 +174,7 @@ def clear_polar_results():
         os.remove(pth.join(resources.__path__[0], DEFAULT_HTP_AIRFOIL.replace('af', 'csv')))
 
 
-def _test_compute_reynolds():
+def test_compute_reynolds():
     """ Tests high and low speed reynolds calculation """
 
     # Research independent input value in .xml file
@@ -198,7 +198,7 @@ def _test_compute_reynolds():
     assert reynolds == pytest.approx(2746999, abs=1)
 
 
-def _test_cd0_high_speed():
+def test_cd0_high_speed():
     """ Tests drag coefficient @ high speed """
 
     # Research independent input value in .xml file
@@ -229,7 +229,7 @@ def _test_cd0_high_speed():
     assert cd0_total == pytest.approx(0.01958, abs=1e-5)
 
 
-def _test_cd0_low_speed():
+def test_cd0_low_speed():
     """ Tests drag coefficient @ low speed """
 
     # Research independent input value in .xml file
@@ -260,7 +260,7 @@ def _test_cd0_low_speed():
     assert cd0_total == pytest.approx(0.04513, abs=1e-5)
 
 
-def _test_polar():
+def test_polar():
     """ Tests polar execution (XFOIL) @ high and low speed """
 
     # Clear saved polar results (for wing and htp airfoils)
@@ -301,7 +301,7 @@ def _test_polar():
     assert cdp_1 == pytest.approx(0.0049, abs=1e-4)
 
 
-def _test_vlm_comp_high_speed():
+def test_vlm_comp_high_speed():
     """ Tests vlm components @ high speed """
 
     # Create result temporary directory
@@ -350,7 +350,7 @@ def _test_vlm_comp_high_speed():
     results_folder.cleanup()
 
 
-def _test_vlm_comp_low_speed():
+def test_vlm_comp_low_speed():
     """ Tests vlm components @ low speed """
 
     # Create result temporary directory
@@ -433,7 +433,7 @@ def _test_vlm_comp_low_speed():
     results_folder.cleanup()
 
 
-def _test_openvsp_comp_high_speed():
+def test_openvsp_comp_high_speed():
     """ Tests openvsp components @ high speed """
 
     # Create result temporary directory
@@ -486,7 +486,7 @@ def _test_openvsp_comp_high_speed():
     results_folder.cleanup()
 
 
-def _test_openvsp_comp_low_speed():
+def test_openvsp_comp_low_speed():
     """ Tests openvsp components @ low speed """
 
     # Create result temporary directory
@@ -574,7 +574,7 @@ def _test_openvsp_comp_low_speed():
     results_folder.cleanup()
 
 
-def _test_2d_hinge_moment():
+def test_2d_hinge_moment():
     """ Tests tail hinge-moments """
 
     # Research independent input value in .xml file
@@ -589,7 +589,7 @@ def _test_2d_hinge_moment():
     assert ch_delta_2d == pytest.approx(-0.6358, abs=1e-4)
 
 
-def _test_3d_hinge_moment():
+def test_3d_hinge_moment():
     """ Tests tail hinge-moments """
 
     # Research independent input value in .xml file
@@ -605,7 +605,7 @@ def _test_3d_hinge_moment():
     assert ch_delta == pytest.approx(-0.6765, abs=1e-4)
 
 
-def _test_high_lift():
+def test_high_lift():
     """ Tests high-lift contribution """
 
     # Research independent input value in .xml file
@@ -635,7 +635,7 @@ def _test_high_lift():
     assert cl_delta_elev == pytest.approx(0.6167, abs=1e-4)
 
 
-def _test_extreme_cl():
+def test_extreme_cl():
     """ Tests maximum/minimum cl component with default result cl=f(y) curve"""
 
     # Clear saved polar results (for wing and htp airfoils)
@@ -700,7 +700,7 @@ def _test_extreme_cl():
     assert alpha_min_clean_htp == pytest.approx(-25.34, abs=1e-2)
 
 
-def _test_l_d_max():
+def test_l_d_max():
     """ Tests best lift/drag component """
 
     # Define independent input value (openVSP)
@@ -722,7 +722,7 @@ def _test_l_d_max():
     assert optimal_alpha == pytest.approx(6.00, abs=1e-2)
 
 
-def _test_cnbeta():
+def test_cnbeta():
     """ Tests cn beta fuselage """
 
     # Research independent input value in .xml file
@@ -735,7 +735,7 @@ def _test_cnbeta():
     assert cn_beta_fus == pytest.approx(-0.0599, abs=1e-4)
 
 
-def _test_high_speed_connection():
+def test_high_speed_connection():
     """ Tests high speed components connection """
 
     # Clear saved polar results (for wing and htp airfoils)
@@ -756,7 +756,7 @@ def _test_high_speed_connection():
     run_system(AerodynamicsHighSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=True), input_vars)
 
 
-def _test_low_speed_connection():
+def test_low_speed_connection():
     """ Tests low speed components connection """
 
     # Clear saved polar results (for wing and htp airfoils)
@@ -777,7 +777,7 @@ def _test_low_speed_connection():
     run_system(AerodynamicsLowSpeed(propulsion_id=ENGINE_WRAPPER, use_openvsp=True), input_vars)
 
 
-def _test_v_n_diagram_vlm():
+def test_v_n_diagram_vlm():
 
     # load all inputs
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
@@ -854,7 +854,7 @@ def _test_v_n_diagram_vlm():
     assert np.max(np.abs(load_factor_vect - load_factor_array)) <= 1e-3
 
 
-def _test_v_n_diagram_openvsp():
+def test_v_n_diagram_openvsp():
 
     # load all inputs
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
