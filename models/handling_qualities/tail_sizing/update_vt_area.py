@@ -55,25 +55,7 @@ class UpdateVTArea(om.ExplicitComponent):
 
         self.add_output("data:geometry:vertical_tail:area", val=2.5, units="m**2")
 
-        self.declare_partials(
-            "*",
-            [
-                "data:geometry:wing:area",
-                "data:geometry:wing:span",
-                "data:geometry:wing:MAC:length",
-                "data:weight:aircraft:CG:aft:MAC_position",
-                "data:aerodynamics:fuselage:cruise:CnBeta",
-                "data:aerodynamics:vertical_tail:cruise:CL_alpha",
-                "data:TLAR:v_cruise",
-                "data:TLAR:v_approach",
-                "data:mission:sizing:main_route:cruise:altitude",
-                "data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25",
-                "data:geometry:propulsion:nacelle:wet_area",
-                "data:geometry:propulsion:nacelle:y",
-                "data:geometry:vertical_tail:area",
-            ],
-            method="fd",
-        )
+        self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         # Sizing constraints for the vertical tail.

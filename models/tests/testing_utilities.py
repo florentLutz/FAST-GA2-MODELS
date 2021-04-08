@@ -25,6 +25,7 @@ from fastoad.openmdao.types import SystemSubclass
 from fastoad.openmdao.utils import get_unconnected_input_names
 from fastoad.module_management import OpenMDAOSystemRegistry
 from fastoad.openmdao.variables import VariableList
+from fastoad.io.configuration.configuration import AutoUnitsDefaultGroup
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,6 +76,10 @@ def get_indep_var_comp(var_names: List[str], test_file: str, xml_file_name: str)
 def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
     """ Reads input variables from a component/problem and return as a list """
     register_wrappers()
+    if isinstance(component, om.Group):
+        new_component = AutoUnitsDefaultGroup()
+        new_component.add_subsystem("system", component, promotes=['*'])
+        component = new_component
     variables = VariableList.from_system(component)
     input_names = [var.name for var in variables if var.is_input]
 

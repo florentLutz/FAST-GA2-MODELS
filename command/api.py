@@ -17,6 +17,8 @@ API
 import logging
 import os.path as pth
 import os
+import types
+import copy
 from importlib_resources import path
 from typing import Union, List
 from openmdao.core.explicitcomponent import ExplicitComponent
@@ -24,13 +26,14 @@ from openmdao.core.implicitcomponent import ImplicitComponent
 from openmdao.core.group import Group
 from openmdao.utils.file_wrap import InputFileGenerator
 import openmdao.api as om
-from fastoad.module_management import OpenMDAOSystemRegistry
 
+from fastoad.module_management import OpenMDAOSystemRegistry
 from fastoad.openmdao.variables import VariableList
 from fastoad.cmd.exceptions import FastFileExistsError
 from fastoad.openmdao.problem import FASTOADProblem
 from fastoad.io.xml import VariableXmlStandardFormatter
 from fastoad.io import VariableIO
+from fastoad.io.configuration.configuration import AutoUnitsDefaultGroup
 
 from . import resources
 
@@ -73,30 +76,57 @@ def generate_configuration_file(configuration_file_path: str, overwrite: bool = 
     _LOGGER.info("Sample configuration written in %s", configuration_file_path)
 
 
+def overwrite_models_path(configuration_file_path: str, module: types.ModuleType):
+    """
+    Complete a .toml file with provided path.
+
+    :param configuration_file_path: the path of file to be written
+    :param module: the module containing models and associated register.py file
+    """
+    configuration_file = open(configuration_file_path)
+    content = configuration_file.readlines()
+    configuration_file.close()
+    new_content = copy.deepcopy(content)
+    # Search register.py in package path
+    models_path = ''
+    # noinspection PyShadowingBuiltins
+    for root, dir, files in os.walk(pth.split(pth.abspath(module.__file__))[0]):
+        if "register.py" in files:
+            models_path = root
+            break
+    for idx in range(len(content)):
+        if "module_folders = [" in content[idx]:
+            new_content[idx] = "module_folders = [\"" + models_path.replace('\\', '/') + "\"]\n"
+            break
+    configuration_file = open(configuration_file_path, "w")
+    for line in new_content:
+        configuration_file.write(line)
+    configuration_file.close()
+
+
 def generate_block_analysis(
         system: Union[ExplicitComponent, ImplicitComponent, Group],
         var_inputs: List,
         xml_file_path: str,
         overwrite: bool = False,
 ):
-    # List openmdao component/group inputs
-    all_inputs = list_inputs(system)
 
     # Search what are the component/group outputs
-    variables = VariableList.from_system(system)
+    variables = list_variables(system)
+    inputs_names = [var.name for var in variables if var.is_input]
     outputs_names = [var.name for var in variables if not var.is_input]
 
     # Check that variable inputs are in the group/component list
-    if not(set(var_inputs) == set(all_inputs).intersection(set(var_inputs))):
+    if not(set(var_inputs) == set(inputs_names).intersection(set(var_inputs))):
         raise Exception('The input list contains name(s) out of component/group input list!')
 
     # Perform some tests on the .xml availability and completeness
-    if not(os.path.exists(xml_file_path)) and not(set(var_inputs) == set(all_inputs)):
+    if not(os.path.exists(xml_file_path)) and not(set(var_inputs) == set(inputs_names)):
         # If no input file and some inputs are missing, generate it and return None
         if isinstance(system, Group):
             problem = FASTOADProblem(system)
         else:
-            group = Group()
+            group = AutoUnitsDefaultGroup()
             group.add_subsystem('system', system, promotes=["*"])
             problem = FASTOADProblem(group)
         problem.input_file_path = xml_file_path
@@ -109,10 +139,10 @@ def generate_block_analysis(
 
         reader = VariableIO(xml_file_path, VariableXmlStandardFormatter()).read(ignore=(var_inputs + outputs_names))
         xml_inputs = reader.names()
-        if not(set(xml_inputs + var_inputs).intersection(set(all_inputs)) == set(all_inputs)):
+        if not(set(xml_inputs + var_inputs).intersection(set(inputs_names)) == set(inputs_names)):
             # If some inputs are missing write an error message and add them to the problem if authorized
             missing_inputs = list(
-                set(all_inputs).difference(set(xml_inputs + var_inputs).intersection(set(all_inputs)))
+                set(inputs_names).difference(set(xml_inputs + var_inputs).intersection(set(inputs_names)))
             )
             message = 'The following inputs are missing in .xml file:'
             for item in missing_inputs:
@@ -121,7 +151,7 @@ def generate_block_analysis(
             if overwrite:
                 reader.path_separator = ":"
                 ivc = reader.to_ivc()
-                group = Group()
+                group = AutoUnitsDefaultGroup()
                 group.add_subsystem('system', system, promotes=["*"])
                 group.add_subsystem('ivc', ivc, promotes=["*"])
                 problem = FASTOADProblem(group)
@@ -151,7 +181,7 @@ def generate_block_analysis(
                 ivc_local = reader.to_ivc()
                 for name, value in inputs_dict.items():
                     ivc_local.add_output(name, value[0], units=value[1])
-                group_local = Group()
+                group_local = AutoUnitsDefaultGroup()
                 group_local.add_subsystem('system', system, promotes=["*"])
                 group_local.add_subsystem('ivc', ivc_local, promotes=["*"])
                 problem_local = FASTOADProblem(group_local)
@@ -170,13 +200,16 @@ def generate_block_analysis(
             return patched_function
 
 
-def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
-    """ Reads input variables from a component/problem and return as a list """
+def list_variables(component: Union[om.ExplicitComponent, om.Group]) -> list:
+    """ Reads all variables from a component/problem and return as a list """
     register_wrappers()
+    if isinstance(component, om.Group):
+        new_component = AutoUnitsDefaultGroup()
+        new_component.add_subsystem("system", component, promotes=['*'])
+        component = new_component
     variables = VariableList.from_system(component)
-    input_names = [var.name for var in variables if var.is_input]
 
-    return input_names
+    return variables
 
 
 def register_wrappers():

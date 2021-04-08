@@ -1,7 +1,7 @@
 title = "GEOMETRY run"
 
 # List of folder paths where user added custom registered OpenMDAO components
-module_folders = ["D:/a.reysset/Documents/Github/FAST-GA2-MODELS"]
+module_folders = []
 
 # Input and output files
 input_file = "./geometry_inputs.xml"
