@@ -879,13 +879,10 @@ def test_slipstream_openvsp():
     ivc.add_output("data:aerodynamics:wing:cruise:CL_alpha", val=4.5996, units="rad**-1")
     ivc.add_output("data:aerodynamics:wing:low_speed:CL_max_clean", val=1.4465)
     # Run problem and check obtained value(s) is/(are) correct
-    start = time.time()
     # noinspection PyTypeChecker
     problem = run_system(ComputeSlipstreamOpenvsp(propulsion_id=ENGINE_WRAPPER,
                                                   result_folder_path=results_folder.name,
                                                   ), ivc)
-    stop = time.time()
-    duration_1st_run = stop - start
     y_vector_prop_on = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:Y_vector", units="m")
     y_result_prop_on = np.array([0.045, 0.136, 0.227, 0.318, 0.408, 0.499, 0.59, 0.716, 0.88,
                                  1.045, 1.21, 1.376, 1.543, 1.71, 1.878, 2.046, 2.214, 2.383,
@@ -895,12 +892,13 @@ def test_slipstream_openvsp():
                                  0., 0., 0., 0., 0.])
     assert np.max(np.abs(y_vector_prop_on - y_result_prop_on)) <= 1e-2
     cl_vector_prop_on = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CL_vector")
-    cl_result_prop_on = np.array([1.29249, 1.66471, 1.66397, 1.65761, 1.64617, 1.62679, 1.60732,
-                                  1.55337, 1.56485, 1.58471, 1.60278, 1.61672, 1.61994, 1.63148,
-                                  1.64539, 1.65716, 1.66321, 1.67316, 1.67779, 1.68433, 1.68069,
-                                  1.68599, 1.68726, 1.69185, 1.68633, 1.68832, 1.68302, 1.68098,
-                                  1.66726, 1.66333, 1.64838, 1.63844, 1.61032, 1.58139, 1.52518,
-                                  1.45455, 1.34182, 1.16332, 0.9638, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    cl_result_prop_on = np.array([1.31711, 1.66448, 1.66312, 1.65649, 1.64486, 1.62543, 1.60582,
+                                  1.55255, 1.56415, 1.58413, 1.60231, 1.61633, 1.61958, 1.63117,
+                                  1.64507, 1.65687, 1.66295, 1.67293, 1.6776, 1.68416, 1.68055,
+                                  1.68587, 1.68715, 1.69174, 1.68623, 1.68822, 1.68292, 1.68089,
+                                  1.66717, 1.66325, 1.6483, 1.63836, 1.61026, 1.58134, 1.52513,
+                                  1.4545, 1.34177, 1.16329, 0.96377, 0., 0., 0.,
+                                  0., 0., 0., 0., 0., 0., 0., 0.])
     assert np.max(np.abs(cl_vector_prop_on - cl_result_prop_on)) <= 1e-2
     ct = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CT_ref")
     assert ct == pytest.approx(0.07245, abs=1e-4)

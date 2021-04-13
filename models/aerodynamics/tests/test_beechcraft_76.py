@@ -932,4 +932,4 @@ def test_slipstream_openvsp():
     assert ct == pytest.approx(0.0483, abs=1e-4)
     delta_cl = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CL") - \
                problem.get_val("data:aerodynamics:slipstream:wing:prop_off:CL")
-    assert delta_cl == pytest.approx(0.00545, abs=1e-4)
+    assert delta_cl == pytest.approx(0.00565, abs=1e-4)

@@ -91,10 +91,10 @@ def test_engine_weight():
 def test_engine_dim():
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb, prop_layout)
     _50kw_engine = BasicICEngine(50000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
-    np.testing.assert_allclose(_50kw_engine.compute_dimensions(), [0.45, 0.67, 0.89, 2.03, 1.50, 0.11], atol=1e-2)
+    np.testing.assert_allclose(_50kw_engine.compute_dimensions(), [0.45, 0.67, 0.89, 2.03, 1.50, 0.30], atol=1e-2)
     # BasicICEngine(max_power(W), design_altitude(m), design_speed(m/s), fuel_type, strokes_nb, prop_layout)
     _250kw_engine = BasicICEngine(250000.0, 2400.0, 81.0, 1.0, 4.0, 1.0)
-    np.testing.assert_allclose(_250kw_engine.compute_dimensions(), [0.77, 1.15, 1.53, 5.93, 2.06, 0.16], atol=1e-2)
+    np.testing.assert_allclose(_250kw_engine.compute_dimensions(), [0.77, 1.15, 1.53, 5.93, 2.06, 0.411], atol=1e-2)
 
 
 def test_sfc_at_max_thrust():
