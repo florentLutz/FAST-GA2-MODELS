@@ -56,7 +56,7 @@
 				<efficiency>0.9</efficiency>
 				<cruise>
 					<CL_alpha units="rad**-1">0.51193<!--derivative of lift coefficient with respect to angle of attack in cruise conditions--></CL_alpha>
-					<CL_alpha_isolated units="1/rad" is_input="False">4.6618138043024295</CL_alpha_isolated>
+					<CL_alpha_isolated units="rad**-1" is_input="False">0.95</CL_alpha_isolated>
 					<induced_drag_coefficient>0.7159413983093388</induced_drag_coefficient>
 					<hinge_moment>
             			<CH_alpha units="rad**-1" is_input="False">-0.2782352013011858</CH_alpha>
@@ -67,7 +67,7 @@
 				</cruise>
 				<low_speed>
 					<CL_alpha units="rad**-1">0.507755<!--derivative of lift coefficient with respect to angle of attack in low speed conditions--></CL_alpha>
-					<CL_alpha_isolated units="1/rad" is_input="False">4.5774744168591734</CL_alpha_isolated>
+					<CL_alpha_isolated units="1/rad" is_input="False">0.95</CL_alpha_isolated>
 					<CL0>0.0<!--value of lift coefficient at angle of attack 0 in clean configuration at low speed--></CL0>
 					<induced_drag_coefficient is_input="False">0.710962791572814</induced_drag_coefficient>
 					<clean>
@@ -207,7 +207,7 @@
 				<landing_gear>
 					<main>
 						<CG>
-							<x units="m">3.488<!--main landing gear (A51): X-position of center of gravity--></x>
+							<x units="m">3.00<!--main landing gear (A51): X-position of center of gravity--></x>
 						</CG>
 					</main>
 				</landing_gear>

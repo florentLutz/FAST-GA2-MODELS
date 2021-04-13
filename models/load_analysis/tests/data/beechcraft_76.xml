@@ -86,7 +86,7 @@
 			<wing>
 				<area units="m**2">16.638<!--wing reference area--></area>
 				<span units="m">11.523362269754431<!--wing span--></span>
-				<thickness_ratio is_input="True">0.12<!--mean thickness ratio of wing--></thickness_ratio>
+				<thickness_ratio is_input="True">0.15<!--mean thickness ratio of wing--></thickness_ratio>
 				<sweep_25 units="rad" is_input="True">0.0<!--sweep angle at 25% chord of wing--></sweep_25>
         		<taper_ratio is_input="True">1.0<!--taper ratio of wing--></taper_ratio>
         		<aspect_ratio is_input="True">7.981<!--taper ratio of wing--></aspect_ratio>

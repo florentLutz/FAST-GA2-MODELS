@@ -57,7 +57,7 @@ from ....propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ....propulsion.propulsion import IPropulsion
 
 XML_FILE = "cirrus_sr22.xml"
-ENGINE_WRAPPER = "test.wrapper.mass_breakdown.beechcraft.dummy_engine"
+ENGINE_WRAPPER = "test.wrapper.mass_breakdown.cirrus.dummy_engine"
 
 
 class DummyEngine(AbstractFuelPropulsion):
@@ -154,7 +154,7 @@ def test_compute_wing_weight():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingWeight(), ivc)
     weight_a1 = problem.get_val("data:weight:airframe:wing:mass", units="kg")
-    assert weight_a1 == pytest.approx(165.24, abs=1e-2)  # difference because of integer conversion error
+    assert weight_a1 == pytest.approx(166.011, abs=1e-2)  # difference because of integer conversion error
 
 
 def test_compute_fuselage_weight():
@@ -166,7 +166,7 @@ def test_compute_fuselage_weight():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuselageWeight(), ivc)
     weight_a2 = problem.get_val("data:weight:airframe:fuselage:mass", units="kg")
-    assert weight_a2 == pytest.approx(134.85, abs=1e-2)
+    assert weight_a2 == pytest.approx(136.615, abs=1e-2)
 
 
 def test_compute_fuselage_weight_raymer():
@@ -348,7 +348,7 @@ def test_evaluate_owe():
     mass_computation = run_system(ComputeOperatingWeightEmpty(propulsion_id=ENGINE_WRAPPER), input_vars)
 
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1028.97, abs=1)
+    assert oew == pytest.approx(1031.500, abs=1)
 
 
 def test_loop_compute_owe():
@@ -372,4 +372,4 @@ def test_loop_compute_owe():
         check=True,
     )
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1029.01, abs=1)
+    assert oew == pytest.approx(1031.539, abs=1)

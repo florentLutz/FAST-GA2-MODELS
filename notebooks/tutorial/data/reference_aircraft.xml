@@ -45,7 +45,7 @@
 					</passenger>
 				</seats>
 				<luggage>
-						<max_luggage_weight units="kg">90.<!--maximum luggage weight in the luggage compartiment--></max_luggage_weight>
+						<mass_max units="kg">90.<!--maximum luggage weight in the luggage compartiment--></mass_max>
 				</luggage>
 			</cabin>
 			<has_T_tail>1.0<!--0=horizontal tail is attached to fuselage / 1=horizontal tail is attached to top of vertical tail--></has_T_tail>

@@ -41,8 +41,7 @@ class ComputeWingWeight(om.ExplicitComponent):
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="lb")
         self.add_input("data:geometry:wing:aspect_ratio", val=np.nan)
         self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="rad")
-        self.add_input("data:TLAR:v_limit", val=np.nan, units="kn")
-        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
+        self.add_input("data:TLAR:v_max_sl", val=np.nan, units="kn")
         
         self.add_output("data:weight:airframe:wing:mass", units="lb")
 
@@ -57,19 +56,13 @@ class ComputeWingWeight(om.ExplicitComponent):
         mtow = inputs["data:weight:aircraft:MTOW"]
         aspect_ratio = inputs["data:geometry:wing:aspect_ratio"]
         sweep_25 = inputs["data:geometry:wing:sweep_25"]
-        limit_speed = inputs["data:TLAR:v_limit"]
-        cruise_alt = inputs["data:mission:sizing:main_route:cruise:altitude"]
-
-        rho_cruise = Atmosphere(cruise_alt).density
-        rho_sl = Atmosphere(0.0).density
-
-        limit_speed_keas = limit_speed * math.sqrt(rho_cruise / rho_sl)
+        v_max_sl = inputs["data:TLAR:v_max_sl"]
 
         a1 = 96.948*(
                 (mtow*sizing_factor_ultimate/10.0**5.0)**0.65
                 * (aspect_ratio/(math.cos(sweep_25)**2.0))**0.57
                 * (wing_area/100.0)**0.61 * ((1.0+taper_ratio) / (2.0*thickness_ratio))**0.36
-                * (1.+limit_speed_keas/500.0)**0.5
+                * (1.+v_max_sl/500.0)**0.5
         )**0.993  # mass formula in lb
             
         outputs["data:weight:airframe:wing:mass"] = a1

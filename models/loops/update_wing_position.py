@@ -21,7 +21,7 @@ import openmdao.api as om
 class UpdateWingPosition(om.ExplicitComponent):
 
     def setup(self):
-        self.add_input("data:handling_qualities:static_margin", val=np.nan)
+        self.add_input("data:handling_qualities:stick_fixed_static_margin", val=np.nan)
         self.add_input("data:handling_qualities:static_margin:target", val=np.nan)
         self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:CG:aft:MAC_position", val=np.nan)
@@ -32,7 +32,7 @@ class UpdateWingPosition(om.ExplicitComponent):
         self.declare_partials(of="*", wrt="*", method="fd")
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        static_margin = inputs["data:handling_qualities:static_margin"]
+        static_margin = inputs["data:handling_qualities:stick_fixed_static_margin"]
         target_static_margin = inputs["data:handling_qualities:static_margin:target"]
         l0_wing = inputs["data:geometry:wing:MAC:length"]
         cg_ratio = inputs["data:weight:aircraft:CG:aft:MAC_position"]

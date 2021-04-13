@@ -16,12 +16,13 @@ Computes the structural loads on the wing of the aircraft in the most stringent 
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+from scipy.integrate import trapz
 
-from .aerostructural_loads import AerostructuralLoad, SPAN_MESH_POINT_LOADS
+from .aerostructural_loads_x57 import AerostructuralLoadX57, SPAN_MESH_POINT_LOADS
 from ..aerodynamics.constants import SPAN_MESH_POINT
 
 
-class StructuralLoads(AerostructuralLoad):
+class StructuralLoadsX57(AerostructuralLoadX57):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -72,9 +73,6 @@ class StructuralLoads(AerostructuralLoad):
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
 
-        # STEP 1/XX - DEFINE OR CALCULATE INPUT DATA FOR LOAD COMPUTATION ##############################################
-        ################################################################################################################
-
         y_vector = inputs["data:aerodynamics:wing:low_speed:Y_vector"]
         chord_vector = inputs["data:aerodynamics:wing:low_speed:chord_vector"]
 
@@ -87,9 +85,6 @@ class StructuralLoads(AerostructuralLoad):
         wing_mass = inputs["data:weight:airframe:wing:mass"]
         fuel_mass = inputs["data:mission:sizing:fuel"]
 
-        # STEP 2/XX - DELETE THE ADDITIONAL ZEROS WE HAD TO PUT TO FIT OPENMDAO AND ADD A POINT AT THE ROOT (Y=0) AND AT
-        # THE VERY TIP (Y=SPAN/2) TO GET THE WHOLE SPAN OF THE WING IN THE INTERPOLATION WE WILL DO LATER ##############
-
         # Reformat the y_vector array as was done in the aerostructural component
         y_vector = self.delete_additional_zeros(y_vector)
         chord_vector = self.delete_additional_zeros(chord_vector)
@@ -98,13 +93,11 @@ class StructuralLoads(AerostructuralLoad):
         y_vector_orig, _ = self.insert_in_sorted_array(y_vector, semi_span)
         chord_vector_orig = np.append(chord_vector, tip_chord)
 
-        # STEP 3/XX - WE COMPUTE THE BASELINE WEiGHT DISTRIBUTION AND SCALE IT UP ACCORDING TO THE MOST CONSTRAINING
-        # CASE IDENTIFIED IN  THE AEROSTRUCTURAL ANALYSIS ##############################################################
-
-        y_vector, point_mass_array_orig = self.compute_relief_force(inputs, y_vector_orig, chord_vector_orig, 0., 0.)
-        _, wing_mass_array_orig = self.compute_relief_force(inputs, y_vector_orig, chord_vector_orig, wing_mass, 0.,
+        y_vector, point_mass_array_orig = self.compute_relief_force_x57(inputs, y_vector_orig, chord_vector_orig,
+                                                                        0., 0.)
+        _, wing_mass_array_orig = self.compute_relief_force_x57(inputs, y_vector_orig, chord_vector_orig, wing_mass, 0.,
                                                             False)
-        _, fuel_mass_array_orig = self.compute_relief_force(inputs, y_vector_orig, chord_vector_orig, 0., fuel_mass,
+        _, fuel_mass_array_orig = self.compute_relief_force_x57(inputs, y_vector_orig, chord_vector_orig, 0., fuel_mass,
                                                             False)
 
         point_mass_array = max(load_factor_shear, load_factor_rbm) * point_mass_array_orig
@@ -124,9 +117,6 @@ class StructuralLoads(AerostructuralLoad):
         wing_shear_array = self.compute_shear_diagram(y_vector, load_factor_shear * wing_mass_array_orig)
         fuel_shear_array = self.compute_shear_diagram(y_vector, load_factor_shear * fuel_mass_array_orig)
 
-        # STEP 4/XX - WE ADD ZEROS AT THE END OF THE RESULT LIFT DISTRIBUTION TO FIT THE FORMAT IMPOSED BY OPENMDAO ####
-        ################################################################################################################
-
         point_shear_array = np.concatenate([point_shear_array, additional_zeros])
         wing_shear_array = np.concatenate([wing_shear_array, additional_zeros])
         fuel_shear_array = np.concatenate([fuel_shear_array, additional_zeros])
@@ -141,9 +131,6 @@ class StructuralLoads(AerostructuralLoad):
                                                                       load_factor_rbm * wing_mass_array_orig)
         fuel_root_bending_array = self.compute_bending_moment_diagram(y_vector,
                                                                       load_factor_rbm * fuel_mass_array_orig)
-
-        # STEP 4/XX - WE ADD ZEROS AT THE END OF THE RESULT LIFT DISTRIBUTION TO FIT THE FORMAT IMPOSED BY OPENMDAO ####
-        ################################################################################################################
 
         point_root_bending_array = np.concatenate([point_root_bending_array, additional_zeros])
         wing_root_bending_array = np.concatenate([wing_root_bending_array, additional_zeros])

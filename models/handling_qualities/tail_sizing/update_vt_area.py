@@ -55,7 +55,11 @@ class UpdateVTArea(om.ExplicitComponent):
 
         self.add_output("data:geometry:vertical_tail:area", val=2.5, units="m**2")
 
-        self.declare_partials("*", "*", method="fd")
+        self.declare_partials(
+            "*",
+            "*",
+            method="fd",
+        )
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
         # Sizing constraints for the vertical tail.

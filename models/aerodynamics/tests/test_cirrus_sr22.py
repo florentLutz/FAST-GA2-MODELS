@@ -58,7 +58,7 @@ RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
 xfoil_path = None if system() == "Windows" else get_xfoil_path()
 
 XML_FILE = "cirrus_sr22.xml"
-ENGINE_WRAPPER = "test.wrapper.aerodynamics.beechcraft.dummy_engine"
+ENGINE_WRAPPER = "test.wrapper.aerodynamics.cirrus.dummy_engine"
 
 
 class DummyEngine(AbstractFuelPropulsion):
@@ -895,12 +895,12 @@ def test_slipstream_openvsp():
                                  0., 0., 0., 0., 0.])
     assert np.max(np.abs(y_vector_prop_on - y_result_prop_on)) <= 1e-2
     cl_vector_prop_on = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CL_vector")
-    cl_result_prop_on = np.array([1.317, 1.664, 1.663, 1.656, 1.645, 1.625, 1.606, 1.553, 1.564,
-                                  1.584, 1.602, 1.616, 1.62, 1.631, 1.645, 1.657, 1.663, 1.673,
-                                  1.678, 1.684, 1.681, 1.686, 1.687, 1.692, 1.686, 1.688, 1.683,
-                                  1.681, 1.667, 1.663, 1.648, 1.638, 1.61, 1.581, 1.525, 1.454,
-                                  1.342, 1.163, 0.964, 0., 0., 0., 0., 0., 0.,
-                                  0., 0., 0., 0., 0.])
+    cl_result_prop_on = np.array([1.29249, 1.66471, 1.66397, 1.65761, 1.64617, 1.62679, 1.60732,
+                                  1.55337, 1.56485, 1.58471, 1.60278, 1.61672, 1.61994, 1.63148,
+                                  1.64539, 1.65716, 1.66321, 1.67316, 1.67779, 1.68433, 1.68069,
+                                  1.68599, 1.68726, 1.69185, 1.68633, 1.68832, 1.68302, 1.68098,
+                                  1.66726, 1.66333, 1.64838, 1.63844, 1.61032, 1.58139, 1.52518,
+                                  1.45455, 1.34182, 1.16332, 0.9638, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
     assert np.max(np.abs(cl_vector_prop_on - cl_result_prop_on)) <= 1e-2
     ct = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CT_ref")
     assert ct == pytest.approx(0.07245, abs=1e-4)

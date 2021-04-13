@@ -38,7 +38,7 @@ class ComputeFuselageWeight(om.ExplicitComponent):
         self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
         self.add_input("data:geometry:fuselage:length", val=np.nan, units="m")
-        self.add_input("data:TLAR:v_limit", val=np.nan, units="kn")
+        self.add_input("data:TLAR:v_max_sl", val=np.nan, units="kn")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="ft")
 
         self.add_output("data:weight:airframe:fuselage:mass", units="lb")
@@ -51,19 +51,13 @@ class ComputeFuselageWeight(om.ExplicitComponent):
         maximum_width = inputs["data:geometry:fuselage:maximum_width"]
         maximum_height = inputs["data:geometry:fuselage:maximum_height"]
         fus_length = inputs["data:geometry:fuselage:length"]
-        limit_speed = inputs["data:TLAR:v_limit"]
-        cruise_alt = inputs["data:mission:sizing:main_route:cruise:altitude"]
-
-        rho_cruise = Atmosphere(cruise_alt).density
-        rho_sl = Atmosphere(0.0).density
-
-        limit_speed_keas = limit_speed * math.sqrt(rho_cruise / rho_sl)
+        v_max_sl = inputs["data:TLAR:v_max_sl"]
 
         a2 = 200.0 * (
                 (mtow * sizing_factor_ultimate / (10.0 ** 5.0)) ** 0.286
                 * (fus_length * 3.28084 / 10.0) ** 0.857
                 * (maximum_width + maximum_height) * 3.28084 / 10.0
-                * (limit_speed_keas / 100.0) ** 0.338
+                * (v_max_sl / 100.0) ** 0.338
         ) ** 1.1  # mass formula in lb
 
         outputs["data:weight:airframe:fuselage:mass"] = a2

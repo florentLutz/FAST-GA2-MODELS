@@ -33,9 +33,8 @@ NOTEBOOKS_PATH = PATH[0] + os.path.sep
 for folder in PATH[1:len(PATH) - 3]:
     NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, folder)
 NOTEBOOKS_PATH = pth.join(NOTEBOOKS_PATH, "notebooks")
-# XML_NAME = "beechcraft_76.xml"
-# XML_NAME = "socata_tb20.xml"
-XML_NAME = "cirrus_sr22.xml"
+# XML_NAME = "beechcraft_76_wing_pos.xml"
+XML_NAME = "cirrus_sr22_wing_pos.xml"
 
 
 @pytest.fixture(scope="module")
@@ -48,8 +47,7 @@ def test_oad_process(cleanup):
     """
     Test the overall aircraft design process without and with optimization.
     """
-    test = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_5.toml"))
-    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_5.toml")).get_problem()
+    problem = FASTOADProblemConfigurator(pth.join(INPUT_FOLDER_PATH, "oad_process_sr22.toml")).get_problem()
     recorder = om.SqliteRecorder("cases.sql")
 
     ref_inputs = pth.join(INPUT_FOLDER_PATH, XML_NAME)
@@ -91,27 +89,19 @@ def test_oad_process(cleanup):
         rtol=5e-2,
     )
 
-    if XML_NAME == "cirrus_sr22.xml":
-        assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 272.245, atol=1)
+    if XML_NAME == "cirrus_sr22_wing_pos.xml":
+        assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 248.291, atol=1)
         # noinspection PyTypeChecker
-        assert_allclose(problem["data:handling_qualities:stick_fixed_static_margin"], 0.213, atol=1e-2)
+        assert_allclose(problem["data:handling_qualities:stick_fixed_static_margin"], 0.1000, atol=1e-2)
         # noinspection PyTypeChecker
-        assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1642.64, atol=1)
+        assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1662.0100709, atol=1)
         # noinspection PyTypeChecker
-        assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1030.67, atol=1)
-    elif XML_NAME == "socata_tb20.xml":
-        assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 175.81, atol=1)
-        # noinspection PyTypeChecker
-        assert_allclose(problem["data:handling_qualities:stick_fixed_static_margin"], -0.0089, atol=1e-2)
-        # noinspection PyTypeChecker
-        assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1409.532, atol=1)
-        # noinspection PyTypeChecker
-        assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 913.0528, atol=1)
+        assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1058.720, atol=1)
     else:
-        assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 197.44, atol=1)
+        assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 253.987, atol=1)
         # noinspection PyTypeChecker
-        assert_allclose(problem["data:handling_qualities:stick_fixed_static_margin"], 0.026, atol=1e-2)
+        assert_allclose(problem["data:handling_qualities:stick_fixed_static_margin"], 0.1500, atol=1e-2)
         # noinspection PyTypeChecker
-        assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1639.008, atol=1)
+        assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1772.1745034, atol=1)
         # noinspection PyTypeChecker
-        assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1081.57, atol=1)
+        assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1128.189, atol=1)

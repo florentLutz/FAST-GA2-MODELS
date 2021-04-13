@@ -116,17 +116,17 @@ def test_compute_shear_stress():
     register_wrappers()
     problem = run_system(AerostructuralLoad(), ivc)
     shear_max_mass_condition = problem.get_val("data:loads:max_shear:mass", units="kg")
-    assert shear_max_mass_condition == pytest.approx(1639.00, abs=1e-1)
+    assert shear_max_mass_condition == pytest.approx(1531.57, abs=1e-1)
     shear_max_lf_condition = problem.get_val("data:loads:max_shear:load_factor")
-    assert shear_max_lf_condition == pytest.approx(4.047, abs=1e-2)
+    assert shear_max_lf_condition == pytest.approx(4.176, abs=1e-2)
     shear_max_cg_position = problem.get_val("data:loads:max_shear:cg_position", units="m")
     assert shear_max_cg_position == pytest.approx(2.759, abs=1e-2)
     lift_shear_diagram = problem.get_val("data:loads:max_shear:lift_shear", units="N")
     lift_root_shear = lift_shear_diagram[0]
-    assert lift_root_shear == pytest.approx(49139.9, abs=1)
+    assert lift_root_shear == pytest.approx(47402.0139, abs=1)
     weight_shear_diagram = problem.get_val("data:loads:max_shear:weight_shear", units="N")
     weight_root_shear = weight_shear_diagram[0]
-    assert weight_root_shear == pytest.approx(-23378.89, abs=1)
+    assert weight_root_shear == pytest.approx(-18058.912, abs=1)
 
 
 def test_compute_root_bending_moment():
@@ -148,53 +148,17 @@ def test_compute_root_bending_moment():
     register_wrappers()
     problem = run_system(AerostructuralLoad(), ivc)
     max_rbm_mass_condition = problem.get_val("data:loads:max_rbm:mass", units="kg")
-    assert max_rbm_mass_condition == pytest.approx(1639.00, abs=1e-1)
+    assert max_rbm_mass_condition == pytest.approx(1531.573, abs=1e-1)
     max_rbm_lf_condition = problem.get_val("data:loads:max_rbm:load_factor")
-    assert max_rbm_lf_condition == pytest.approx(4.047, abs=1e-2)
+    assert max_rbm_lf_condition == pytest.approx(4.176, abs=1e-2)
     max_rbm_cg_position = problem.get_val("data:loads:max_rbm:cg_position", units="m")
     assert max_rbm_cg_position == pytest.approx(2.759, abs=1e-2)
     lift_rbm_diagram = problem.get_val("data:loads:max_rbm:lift_rbm", units="N*m")
     lift_rbm = lift_rbm_diagram[0]
-    assert lift_rbm == pytest.approx(130480.12, abs=1)
+    assert lift_rbm == pytest.approx(125835.260, abs=1)
     weight_rbm_diagram = problem.get_val("data:loads:max_rbm:weight_rbm", units="N*m")
     weight_rbm = weight_rbm_diagram[0]
-    assert weight_rbm == pytest.approx(-57044.03, abs=1)
-
-
-def test_compute_aerostructural_load_alternate():
-    # Research independent input value in .xml file
-    ivc = get_indep_var_comp(list_inputs(AerostructuralLoadsAlternate()), __file__, XML_FILE)
-    cl_vector_only_prop = [0.0161, 0.0017, 0.0021, 0.0026, 0.0034, 0.0042, 0.0052, 0.0063, 0.0082, 0.0117, 0.0426,
-                           0.0739, 0.1035, 0.1072, 0.0931, 0.0327, 0.0136, 0.001, -0.0069, -0.0062, -0.0259, -0.0192,
-                           -0.0147, -0.0117, -0.0097, -0.0082, -0.0071, -0.0065, -0.006, -0.0055, -0.0048, -0.0042,
-                           -0.0033, -0.0027, -0.0021, -0.0017, -0.001, -0.0006, 0.0004, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                           0.0, 0.0, 0.0, 0.0, 0.0]
-    y_vector = [0.04278, 0.12834, 0.21389, 0.29945, 0.38501, 0.47056, 0.55612, 0.67982, 0.84215, 1.00539, 1.16945,
-                1.33423, 1.49963, 1.66555, 1.8319, 1.99856, 2.16543, 2.33242, 2.49942, 2.66632, 2.83301, 2.99941,
-                3.16539, 3.33087, 3.49574, 3.6599, 3.82325, 3.98571, 4.14717, 4.30755, 4.46676, 4.6247, 4.78131,
-                4.9365, 5.0902, 5.24233, 5.39282, 5.5416, 5.68862, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0]
-    ivc.add_output("data:aerodynamics:slipstream:wing:only_prop:CL_vector", cl_vector_only_prop)
-    ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:Y_vector", y_vector, units="m")
-    ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:velocity", 84.368, units="m/s")
-    register_wrappers()
-    problem = run_system(AerostructuralLoadsAlternate(), ivc)
-    web_mass = problem.get_val("data:weight:airframe:wing:primary_structure:web_mass", units="kg")
-    assert web_mass == pytest.approx(0.856, abs=1e-3)
-    upper_flange_mass = problem.get_val("data:weight:airframe:wing:primary_structure:upper_flange_mass", units="kg")
-    assert upper_flange_mass == pytest.approx(5.806, abs=1e-3)
-    lower_flange_mass = problem.get_val("data:weight:airframe:wing:primary_structure:lower_flange_mass", units="kg")
-    assert lower_flange_mass == pytest.approx(7.758, abs=1e-3)
-    skin_mass = problem.get_val("data:weight:airframe:wing:primary_structure:skin_mass", units="kg")
-    assert skin_mass == pytest.approx(75.718, abs=1e-3)
-    ribs_mass = problem.get_val("data:weight:airframe:wing:primary_structure:ribs_mass", units="kg")
-    assert ribs_mass == pytest.approx(17.675, abs=1e-3)
-    misc_mass = problem.get_val("data:weight:airframe:wing:primary_structure:misc_mass", units="kg")
-    assert misc_mass == pytest.approx(36.683, abs=1e-3)
-    secondary_structure_mass = problem.get_val("data:weight:airframe:wing:secondary_structure:mass", units="kg")
-    assert secondary_structure_mass == pytest.approx(48.048, abs=1e-3)
-    wing_mass = problem.get_val("data:weight:airframe:wing:analytical_mass", units="kg")
-    assert wing_mass == pytest.approx(192.547, abs=1e-3)
+    assert weight_rbm == pytest.approx(-38584.785, abs=1)
 
 
 def test_compute_mass_distribution():

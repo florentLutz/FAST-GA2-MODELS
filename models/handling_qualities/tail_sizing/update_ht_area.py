@@ -317,7 +317,6 @@ class _ComputeAeroCoeff(om.ExplicitComponent):
         cl_max_landing = inputs["data:aerodynamics:aircraft:landing:CL_max"]
         cl_delta_elev = inputs["data:aerodynamics:elevator:low_speed:CL_delta"]
 
-
         # Conditions for calculation
         atm = Atmosphere(0.0)
         rho = atm.density

@@ -930,8 +930,6 @@ def test_slipstream_openvsp():
     assert np.max(np.abs(cl_vector_prop_on - cl_result_prop_on)) <= 1e-2
     ct = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CT_ref")
     assert ct == pytest.approx(0.0483, abs=1e-4)
-    cl_vector_prop_off = problem.get_val("data:aerodynamics:slipstream:wing:prop_off:CL_vector")
-    y_vector_prop_off = problem.get_val("data:aerodynamics:slipstream:wing:prop_off:Y_vector")
     delta_cl = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CL") - \
                problem.get_val("data:aerodynamics:slipstream:wing:prop_off:CL")
-    assert delta_cl == pytest.approx(0.00565, abs=1e-4)
+    assert delta_cl == pytest.approx(0.00545, abs=1e-4)

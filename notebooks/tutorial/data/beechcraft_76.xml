@@ -22,6 +22,7 @@
 			<v_approach units="kn">78.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">164.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">192.0<!--top-level requirement: limit speed--></v_limit>
+			<v_max_sl units="kn">171.0<!--top-level requirement: max level velocity--></v_max_sl>
 		</TLAR>
 		<geometry>
 			<flap>
@@ -108,6 +109,11 @@
 				<strokes_nb>4.0<!--X-strokes engine (2.0 or 4.0)--></strokes_nb>
 			</IC_engine>
 		</propulsion>
+		<aerodynamics>
+			<horizontal_tail>
+				<efficiency>0.9</efficiency>
+			</horizontal_tail>
+		</aerodynamics>
 		<mission>
 		  	<sizing>
 				<cs23>

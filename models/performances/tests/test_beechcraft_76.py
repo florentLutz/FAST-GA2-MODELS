@@ -265,7 +265,7 @@ def test_compute_climb():
     fuel_mass = problem.get_val("data:mission:sizing:main_route:climb:fuel", units="kg")
     assert fuel_mass == pytest.approx(4.707, abs=1e-2)
     distance = problem.get_val("data:mission:sizing:main_route:climb:distance", units="m") / 1000.0  # conversion to km
-    assert distance == pytest.approx(14.708, abs=1e-2)
+    assert distance == pytest.approx(14.697, abs=1e-2)
     duration = problem.get_val("data:mission:sizing:main_route:climb:duration", units="min")
     assert duration == pytest.approx(5.711, abs=1e-2)
 
@@ -289,7 +289,7 @@ def test_compute_cruise():
     register_wrappers()
     problem = run_system(group, ivc)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg")
-    assert fuel_mass == pytest.approx(138.199, abs=1e-1)
+    assert fuel_mass == pytest.approx(138.066, abs=1e-1)
     duration = problem.get_val("data:mission:sizing:main_route:cruise:duration", units="h")
     assert duration == pytest.approx(4.71, abs=1e-2)
 

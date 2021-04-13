@@ -431,15 +431,14 @@ class BasicICEngine(AbstractFuelPropulsion):
         t_0 = 7.4 * ((self.max_power / 735.5) * d) ** (2 / 3)
         area = 13307 * t_0 / (d ** 2 * w_propeller ** 2)
         chord = area / d
+        # For clarity purposes, it has been assimilated as the spinner length
+        propeller_depth = max(chord * 1.1, 0.2 * d)
         self.propeller = Propeller(
             area=area,
-            depth=chord * 1.1,
+            depth=propeller_depth,
             diameter=d,
             thrust_SL=t_0,
         )
-        propeller_depth = max(chord*1.1, 0.2*d)
-        # For clarity purposes, it has been assimilated as the spinner length
-
         return self.nacelle["height"], self.nacelle["width"], self.nacelle["length"], self.nacelle[
             "wet_area"], self.propeller["diameter"], self.propeller["depth"]
 

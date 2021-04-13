@@ -21,21 +21,23 @@ driver = "om.ScipyOptimizeDriver(tol=1e-2, optimizer='COBYLA')"
             [model.cycle.subcycle.aerodynamics_highspeed]
                 id = "fastga.aerodynamics.highspeed.legacy"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
+                wing_airfoil_file = "roncz.af"
                 result_folder_path = "D:/tmp"
                 use_openvsp = true
             [model.cycle.subcycle.aerodynamics_lowspeed]
                 id = "fastga.aerodynamics.lowspeed.legacy"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
+                wing_airfoil_file = "roncz.af"
                 result_folder_path = "D:/tmp"
                 use_openvsp = true
             [model.cycle.subcycle.weight]
                 id = "fastga.weight.legacy"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
+            [model.cycle.subcycle.mtow]
+                id = "fastga.loop.mtow"
             [model.cycle.subcycle.performance]
                 id = "fastga.performances.sizing"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"
-            [model.cycle.subcycle.mtow]
-                id = "fastga.loop.mtow"
             [model.cycle.subcycle.tail_areas]
                 id = "fastga.handling_qualities.tail_sizing"
                 propulsion_id = "fastga.wrapper.propulsion.basicIC_engine"

@@ -19,6 +19,7 @@
 			<NPAX_design>2.0<!--number of passengers (2 pilots not included)--></NPAX_design>
 			<v_cruise units="kn">160.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn" is_input="True">202.6</v_limit>
+			<v_max_sl units="kn" is_input="True">186.0</v_max_sl>
 			<luggage_mass_design>20.0</luggage_mass_design>
 		</TLAR>
 		<aerodynamics>

@@ -64,7 +64,7 @@ from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ...propulsion.propulsion import IPropulsion
 
 XML_FILE = "cirrus_sr22.xml"
-ENGINE_WRAPPER = "test.wrapper.geometry.beechcraft.dummy_engine"
+ENGINE_WRAPPER = "test.wrapper.geometry.cirrus.dummy_engine"
 
 
 class DummyEngine(AbstractFuelPropulsion):

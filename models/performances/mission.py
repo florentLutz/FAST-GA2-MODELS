@@ -29,9 +29,9 @@ from ..propulsion.fuel_propulsion.base import FuelEngineSet
 from .takeoff import SAFETY_HEIGHT
 from ..aerodynamics import AircraftEquilibrium
 
-POINTS_NB_CLIMB = 200
-POINTS_NB_CRUISE = 1000
-POINTS_NB_DESCENT = 200
+POINTS_NB_CLIMB = 100
+POINTS_NB_CRUISE = 500
+POINTS_NB_DESCENT = 100
 MAX_CALCULATION_TIME = 5  # time in seconds
 
 

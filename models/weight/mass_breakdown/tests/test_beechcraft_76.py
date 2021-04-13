@@ -154,7 +154,7 @@ def test_compute_wing_weight():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeWingWeight(), ivc)
     weight_a1 = problem.get_val("data:weight:airframe:wing:mass", units="kg")
-    assert weight_a1 == pytest.approx(215.47, abs=1e-2)  # difference because of integer conversion error
+    assert weight_a1 == pytest.approx(217.459, abs=1e-2)  # difference because of integer conversion error
 
 
 def test_compute_fuselage_weight():
@@ -166,7 +166,7 @@ def test_compute_fuselage_weight():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeFuselageWeight(), ivc)
     weight_a2 = problem.get_val("data:weight:airframe:fuselage:mass", units="kg")
-    assert weight_a2 == pytest.approx(154.15, abs=1e-2)
+    assert weight_a2 == pytest.approx(158.493, abs=1e-2)
 
 
 def test_compute_fuselage_weight_raymer():
@@ -312,7 +312,7 @@ def test_compute_life_support_systems_weight():
     weight_c21 = problem.get_val("data:weight:systems:life_support:insulation:mass", units="kg")
     assert weight_c21 == pytest.approx(00., abs=1e-2)
     weight_c22 = problem.get_val("data:weight:systems:life_support:air_conditioning:mass", units="kg")
-    assert weight_c22 == pytest.approx(44.43, abs=1e-2)
+    assert weight_c22 == pytest.approx(44.717, abs=1e-2)
     weight_c23 = problem.get_val("data:weight:systems:life_support:de_icing:mass", units="kg")
     assert weight_c23 == pytest.approx(0., abs=1e-2)
     weight_c24 = problem.get_val("data:weight:systems:life_support:internal_lighting:mass", units="kg")
@@ -348,7 +348,7 @@ def test_evaluate_owe():
     mass_computation = run_system(ComputeOperatingWeightEmpty(propulsion_id=ENGINE_WRAPPER), input_vars)
 
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1185, abs=1)
+    assert oew == pytest.approx(1192.611, abs=1)
 
 
 def test_loop_compute_owe():
@@ -372,4 +372,4 @@ def test_loop_compute_owe():
         check=True,
     )
     oew = mass_computation.get_val("data:weight:aircraft:OWE", units="kg")
-    assert oew == pytest.approx(1193, abs=1)
+    assert oew == pytest.approx(1199.571, abs=1)

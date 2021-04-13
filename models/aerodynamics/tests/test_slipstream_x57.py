@@ -191,17 +191,17 @@ def test_slipstream_openvsp():
                                  2.69, 2.83, 2.96, 3.09, 3.23, 3.36, 3.49, 3.62, 3.75, 3.88, 4.,
                                  4.13, 4.26, 4.38, 4.5, 4.62, 4.74, 0., 0., 0., 0., 0.,
                                  0., 0., 0., 0., 0., 0.])
-    # assert np.max(np.abs(y_vector_prop_on - y_result_prop_on)) <= 1e-2
+    assert np.max(np.abs(y_vector_prop_on - y_result_prop_on)) <= 1e-2
     cl_vector_prop_on = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CL_vector")
-    cl_result_prop_on = np.array([1.71, 1.69, 1.7, 1.7, 1.71, 1.71, 1.73, 1.87, 1.89, 1.67, 1.64,
-                                  1.71, 1.83, 1.65, 1.63, 1.65, 1.89, 1.83, 1.69, 1.7, 1.85, 1.87,
-                                  1.66, 1.64, 1.72, 1.8, 1.59, 1.54, 1.56, 1.67, 1.75, 1.55, 1.5,
-                                  1.61, 1.62, 1.57, 1.45, 1.24, 0.87, 0., 0., 0., 0., 0.,
+    cl_result_prop_on = np.array([1.67, 1.65, 1.64, 1.63, 1.63, 1.6, 1.57, 1.56, 1.63, 1.78, 1.84,
+                                  1.68, 1.68, 1.82, 1.88, 1.68, 1.6, 1.61, 1.8, 1.68, 1.58, 1.62,
+                                  1.82, 1.75, 1.63, 1.62, 1.81, 1.8, 1.59, 1.55, 1.51, 1.67, 1.61,
+                                  1.35, 1.24, 1.14, 1.03, 0.87, 0.64, 0., 0., 0., 0., 0.,
                                   0., 0., 0., 0., 0., 0.])
-    # assert np.max(np.abs(cl_vector_prop_on - cl_result_prop_on)) <= 1e-2
+    assert np.max(np.abs(cl_vector_prop_on - cl_result_prop_on)) <= 1e-2
     ct = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CT_ref")
     ct_result = [0.185, 0.185, 0.185, 0.185, 0.185, 0.185, 0.096]
-    # assert np.max(np.abs(ct - ct_result)) <= 1e-2
+    assert np.max(np.abs(ct - ct_result)) <= 1e-2
     delta_cl = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:CL") - \
                problem.get_val("data:aerodynamics:slipstream:wing:prop_off:CL")
-    assert delta_cl == pytest.approx(0.03952, abs=1e-4)
+    assert delta_cl == pytest.approx(0.00505, abs=1e-4)

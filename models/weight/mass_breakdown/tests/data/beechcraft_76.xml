@@ -19,7 +19,8 @@
 			<NPAX_design>2.0<!--top-level requirement: number of passengers in cabin for design mission--></NPAX_design>
 			<luggage_mass_design units="kg">30.0<!--luggage mass to carry during design mission--></luggage_mass_design>
 			<v_cruise units="kn">158.0<!--top-level requirement: cruise speed--></v_cruise>
-			<v_limit units="kn">179.0<!--top-level requirement: limit speed--></v_limit>
+			<v_limit units="kn">194.0<!--top-level requirement: limit speed--></v_limit>
+			<v_max_sl units="kn">171.0<!--top-level requirement: max level velocity--></v_max_sl>
 		</TLAR>
 		<geometry>
 			<cabin>
