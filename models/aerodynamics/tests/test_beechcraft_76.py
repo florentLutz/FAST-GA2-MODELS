@@ -945,7 +945,7 @@ def test_slipstream_openvsp_cruise():
     assert ct == pytest.approx(0.0483, abs=1e-4)
     delta_cl = problem.get_val("data:aerodynamics:slipstream:wing:cruise:prop_on:CL") - \
                problem.get_val("data:aerodynamics:slipstream:wing:cruise:prop_off:CL")
-    assert delta_cl == pytest.approx(0.00545, abs=1e-4)
+    assert delta_cl == pytest.approx(0.00565, abs=1e-4)
 
 
 def test_slipstream_openvsp_low_speed():
@@ -992,7 +992,7 @@ def test_slipstream_openvsp_low_speed():
     assert ct == pytest.approx(0.03796, abs=1e-4)
     delta_cl = problem.get_val("data:aerodynamics:slipstream:wing:low_speed:prop_on:CL") - \
                problem.get_val("data:aerodynamics:slipstream:wing:low_speed:prop_off:CL")
-    assert delta_cl == pytest.approx(0.02158, abs=1e-4)
+    assert delta_cl == pytest.approx(0.02196, abs=1e-4)
 
 
 def test_compute_mach_interpolation_roskam():

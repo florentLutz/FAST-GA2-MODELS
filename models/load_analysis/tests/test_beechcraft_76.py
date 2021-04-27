@@ -28,7 +28,6 @@ from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
 from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
-from ..private.wing_mass_estimation import AerostructuralLoadsAlternate
 from ..aerostructural_loads import AerostructuralLoad
 from ..structural_loads import StructuralLoads
 from ..aerodynamic_loads import AerodynamicLoads
