@@ -23,6 +23,7 @@ from .components.high_lift_aero import ComputeDeltaHighLift
 
 from .external.vlm import ComputeAEROvlm
 from .external.openvsp import ComputeAEROopenvsp
+from .external.openvsp.compute_aero_slipstream import _ComputeSlipstreamOpenvsp
 
 
 class AerodynamicsLowSpeed(Group):
@@ -33,7 +34,7 @@ class AerodynamicsLowSpeed(Group):
     def initialize(self):
         self.options.declare("propulsion_id", default="", types=str)
         self.options.declare("use_openvsp", default=False, types=bool)
-        self.options.declare("compute_mach_interpolation", default=False, types=bool)
+        self.options.declare("compute_slipstream", default=False, types=bool)
         self.options.declare("result_folder_path", default="", types=str)
         self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
         self.options.declare('htp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
@@ -52,7 +53,7 @@ class AerodynamicsLowSpeed(Group):
             self.add_subsystem("aero_openvsp",
                                ComputeAEROopenvsp(
                                    low_speed_aero=True,
-                                   compute_mach_interpolation=self.options["compute_mach_interpolation"],
+                                   compute_mach_interpolation=False,
                                    result_folder_path=self.options["result_folder_path"],
                                    wing_airfoil_file=self.options["wing_airfoil_file"],
                                    htp_airfoil_file=self.options["htp_airfoil_file"],
@@ -67,3 +68,10 @@ class AerodynamicsLowSpeed(Group):
                            ), promotes=["*"])
         self.add_subsystem("high_lift", ComputeDeltaHighLift(), promotes=["*"])
         self.add_subsystem("Cl_extreme", ComputeExtremeCL(), promotes=["*"])
+        if self.options["compute_slipstream"]:
+            self.add_subsystem("aero_slipstream_openvsp",
+                               _ComputeSlipstreamOpenvsp(propulsion_id=self.options["propulsion_id"],
+                                                         result_folder_path=self.options["result_folder_path"],
+                                                         wing_airfoil_file=self.options["wing_airfoil_file"],
+                                                         low_speed_aero=True,
+                                                         ), promotes=["*"])

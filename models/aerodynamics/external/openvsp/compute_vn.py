@@ -329,7 +329,7 @@ class ComputeVNopenvsp(OPENVSPSimpleGeometry):
             # In case the gust line load factor is above the maneuvering load factor, we need to solve the difference
             # between both curve to be 0.0 to find intersect
             delta = lambda x: load_factor_gust_p(U_de_Vc, x) - load_factor_stall_p(x)
-            Vma_ps = max(optimize.fsolve(delta, np.array(1000.0))[0])
+            Vma_ps = max(optimize.fsolve(delta, np.array(1000.0)))
             n_ma_ps = load_factor_gust_p(U_de_Vc, Vma_ps)  # [-]
             velocity_array.append(float(Vma_ps))
             load_factor_array.append(float(n_ma_ps))

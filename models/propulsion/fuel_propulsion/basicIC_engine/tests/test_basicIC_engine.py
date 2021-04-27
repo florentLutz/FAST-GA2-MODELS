@@ -22,7 +22,6 @@ from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting
 from fastoad.utils.physics import Atmosphere
 
-
 from ..basicIC_engine import BasicICEngine
 
 

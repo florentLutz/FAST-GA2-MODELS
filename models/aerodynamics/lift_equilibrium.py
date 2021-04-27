@@ -111,33 +111,3 @@ class AircraftEquilibrium(om.ExplicitComponent):
             return float(CL_wing), float(cl_htp_only), cl_elevator, False
         else:
             return 1.05*float(mass * g * load_factor / (dynamic_pressure * wing_area)), 0.0, 0.0, True
-
-    # TODO : IMPLEMENT IN THE ATMOSPHERE MODULE IN UTILS
-    @staticmethod
-    def get_tas_from_cas(calibrated_airspeed, altitude):
-
-        """
-                Computes true airspeed (TAS) from calibrated airspeed (CAS).
-
-                :param calibrated_airspeed: in m/s
-                :param altitude: in ft
-                :return: true airspeed in m/s
-        """
-
-        sea_level = Atmosphere(0)
-        current_level = Atmosphere(altitude, altitude_in_feet=False)
-        gamma = 1.4
-
-        impact_pressure = (
-                sea_level.pressure
-                * (((calibrated_airspeed / sea_level.speed_of_sound) ** 2.0 / 5.0 + 1.0) ** 3.5 - 1.0)
-        )
-
-        dynamic_pressure = current_level.pressure + impact_pressure
-        sigma_0 = dynamic_pressure / current_level.pressure
-
-        mach = (2. / (gamma - 1.0) * (sigma_0 ** ((gamma - 1.0) / gamma) - 1.0)) ** 0.5
-
-        true_airspeed = mach * current_level.speed_of_sound
-
-        return true_airspeed

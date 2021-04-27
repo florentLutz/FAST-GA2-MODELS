@@ -36,10 +36,8 @@ class AerodynamicLoads(AerostructuralLoad):
 
         nans_array_ov = np.full(SPAN_MESH_POINT, np.nan)
         self.add_input("data:loads:max_shear:load_factor", val=np.nan)
-        self.add_input("data:loads:max_shear:cg_position", val=np.nan, units="m")
         self.add_input("data:loads:max_shear:mass", val=np.nan, units="kg")
         self.add_input("data:loads:max_rbm:load_factor", val=np.nan)
-        self.add_input("data:loads:max_rbm:cg_position", val=np.nan, units="m")
         self.add_input("data:loads:max_rbm:mass", val=np.nan, units="kg")
 
         self.add_input("data:aerodynamics:wing:low_speed:Y_vector", val=nans_array_ov, shape=SPAN_MESH_POINT,
@@ -47,18 +45,18 @@ class AerodynamicLoads(AerostructuralLoad):
         self.add_input("data:aerodynamics:wing:low_speed:chord_vector", val=nans_array_ov, shape=SPAN_MESH_POINT,
                        units="m")
         self.add_input("data:aerodynamics:wing:low_speed:CL_vector", val=nans_array_ov, shape=SPAN_MESH_POINT)
-        self.add_input("data:aerodynamics:slipstream:wing:only_prop:CL_vector", val=nans_array_ov,
+        self.add_input("data:aerodynamics:slipstream:wing:cruise:only_prop:CL_vector", val=nans_array_ov,
                        shape=SPAN_MESH_POINT)
-        self.add_input("data:aerodynamics:slipstream:wing:prop_on:Y_vector", val=nans_array_ov,
+        self.add_input("data:aerodynamics:slipstream:wing:cruise:prop_on:Y_vector", val=nans_array_ov,
                        shape=SPAN_MESH_POINT, units="m")
-        self.add_input("data:aerodynamics:slipstream:wing:prop_on:velocity", val=np.nan, units="m/s")
-        self.add_input("data:aerodynamics:wing:cruise:CL_alpha", val=np.nan)
+        self.add_input("data:aerodynamics:slipstream:wing:cruise:prop_on:velocity", val=np.nan, units="m/s")
+        self.add_input("data:aerodynamics:wing:cruise:CL_alpha", val=np.nan, units="rad**-1")
         self.add_input("data:aerodynamics:wing:cruise:CL0_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:cruise:CM0_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_min_clean", val=np.nan)
         self.add_input("data:aerodynamics:horizontal_tail:efficiency", val=np.nan)
-        self.add_input("data:aerodynamics:horizontal_tail:cruise:CL_alpha", val=np.nan)
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:CL_alpha", val=np.nan, units="rad**-1")
 
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:virtual_chord", val=np.nan, units="m")
@@ -92,16 +90,17 @@ class AerodynamicLoads(AerostructuralLoad):
         ################################################################################################################
 
         y_vector = inputs["data:aerodynamics:wing:low_speed:Y_vector"]
-        y_vector_slip = inputs["data:aerodynamics:slipstream:wing:prop_on:Y_vector"]
+        y_vector_slip = inputs["data:aerodynamics:slipstream:wing:cruise:prop_on:Y_vector"]
         cl_vector = inputs["data:aerodynamics:wing:low_speed:CL_vector"]
-        cl_vector_slip = inputs["data:aerodynamics:slipstream:wing:only_prop:CL_vector"]
+        cl_vector_slip = inputs["data:aerodynamics:slipstream:wing:cruise:only_prop:CL_vector"]
         chord_vector = inputs["data:aerodynamics:wing:low_speed:chord_vector"]
         cl_0 = inputs["data:aerodynamics:wing:cruise:CL0_clean"]
-        v_ref = inputs["data:aerodynamics:slipstream:wing:prop_on:velocity"]
+        v_ref = inputs["data:aerodynamics:slipstream:wing:cruise:prop_on:velocity"]
 
         semi_span = float(inputs["data:geometry:wing:span"])/2.0
         root_chord = float(inputs["data:geometry:wing:root:chord"])
         tip_chord = float(inputs["data:geometry:wing:tip:chord"])
+        wing_area = float(inputs["data:geometry:wing:area"])
 
         load_factor_shear = float(inputs["data:loads:max_shear:load_factor"])
         load_factor_rbm = float(inputs["data:loads:max_rbm:load_factor"])
@@ -142,21 +141,18 @@ class AerodynamicLoads(AerostructuralLoad):
         # the highest absolute load factor. From there we can recompute the equilibrium and get the lift distribution
         # in the most stringent case which will be what we will plot
         if load_factor_shear > load_factor_rbm:
-            x_cg = inputs["data:loads:max_shear:cg_position"]
             mass = inputs["data:loads:max_shear:mass"]
             load_factor = load_factor_shear
         else:
-            x_cg = inputs["data:loads:max_rbm:cg_position"]
             mass = inputs["data:loads:max_rbm:mass"]
             load_factor = load_factor_rbm
 
         atm = Atmosphere(cruise_alt)
         dynamic_pressure = 1. / 2. * atm.density * cruise_v_tas ** 2.0
 
-        cl_wing, _, _, _ = AircraftEquilibrium.found_cl_repartition(inputs, load_factor, mass, dynamic_pressure,
-                                                                    False, x_cg)
-        cl_s = self.compute_cl_s(y_vector_orig, y_vector, cl_vector, chord_vector)
-        cl_s_slip = self.compute_cl_s(y_vector_slip_orig, y_vector, cl_vector_slip, chord_vector)
+        cl_wing = 1.05 * (load_factor * mass * 9.81) / (dynamic_pressure * wing_area)
+        cl_s = self.compute_cl_s(y_vector_orig, y_vector_orig, y_vector, cl_vector, chord_vector)
+        cl_s_slip = self.compute_cl_s(y_vector_slip_orig, y_vector_orig, y_vector, cl_vector_slip, chord_vector)
         cl_s_actual = cl_s * cl_wing / cl_0
         cl_s_slip_actual = cl_s_slip * (v_ref / cruise_v_tas) ** 2.0
         lift_distribution = (cl_s_actual+cl_s_slip_actual) * dynamic_pressure

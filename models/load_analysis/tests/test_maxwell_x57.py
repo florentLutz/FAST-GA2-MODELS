@@ -144,11 +144,9 @@ def test_compute_shear_stress():
     assert shear_max_mass_condition == pytest.approx(1361., abs=1e-1)
     shear_max_lf_condition = problem.get_val("data:loads:max_shear:load_factor")
     assert shear_max_lf_condition == pytest.approx(3.8, abs=1e-2)
-    shear_max_cg_position = problem.get_val("data:loads:max_shear:cg_position", units="m")
-    assert shear_max_cg_position == pytest.approx(2.76, abs=1e-2)
     lift_shear_diagram = problem.get_val("data:loads:max_shear:lift_shear", units="N")
     lift_root_shear = lift_shear_diagram[0]
-    assert lift_root_shear == pytest.approx(53537.853, abs=1)
+    assert lift_root_shear == pytest.approx(40261.893, abs=1)
     weight_shear_diagram = problem.get_val("data:loads:max_shear:weight_shear", units="N")
     weight_root_shear = weight_shear_diagram[0]
     assert weight_root_shear == pytest.approx(-9911.28, abs=1)
@@ -200,11 +198,9 @@ def test_compute_root_bending_moment():
     assert max_rbm_mass_condition == pytest.approx(1361., abs=1e-1)
     max_rbm_lf_condition = problem.get_val("data:loads:max_rbm:load_factor")
     assert max_rbm_lf_condition == pytest.approx(3.8, abs=1e-2)
-    max_rbm_cg_position = problem.get_val("data:loads:max_rbm:cg_position", units="m")
-    assert max_rbm_cg_position == pytest.approx(2.76, abs=1e-2)
     lift_rbm_diagram = problem.get_val("data:loads:max_rbm:lift_rbm", units="N*m")
     lift_rbm = lift_rbm_diagram[0]
-    assert lift_rbm == pytest.approx(116625.124, abs=1)
+    assert lift_rbm == pytest.approx(87644.553, abs=1)
     weight_rbm_diagram = problem.get_val("data:loads:max_rbm:weight_rbm", units="N*m")
     weight_rbm = weight_rbm_diagram[0]
     assert weight_rbm == pytest.approx(-29919.19, abs=1)
@@ -449,20 +445,18 @@ def test_compute_lift_distribution():
     register_wrappers()
     problem = run_system(AerodynamicLoadsX57(), ivc)
     lift_array = problem.get_val("data:loads:aerodynamic:ultimate:force_distribution", units="N/m")
-    lift_result = np.array([8338.88, 8113.29, 8074.81, 8059.2, 8042.63, 8033.51, 7962.41,
-                            7895.55, 7895.55, 7895.55, 7895.57, 7895.57, 7895.58, 7895.58,
-                            7895.58, 7895.52, 7947.6, 8024.05, 8026.42, 8049.22, 8071.98,
-                            8094.7, 8117.37, 8119.73, 8257.8, 8133.42, 7847.89, 7762.91,
-                            7829.01, 7830.04, 7839.91, 7849.75, 7859.57, 7869.37, 7870.38,
-                            7900.16, 7953.52, 7553.76, 7437.85, 7490.16, 7490.67, 7495.57,
-                            7500.44, 7505.3, 7507.27, 7511.4, 7512.12, 7602.59, 7255.53,
-                            7058.3, 7023.69, 7027.31, 7028.93, 7044.42, 7059.88, 7075.3,
-                            7090.69, 7092.29, 7236.2, 6985.31, 6689.64, 6668.29, 6744.95,
-                            6746.71, 6763.56, 6780.37, 6797.14, 6813.87, 6815.61, 6897.97,
-                            6791.35, 6376.53, 6250.64, 6120.36, 6188.44, 6189.84, 6203.26,
-                            6216.64, 6229.99, 6243.3, 6244.69, 6297.49, 6114.24, 5591.04,
-                            5315.75, 4995.45, 4621.81, 4072.88, 3157.83, 3155.21, 3121.12,
-                            2622.14, 2119.55, 1613.35, 1103.54, 1050.22, 0., 0.,
-                            0., 0.])
-
+    lift_result = np.array([8341.73, 8116.07, 8077.58, 8061.97, 8045.4, 8036.28, 7965.16,
+                            7898.3, 7898.31, 7898.31, 7898.32, 7898.33, 7898.33, 7898.33,
+                            7898.33, 7898.27, 7950.34, 8026.78, 8029.16, 8051.95, 8074.71,
+                            8097.43, 8120.1, 8122.46, 8260.53, 8136.11, 7850.56, 7765.55,
+                            7831.64, 7832.67, 7842.54, 7852.38, 7862.2, 7871.99, 7873.01,
+                            7902.78, 7956.12, 7556.33, 7440.4, 7492.69, 7493.2, 7498.09,
+                            7502.97, 7507.83, 7509.79, 7513.92, 7514.64, 7605.08, 7257.99,
+                            7060.74, 7026.1, 7029.73, 7031.34, 7046.83, 7062.29, 7077.71,
+                            7093.1, 7094.7, 7238.59, 6987.66, 6691.96, 6670.58, 6747.23,
+                            6748.99, 6765.83, 6782.64, 6799.41, 6816.13, 6817.87, 6900.22,
+                            6793.57, 6378.71, 6252.79, 6122.48, 6190.54, 6191.94, 6205.35,
+                            6218.73, 6232.08, 6245.39, 6246.77, 6299.56, 6116.26, 5593.01,
+                            5317.64, 4997.24, 4623.47, 4074.34, 3158.96, 3156.34, 3122.23,
+                            2623.08, 2120.31, 1613.92, 1103.93, 1050.6, 0., 0., 0., 0.])
     assert np.max(np.abs(lift_array - lift_result)) <= 1e-1

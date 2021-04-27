@@ -18,7 +18,7 @@
 		<TLAR>
 			<NPAX_design>2.0<!--top-level requirement: number of passengers for the design mission, assuming a classic eco/business class repartition--></NPAX_design>
 			<luggage_mass_design units="kg">70.<!--top-level requirement: luggage mass per passenger for the design mission--></luggage_mass_design>
-			<range units="NM">900.0</range>
+			<range units="NM">820.0</range>
 			<v_approach units="kn">78.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">164.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">194.0<!--top-level requirement: limit speed--></v_limit>
@@ -27,7 +27,7 @@
 		<geometry>
 			<flap>
 				<chord_ratio>0.10<!--mean value of (flap chord)/(section chord)--></chord_ratio>
-				<span_ratio>0.62<!--ratio (width of flaps)/(total span)--></span_ratio>
+				<span_ratio>0.61<!--ratio (width of flaps)/(total span)--></span_ratio>
 			</flap>
 			<flap_type>1.0<!--0=plain flap / 1=flap simple slotted--></flap_type>
 			<cabin>

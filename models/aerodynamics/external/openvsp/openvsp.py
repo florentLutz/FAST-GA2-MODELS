@@ -483,7 +483,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         @return: wing dictionary including aero parameters as keys: y_vector, cl_vector, cd_vector, cm_vector, cl
         cdi, cm, coef_e
         """
-
+        # TODO : Check for rules that would allow the scaling of these results i.e, same D/span gives same results ...
         # STEP 1/XX - DEFINE OR CALCULATE INPUT DATA FOR AERODYNAMIC EVALUATION ########################################
         ################################################################################################################
 
@@ -553,7 +553,7 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         if engine_config != 1.0:  # For now, we will just put a motor on the nose of the aircraft
             motor_pos_x[0] = 0.0
             motor_pos_y[0] = 0.0
-            motor_pos_z[0] = z_wing
+            motor_pos_z[0] = 0.0
             motor_rpm_signed[0] = engine_rpm
             eng_per_wing = 1
             # Even if there is no engine of the wing, we put one so that we pick the correct template, the engine will
@@ -823,7 +823,6 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         l2_wing = inputs["data:geometry:wing:root:chord"]
         y4_wing = inputs["data:geometry:wing:tip:y"]
         l4_wing = inputs["data:geometry:wing:tip:chord"]
-        x4_wing = inputs["data:geometry:wing:tip:leading_edge:x:local"]
         sweep_0_wing = inputs["data:geometry:wing:sweep_0"]
         fa_length = inputs["data:geometry:wing:MAC:at25percent:x"]
         span_wing = inputs['data:geometry:wing:span']
@@ -844,7 +843,8 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         ##############################################################################################################:)
 
         eng_per_wing = 7
-        motor_pos_x = [3.688, 3.622, 3.688, 3.622, 3.688, 3.622, 3.605]
+        motor_pos_x = [float(x_wing)-0.022, float(x_wing)-0.044, float(x_wing)-0.022, float(x_wing)-0.044,
+                       float(x_wing)-0.022, float(x_wing)-0.044, float(x_wing)-0.022]
         motor_pos_y = [0.900, 1.464, 2.040, 2.616, 3.192, 3.85, 4.79]
         motor_pos_z = [float(z_wing), float(z_wing), float(z_wing), float(z_wing), float(z_wing),
                        float(z_wing), float(z_wing)]
@@ -853,7 +853,6 @@ class OPENVSPSimpleGeometry(ExternalCodeComp):
         signed_rpm = [4549., 4549., 4549., 4549., 4549., 4549., 2250.]
         ct = [0.185, 0.185, 0.185, 0.185, 0.185, 0.185, 0.096]
         cp = [0.387, 0.387, 0.387, 0.387, 0.387, 0.387, 0.156]
-
         # STEP 2/XX - DEFINE WORK DIRECTORY, COPY RESOURCES AND CREATE COMMAND BATCH ###################################
         ################################################################################################################
 

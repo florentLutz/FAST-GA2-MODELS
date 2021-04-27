@@ -50,6 +50,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:thickness_ratio", val=np.nan)
+        self.add_input("data:geometry:wing:sweep_25", val=np.nan, units="deg")
         self.add_input("data:geometry:flap:chord_ratio", val=0.2)
         self.add_input("data:geometry:flap:span_ratio", val=np.nan)
         self.add_input("data:geometry:flap_type", val=np.nan)
@@ -163,7 +164,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         kb = self._compute_kb_flaps(inputs, eta_in, eta_out)
         effect = 1.04  # fig 8.53 (cf/c=0.25, small effect of AR)
         delta_cl0_flaps = kb * delta_cl_airfoil * (cl_alpha_wing / (2 * math.pi)) * effect
-        delta_clmax_flaps = self._compute_delta_clmax_flaps(inputs)
+        delta_clmax_flaps = self._compute_delta_clmax_flaps(inputs, flap_angle)
 
         return delta_cl0_flaps, delta_clmax_flaps
 
@@ -204,12 +205,12 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
                  28.929 * flap_chord_ratio ** 2 + \
                  2.3705 * flap_chord_ratio - 0.0089
             k2 = -3.9877E-12 * flap_angle ** 6 + \
-                1.1685e-9 * flap_angle ** 5 - \
-                1.2846e-7 * flap_angle ** 4 + \
-                6.1742e-6 * flap_angle ** 3 - \
-                9.89444e-5 * flap_angle ** 2 + \
-                6.8324e-4 * flap_angle - \
-                3.892e-4
+                 1.1685e-9 * flap_angle ** 5 - \
+                 1.2846e-7 * flap_angle ** 4 + \
+                 6.1742e-6 * flap_angle ** 3 - \
+                 9.89444e-5 * flap_angle ** 2 + \
+                 6.8324e-4 * flap_angle - \
+                 3.892e-4
 
         else:  # plain flap
             k1 = - 21.09 * flap_chord_ratio ** 3 + \
@@ -246,7 +247,7 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
 
         return delta_cl_airfoil
 
-    def _compute_delta_clmax_flaps(self, inputs) -> float:
+    def _compute_delta_clmax_flaps(self, inputs, flap_angle) -> float:
         """
 
         Method from Roskam vol.6.  Particularised for single slotted flaps in 
@@ -258,39 +259,75 @@ class ComputeDeltaHighLift(om.ExplicitComponent):
         flap_type = inputs['data:geometry:flap_type']
         el_aero = inputs["data:geometry:wing:thickness_ratio"]
         flap_chord_ratio = inputs["data:geometry:flap:chord_ratio"]
+        sweep_25 = inputs["data:geometry:wing:sweep_25"] * math.pi / 180.
         flap_area_ratio = self._compute_flap_area_ratio(inputs)
 
+        # Numerisation of figure 8.31
+        # For the plain flaps
+        el_aero_array = np.array(
+            [0.97561, 1.98374, 2.99187, 3.96748, 5.00813, 5.98374, 7.02439, 8, 9.00813, 10.01626, 10.99187,
+             12, 13.04065, 14.01626, 15.02439, 16, 16.97561, 17.98374, 18.99187, 19.96748])
+        base_increment_plain = np.array(
+            [1.0102, 1.00626, 0.99287, 0.98265, 0.95664, 0.92437, 0.87001, 0.8283, 0.8149, 0.82356, 0.86059, 0.91963,
+             0.99126, 1.08183, 1.18812, 1.31333, 1.4291, 1.51335, 1.56925, 1.59682])
+        base_increment_plain_interp = interpolate.interp1d(el_aero_array, base_increment_plain)
+
+        flap_chord_ratio_array = np.array(
+            [0.0, 1.09225, 2.06642, 4.01476, 6.00738, 8, 9.94834, 11.94096, 13.97786, 15.9262, 17.91882, 19.91144,
+             21.85978, 23.80812, 25.80074, 27.74908, 29.69742])
+        k1_array_plain = np.array([0.0, 0.1, 0.18667, 0.33556, 0.46667, 0.56889, 0.65111, 0.72, 0.78, 0.83778, 0.88444,
+                                   0.92444, 0.96222, 0.99111, 1.01778, 1.04222, 1.06222])
+        k1_plain_interp = interpolate.interp1d(flap_chord_ratio_array, k1_array_plain)
+
+        flap_deflection_array_plain = np.array(
+            [0, 2.92929, 5.05051, 5.9596, 8.9899, 10, 12.62626, 15.15152, 16.86869, 20.10101, 21.11111, 24.94949,
+             26.36364, 29.89899, 32.82828, 34.94949, 39.79798, 42.62626, 44.84848, 49.79798, 54.84848, 60.0
+             ])
+        k2_array_plain = np.array(
+            [0, 0.09899, 0.16768, 0.19798, 0.29899, 0.32929, 0.39798, 0.46061, 0.49899, 0.57374, 0.59596, 0.67071,
+             0.69697, 0.75758, 0.79394, 0.8202, 0.87071, 0.89697, 0.91111, 0.94141, 0.97172, 1.0
+             ])
+        k2_plain_interp = interpolate.interp1d(flap_deflection_array_plain, k2_array_plain)
+
+        # For the slotted flaps
+        base_increment_simple_slot = np.array(
+            [1.00705, 1.00629, 1.00864, 1.00782, 1.01018, 1.02516, 1.04956, 1.08341, 1.12359, 1.17004, 1.22911, 1.30704,
+             1.37868, 1.46925, 1.5724, 1.65667, 1.70944, 1.72125, 1.711, 1.66929
+             ])
+        base_increment_simple_slot_interp = interpolate.interp1d(el_aero_array, base_increment_simple_slot)
+
+        k1_array_simple_slot = k1_array_plain
+        k1_simple_slot_interp = interpolate.interp1d(flap_chord_ratio_array, k1_array_simple_slot)
+
+        flap_deflection_array_simple_slot = np.array(
+            [0, 0.80808, 4.14141, 5.05051, 7.37374, 10.20202, 11.51515, 15.05051, 15.55556, 20, 24.94949, 25.65657,
+             30.10101, 32.12121, 34.94949, 39.69697, 45.0])
+        k2_array_simple_slot = np.array(
+            [0.1798, 0.2, 0.29495, 0.32323, 0.4, 0.46869, 0.49899, 0.5899, 0.59798, 0.69495, 0.78788, 0.79596, 0.86465,
+             0.89495, 0.92525, 0.96768, 1.])
+        k2_simple_slot_interp = interpolate.interp1d(flap_deflection_array_simple_slot, k2_array_simple_slot)
+        flap_deflection_ratio_array = np.array(
+            [0.07097, 0.10108, 0.15054, 0.2, 0.23226, 0.30323, 0.31398, 0.3957, 0.4043, 0.48602, 0.50108, 0.60215,
+             0.70108, 0.8, 0.84516, 0.90108, 1.0])
+        k3_array_simple_slot = np.array(
+            [0.1, 0.1375, 0.2, 0.26458, 0.30208, 0.3875, 0.4, 0.50208, 0.51042, 0.6, 0.61458, 0.71042, 0.78958, 0.86667,
+             0.89792, 0.93958, 1.0])
+        k3_simple_slot_interp = interpolate.interp1d(flap_deflection_ratio_array, k3_array_simple_slot)
+
         if flap_type == 1.0:  # simple slotted
-            if el_aero <= 0.12:
-                base_increment = 1.3  # Figure 8.31
-            else:
-                base_increment = 1.55  # Figure 8.31
-
-            if flap_chord_ratio <= 0.25:
-                k1 = 1.  # Figure 8.32 (chord ratio correction)
-            else:
-                k1 = 1.05  # Figure 8.32 (chord ratio correction)
-
-            if self.phase == 'landing':  # Deflection correction
-                k2 = 0.87  # Figure 8.33
-                k3 = 0.77  # Figure 8.34
-            else:  # Takeoff position
-                k2 = 0.47
-                k3 = 0.3
+            base_increment = base_increment_simple_slot_interp(el_aero * 100.)
+            k1 = k1_simple_slot_interp(flap_chord_ratio * 100.)
+            k2 = k2_simple_slot_interp(flap_angle)
+            reference_flap_deflection = 45.0
+            k3 = k3_simple_slot_interp(flap_angle/reference_flap_deflection)
 
         else:  # plain flap
-            base_increment = 0.9  # Figure 8.31
+            base_increment = base_increment_plain_interp(el_aero * 100.)
+            k1 = k1_plain_interp(flap_chord_ratio * 100.)
+            k2 = k2_plain_interp(flap_angle)
+            k3 = 1.0
 
-            k1 = 1.0  # Figure 8.32 (chord ratio correction)
-
-            if self.phase == 'landing':  # Deflection correction
-                k2 = 0.87  # Figure 8.33
-                k3 = 1.0  # Figure 8.34
-            else:  # Takeoff position
-                k2 = 0.33
-                k3 = 1.0
-
-        k_planform = 0.92
+        k_planform = (1. - 0.08 * math.cos(sweep_25) ** 2.) * math.cos(sweep_25) ** (3. / 4.)
         delta_clmax_flaps = base_increment * k1 * k2 * k3 * k_planform * flap_area_ratio
 
         return delta_clmax_flaps

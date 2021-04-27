@@ -116,9 +116,9 @@ def test_compute_shear_stress():
                 4.05, 4.212, 4.374, 4.535, 4.694, 4.852, 5.008, 5.163, 5.317,
                 5.468, 5.618, 5.766, 0., 0., 0., 0., 0., 0.,
                 0., 0., 0., 0., 0.]
-    ivc.add_output("data:aerodynamics:slipstream:wing:only_prop:CL_vector", cl_vector_only_prop)
-    ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:Y_vector", y_vector, units="m")
-    ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:velocity", 82.311, units="m/s")
+    ivc.add_output("data:aerodynamics:slipstream:wing:cruise:only_prop:CL_vector", cl_vector_only_prop)
+    ivc.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:Y_vector", y_vector, units="m")
+    ivc.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:velocity", 82.311, units="m/s")
 
     register_wrappers()
     problem = run_system(AerostructuralLoad(), ivc)
@@ -126,14 +126,12 @@ def test_compute_shear_stress():
     assert shear_max_mass_condition == pytest.approx(1457.251, abs=1e-1)
     shear_max_lf_condition = problem.get_val("data:loads:max_shear:load_factor")
     assert shear_max_lf_condition == pytest.approx(4.170, abs=1e-2)
-    shear_max_cg_position = problem.get_val("data:loads:max_shear:cg_position", units="m")
-    assert shear_max_cg_position == pytest.approx(2.432, abs=1e-2)
     lift_shear_diagram = problem.get_val("data:loads:max_shear:lift_shear", units="N")
     lift_root_shear = lift_shear_diagram[0]
-    assert lift_root_shear == pytest.approx(49344.812, abs=1)
+    assert lift_root_shear == pytest.approx(46968.880, abs=1)
     weight_shear_diagram = problem.get_val("data:loads:max_shear:weight_shear", units="N")
     weight_root_shear = weight_shear_diagram[0]
-    assert weight_root_shear == pytest.approx(-6333.503, abs=1)
+    assert weight_root_shear == pytest.approx(-6342.346, abs=1)
 
 
 def test_compute_root_bending_moment():
@@ -153,9 +151,9 @@ def test_compute_root_bending_moment():
                 4.05, 4.212, 4.374, 4.535, 4.694, 4.852, 5.008, 5.163, 5.317,
                 5.468, 5.618, 5.766, 0., 0., 0., 0., 0., 0.,
                 0., 0., 0., 0., 0.]
-    ivc.add_output("data:aerodynamics:slipstream:wing:only_prop:CL_vector", cl_vector_only_prop)
-    ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:Y_vector", y_vector, units="m")
-    ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:velocity", 82.311, units="m/s")
+    ivc.add_output("data:aerodynamics:slipstream:wing:cruise:only_prop:CL_vector", cl_vector_only_prop)
+    ivc.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:Y_vector", y_vector, units="m")
+    ivc.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:velocity", 82.311, units="m/s")
 
     register_wrappers()
     problem = run_system(AerostructuralLoad(), ivc)
@@ -163,14 +161,12 @@ def test_compute_root_bending_moment():
     assert max_rbm_mass_condition == pytest.approx(1457.251, abs=1e-1)
     max_rbm_lf_condition = problem.get_val("data:loads:max_rbm:load_factor")
     assert max_rbm_lf_condition == pytest.approx(4.170, abs=1e-2)
-    max_rbm_cg_position = problem.get_val("data:loads:max_rbm:cg_position", units="m")
-    assert max_rbm_cg_position == pytest.approx(2.432, abs=1e-2)
     lift_rbm_diagram = problem.get_val("data:loads:max_rbm:lift_rbm", units="N*m")
     lift_rbm = lift_rbm_diagram[0]
-    assert lift_rbm == pytest.approx(125222.645, abs=1)
+    assert lift_rbm == pytest.approx(119173.146, abs=1)
     weight_rbm_diagram = problem.get_val("data:loads:max_rbm:weight_rbm", units="N*m")
     weight_rbm = weight_rbm_diagram[0]
-    assert weight_rbm == pytest.approx(-14195.766, abs=1)
+    assert weight_rbm == pytest.approx(-14215.587, abs=1)
 
 
 def test_compute_mass_distribution():
@@ -302,11 +298,9 @@ def test_compute_lift_distribution():
     ivc = get_indep_var_comp(list_inputs(AerodynamicLoads()), __file__, XML_FILE)
     load_factor_shear = 4.0
     ivc.add_output("data:loads:max_shear:load_factor", load_factor_shear)
-    ivc.add_output("data:loads:max_shear:cg_position", 2.759, units="m")
     ivc.add_output("data:loads:max_shear:mass", 1638.94, units="kg")
     load_factor_rbm = 4.0
     ivc.add_output("data:loads:max_rbm:load_factor", load_factor_rbm)
-    ivc.add_output("data:loads:max_rbm:cg_position", 2.759, units="m")
     ivc.add_output("data:loads:max_rbm:mass", 1638.94, units="kg")
     cl_vector_only_prop = [0.0161, 0.0017, 0.0021, 0.0026, 0.0034, 0.0042, 0.0052, 0.0063, 0.0082, 0.0117, 0.0426,
                            0.0739, 0.1035, 0.1072, 0.0931, 0.0327, 0.0136, 0.001, -0.0069, -0.0062, -0.0259, -0.0192,
@@ -318,20 +312,21 @@ def test_compute_lift_distribution():
                 3.16539, 3.33087, 3.49574, 3.6599, 3.82325, 3.98571, 4.14717, 4.30755, 4.46676, 4.6247, 4.78131,
                 4.9365, 5.0902, 5.24233, 5.39282, 5.5416, 5.68862, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0]
-    ivc.add_output("data:aerodynamics:slipstream:wing:only_prop:CL_vector", cl_vector_only_prop)
-    ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:Y_vector", y_vector, units="m")
-    ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:velocity", 84.368, units="m/s")
+    ivc.add_output("data:aerodynamics:slipstream:wing:cruise:only_prop:CL_vector", cl_vector_only_prop)
+    ivc.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:Y_vector", y_vector, units="m")
+    ivc.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:velocity", 84.368, units="m/s")
 
     register_wrappers()
     problem = run_system(AerodynamicLoads(), ivc)
     lift_array = problem.get_val("data:loads:aerodynamic:ultimate:force_distribution", units="N/m")
-    lift_result = np.array([7041.4, 7001.8, 6935.4, 6933.1, 6929.3, 6928.6, 6923., 6909.7,
-                            6853.8, 6791.5, 6791.1, 6786.7, 6786.3, 6785.1, 6783.8, 6782.4,
-                            6782.3, 6798.5, 6880.3, 6951.3, 6952.2, 6851.9, 6645.6, 6338.9,
-                            6170.3, 6031.2, 5904.5, 5781.8, 5616.3, 5537.1, 5441.9, 5343.7,
-                            5228.2, 5117.1, 4988.1, 4865.3, 4731.5, 4613.1, 4480.8, 4357.2,
-                            4218.6, 4063., 3867.1, 3639.5, 3347.3, 2882.8, 2208.5, 0.,
-                            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    lift_result = np.array([7274.92, 7234.12, 7167.82, 7165.37, 7161.37, 7160.4, 7154.52,
+                            7140.69, 7082.78, 7018.11, 7017.72, 7013.1, 7012.7, 7011.42,
+                            7010.01, 7008.58, 7008.46, 7023.82, 7104.16, 7173.47, 7171.57,
+                            7068.4, 6858.86, 6548.22, 6376.11, 6233.73, 6103.32, 5977.09,
+                            5807.24, 5724.69, 5625.88, 5524.06, 5404.5, 5289.51, 5156.1,
+                            5029.07, 4890.7, 4768.26, 4631.49, 4503.69, 4360.36, 4199.45,
+                            3996.99, 3761.7, 3459.69, 2979.53, 2282.57, 0., 0.,
+                            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
 
     assert np.max(np.abs(lift_array - lift_result)) <= 1e-1

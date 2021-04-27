@@ -127,6 +127,11 @@
 				<wet_area units="m**2">37.011<!--wet area of wing--></wet_area>
 			</wing>
 		</geometry>
+		<aerodynamics>
+			<horizontal_tail>
+				<efficiency>1.0</efficiency>
+			</horizontal_tail>
+		</aerodynamics>
 		<mission>
 		  	<sizing>
 				<landing>

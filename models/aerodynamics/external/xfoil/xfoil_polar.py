@@ -68,7 +68,7 @@ class XfoilPolar(ExternalCodeComp):
     """Column names in XFOIL polar result"""
 
     def initialize(self):
-        
+
         self.options.declare(OPTION_XFOIL_EXE_PATH, default="", types=str, allow_none=True)
         self.options.declare("airfoil_file", default=_DEFAULT_AIRFOIL_FILE, types=str)
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
@@ -99,7 +99,7 @@ class XfoilPolar(ExternalCodeComp):
     def compute(self, inputs, outputs):
 
         # Get inputs and initialise outputs
-        mach = round(float(inputs["xfoil:mach"])*1e4)/1e4
+        mach = round(float(inputs["xfoil:mach"]) * 1e4) / 1e4
         reynolds = round(float(inputs["xfoil:reynolds"]))
 
         # Search if data already stored for this profile and mach with reynolds values bounding current value.
@@ -130,14 +130,14 @@ class XfoilPolar(ExternalCodeComp):
             else:
                 lower_reynolds = reynolds_vect[np.where(reynolds_vect < reynolds)[0]]
                 upper_reynolds = reynolds_vect[np.where(reynolds_vect > reynolds)[0]]
-                if not(len(lower_reynolds) == 0 or len(upper_reynolds) == 0):
+                if not (len(lower_reynolds) == 0 or len(upper_reynolds) == 0):
                     index_lower_reynolds = index_mach[np.where(reynolds_vect == max(lower_reynolds))[0]]
                     index_upper_reynolds = index_mach[np.where(reynolds_vect == min(upper_reynolds))[0]]
                     lower_values = data_reduced.loc[labels, index_lower_reynolds]
                     upper_values = data_reduced.loc[labels, index_upper_reynolds]
                     interpolated_result = lower_values
                     # Calculate reynolds interval ratio
-                    x_ratio = (min(upper_reynolds) - reynolds)/(min(upper_reynolds) - max(lower_reynolds))
+                    x_ratio = (min(upper_reynolds) - reynolds) / (min(upper_reynolds) - max(lower_reynolds))
                     # Search for common alpha range
                     alpha_lower = eval(lower_values.loc['alpha', index_lower_reynolds].to_numpy()[0])
                     alpha_upper = eval(upper_values.loc['alpha', index_upper_reynolds].to_numpy()[0])
@@ -211,14 +211,14 @@ class XfoilPolar(ExternalCodeComp):
                 os.remove(self.stderr)
                 os.remove(tmp_result_file_path)
                 self._write_script_file(
-                    reynolds, mach, tmp_profile_file_path, tmp_result_file_path, -1*self.options[OPTION_ALPHA_START],
-                    -1*self.options[OPTION_ALPHA_END], -ALPHA_STEP)
+                    reynolds, mach, tmp_profile_file_path, tmp_result_file_path, -1 * self.options[OPTION_ALPHA_START],
+                                                                                 -1 * self.options[OPTION_ALPHA_END],
+                    -ALPHA_STEP)
                 super().compute(inputs, outputs)
                 result_array_n = self._read_polar(tmp_result_file_path)
             else:
                 result_array_p = self._read_polar(tmp_result_file_path)
                 result_array_n = result_array_p
-
 
             # Post-processing --------------------------------------------------------------------------
             cl_max_2d, error = self._get_max_cl(result_array_p["alpha"], result_array_p["CL"])
@@ -329,7 +329,6 @@ class XfoilPolar(ExternalCodeComp):
         outputs["xfoil:CL_max_2D"] = cl_max_2d
         outputs["xfoil:CL_min_2D"] = cl_min_2d
 
-
     def _write_script_file(self, reynolds, mach, tmp_profile_file_path, tmp_result_file_path, alpha_start,
                            alpha_end, step):
         parser = InputFileGenerator()
@@ -353,7 +352,6 @@ class XfoilPolar(ExternalCodeComp):
             parser.transfer_var(tmp_result_file_path, 0, 1)
             parser.generate()
 
-
     @staticmethod
     def _read_polar(xfoil_result_file_path: str) -> np.ndarray:
         """
@@ -368,7 +366,6 @@ class XfoilPolar(ExternalCodeComp):
         _LOGGER.error("XFOIL results file not found")
         return np.array([])
 
-
     def _get_max_cl(self, alpha: np.ndarray, lift_coeff: np.ndarray) -> Tuple[float, bool]:
         """
 
@@ -379,16 +376,15 @@ class XfoilPolar(ExternalCodeComp):
         alpha_range = self.options[OPTION_ALPHA_END] - self.options[OPTION_ALPHA_START]
         if len(alpha) > 2:
             covered_range = max(alpha) - min(alpha)
-            if np.abs(covered_range/alpha_range) >= 0.5:
+            if np.abs(covered_range / alpha_range) >= 0.5:
                 lift_fct = lambda x: (lift_coeff[1] - lift_coeff[0]) / (alpha[1] - alpha[0]) * (x - alpha[0]) \
                                      + lift_coeff[0]
-                delta = np.abs((lift_coeff - lift_fct(alpha))/(lift_coeff + 1e-12 * (lift_coeff == 0.0)))
+                delta = np.abs((lift_coeff - lift_fct(alpha)) / (lift_coeff + 1e-12 * (lift_coeff == 0.0)))
                 return max(lift_coeff[delta <= 0.1]), False
 
         _LOGGER.warning("2D CL max not found, les than 50% of angle range computed: using default value {}".format(
             DEFAULT_2D_CL_MAX))
         return DEFAULT_2D_CL_MAX, True
-
 
     def _get_min_cl(self, alpha: np.ndarray, lift_coeff: np.ndarray) -> Tuple[float, bool]:
         """
@@ -400,7 +396,7 @@ class XfoilPolar(ExternalCodeComp):
         alpha_range = self.options[OPTION_ALPHA_END] - self.options[OPTION_ALPHA_START]
         if len(alpha) > 2:
             covered_range = max(alpha) - min(alpha)
-            if covered_range/alpha_range >= 0.5:
+            if covered_range / alpha_range >= 0.5:
                 lift_fct = lambda x: (lift_coeff[1] - lift_coeff[0]) / (alpha[1] - alpha[0]) * (x - alpha[0]) \
                                      + lift_coeff[0]
                 delta = np.abs(lift_coeff - lift_fct(alpha)) / np.abs(lift_coeff + 1e-12 * (lift_coeff == 0.0))

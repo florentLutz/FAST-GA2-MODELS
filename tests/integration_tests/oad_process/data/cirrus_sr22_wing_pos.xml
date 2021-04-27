@@ -18,7 +18,7 @@
 		<TLAR>
 			<NPAX_design>2.0<!--top-level requirement: number of passengers for the design mission, assuming a classic eco/business class repartition--></NPAX_design>
 			<luggage_mass_design units="kg">35.<!--top-level requirement: luggage mass per passenger for the design mission--></luggage_mass_design>
-			<range units="NM">875.0</range>
+			<range units="NM">860.0</range>
 			<v_approach units="kn">79.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">160.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">202.6<!--top-level requirement: limit speed--></v_limit>

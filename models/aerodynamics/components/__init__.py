@@ -17,3 +17,4 @@ from .compute_cnbeta_fuselage import ComputeCnBetaFuselage
 from .compute_L_D_max import ComputeLDMax
 from .high_lift_aero import ComputeDeltaHighLift
 from .hinge_moments_elevator import Compute2DHingeMomentsTail, Compute3DHingeMomentsTail
+from .mach_interpolation import ComputeMachInterpolation

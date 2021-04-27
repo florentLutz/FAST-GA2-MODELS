@@ -48,16 +48,16 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
         self.add_input("data:TLAR:v_approach", val=np.nan, units="m/s")
 
-        nans_array_OV = np.full(SPAN_MESH_POINT, np.nan)
-        nans_array_M = np.full(MACH_NB_PTS + 1, np.nan)
-        self.add_input("data:aerodynamics:wing:low_speed:Y_vector", val=nans_array_OV, shape=SPAN_MESH_POINT,
+        nans_array_ov = np.full(SPAN_MESH_POINT, np.nan)
+        nans_array_m = np.full(MACH_NB_PTS + 1, np.nan)
+        self.add_input("data:aerodynamics:wing:low_speed:Y_vector", val=nans_array_ov, shape=SPAN_MESH_POINT,
                        units="m")
-        self.add_input("data:aerodynamics:wing:low_speed:chord_vector", val=nans_array_OV, shape=SPAN_MESH_POINT,
+        self.add_input("data:aerodynamics:wing:low_speed:chord_vector", val=nans_array_ov, shape=SPAN_MESH_POINT,
                        units="m")
-        self.add_input("data:aerodynamics:wing:low_speed:CL_vector", val=nans_array_OV, shape=SPAN_MESH_POINT)
-        self.add_input("data:aerodynamics:slipstream:wing:only_prop:CL_vector", val=nans_array_OV,
+        self.add_input("data:aerodynamics:wing:low_speed:CL_vector", val=nans_array_ov, shape=SPAN_MESH_POINT)
+        self.add_input("data:aerodynamics:slipstream:wing:only_prop:CL_vector", val=nans_array_ov,
                        shape=SPAN_MESH_POINT)
-        self.add_input("data:aerodynamics:slipstream:wing:prop_on:Y_vector", val=nans_array_OV,
+        self.add_input("data:aerodynamics:slipstream:wing:prop_on:Y_vector", val=nans_array_ov,
                        shape=SPAN_MESH_POINT, units="m")
         self.add_input("data:aerodynamics:slipstream:wing:prop_on:velocity", val=np.nan, units="m/s")
         self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", val=np.nan)
@@ -67,14 +67,14 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
         self.add_input("data:aerodynamics:aircraft:landing:CL_max", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_min_clean", val=np.nan)
-        self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", val=np.nan)
-        self.add_input("data:aerodynamics:wing:cruise:CL_alpha", val=np.nan)
-        self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", val=np.nan)
-        self.add_input("data:aerodynamics:horizontal_tail:cruise:CL_alpha", val=np.nan)
-        self.add_input("data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector", val=nans_array_M,
+        self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:wing:cruise:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:horizontal_tail:cruise:CL_alpha", val=np.nan, units="rad**-1")
+        self.add_input("data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector", val=nans_array_m,
                        units="rad**-1",
                        shape=MACH_NB_PTS + 1)
-        self.add_input("data:aerodynamics:aircraft:mach_interpolation:mach_vector", val=nans_array_M,
+        self.add_input("data:aerodynamics:aircraft:mach_interpolation:mach_vector", val=nans_array_m,
                        shape=MACH_NB_PTS + 1)
 
         self.add_input("data:weight:aircraft:MZFW", val=np.nan, units="kg")
@@ -85,10 +85,6 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
         self.add_input("data:weight:aircraft_empty:CG:z", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:CG:aft:x", val=np.nan, units="m")
         self.add_input("data:weight:aircraft:CG:fwd:x", val=np.nan, units="m")
-        self.add_input("data:weight:aircraft:in_flight_variation:fixed_mass_comp:equivalent_moment", np.nan,
-                       units="kg*m")
-        self.add_input("data:weight:propulsion:tank:CG:x", np.nan, units="m")
-        self.add_input("data:weight:aircraft:in_flight_variation:fixed_mass_comp:mass", np.nan, units="kg")
 
         self.add_input("data:geometry:wing:root:virtual_chord", val=np.nan, units="m")
         self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
@@ -113,13 +109,11 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
 
         self.add_output("data:loads:max_shear:mass", units="kg")
         self.add_output("data:loads:max_shear:load_factor")
-        self.add_output("data:loads:max_shear:cg_position", units="m")
         self.add_output("data:loads:max_shear:lift_shear", units="N", shape=SPAN_MESH_POINT_LOADS)
         self.add_output("data:loads:max_shear:weight_shear", units="N", shape=SPAN_MESH_POINT_LOADS)
 
         self.add_output("data:loads:max_rbm:mass", units="kg")
         self.add_output("data:loads:max_rbm:load_factor")
-        self.add_output("data:loads:max_rbm:cg_position", units="m")
         self.add_output("data:loads:max_rbm:lift_rbm", units="N*m", shape=SPAN_MESH_POINT_LOADS)
         self.add_output("data:loads:max_rbm:weight_rbm", units="N*m", shape=SPAN_MESH_POINT_LOADS)
 
@@ -136,12 +130,11 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
         v_ref = inputs["data:aerodynamics:slipstream:wing:prop_on:velocity"]
 
         semi_span = inputs["data:geometry:wing:span"] / 2.0
+        wing_area = inputs["data:geometry:wing:area"]
 
         mtow = inputs["data:weight:aircraft:MTOW"]
         mzfw = inputs["data:weight:aircraft:MZFW"]
         wing_mass = inputs["data:weight:airframe:wing:mass"]
-        cg_aft = inputs["data:weight:aircraft:CG:aft:x"]
-        cg_fwd = inputs["data:weight:aircraft:CG:fwd:x"]
 
         cruise_alt = inputs["data:mission:sizing:main_route:cruise:altitude"]
 
@@ -177,7 +170,6 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
         mass_array = np.array([mtow, min(mzfw, mtow)])
         # In case fully electric
         # TODO Account for tanks in the fuselage of the wing
-        cg_array = np.array([cg_fwd, cg_aft])
 
         atm = Atmosphere(cruise_alt)
 
@@ -198,41 +190,39 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
 
             velocity_array, load_factor_array, _ = self.flight_domain(inputs, outputs, mass, cruise_alt, cruise_v_keas)
 
-            Vc = float(velocity_array[6])
+            v_c = float(velocity_array[6])
 
             load_factor_list = np.array([max(load_factor_array), min(load_factor_array)])
 
-            Vc_tas = atm.get_true_airspeed(Vc)
-            dynamic_pressure = 1. / 2. * atm.density * Vc_tas ** 2.0
+            v_c_tas = atm.get_true_airspeed(v_c)
+            dynamic_pressure = 1. / 2. * atm.density * v_c_tas ** 2.0
 
             for load_factor in load_factor_list:
 
-                for x_cg in cg_array:
-                    cl_wing, _, _, _ = AircraftEquilibrium.found_cl_repartition(inputs, load_factor, mass,
-                                                                                dynamic_pressure, False, x_cg)
-                    cl_s_actual = cl_s * cl_wing / cl_0
-                    cl_s_slip_actual = cl_s_slip * (v_ref / Vc_tas) ** 2.0
-                    lift_section = FoS * dynamic_pressure * (cl_s_actual + cl_s_slip_actual)
-                    weight_array = weight_array_orig * FoS * load_factor
+                cl_wing = 1.05 * (mass * load_factor * 9.81) / (dynamic_pressure * wing_area)
+                cl_s_actual = cl_s * cl_wing / cl_0
+                cl_s_slip_actual = cl_s_slip * (v_ref / v_c_tas) ** 2.0
+                lift_section = FoS * dynamic_pressure * (cl_s_actual + cl_s_slip_actual)
+                weight_array = weight_array_orig * FoS * load_factor
 
-                    tot_shear_diagram = AerostructuralLoadX57.compute_shear_diagram(y_vector, weight_array + lift_section)
-                    tot_bending_moment_diagram = AerostructuralLoadX57.compute_bending_moment_diagram(
-                        y_vector, weight_array + lift_section)
-                    root_shear_force = tot_shear_diagram[0]
-                    root_bending_moment = tot_bending_moment_diagram[0]
+                tot_shear_diagram = AerostructuralLoadX57.compute_shear_diagram(y_vector, weight_array + lift_section)
+                tot_bending_moment_diagram = AerostructuralLoadX57.compute_bending_moment_diagram(
+                    y_vector, weight_array + lift_section)
+                root_shear_force = tot_shear_diagram[0]
+                root_bending_moment = tot_bending_moment_diagram[0]
 
-                    if abs(root_shear_force) > shear_max:
-                        shear_max_conditions = [mass, load_factor, x_cg]
-                        lift_shear_diagram = AerostructuralLoadX57.compute_shear_diagram(y_vector, lift_section)
-                        weight_shear_diagram = AerostructuralLoadX57.compute_shear_diagram(y_vector, weight_array)
-                        shear_max = abs(root_shear_force)
+                if abs(root_shear_force) > shear_max:
+                    shear_max_conditions = [mass, load_factor]
+                    lift_shear_diagram = AerostructuralLoadX57.compute_shear_diagram(y_vector, lift_section)
+                    weight_shear_diagram = AerostructuralLoadX57.compute_shear_diagram(y_vector, weight_array)
+                    shear_max = abs(root_shear_force)
 
-                    if abs(root_bending_moment) > rbm_max:
-                        rbm_max_conditions = [mass, load_factor, x_cg]
-                        lift_bending_diagram = AerostructuralLoadX57.compute_bending_moment_diagram(y_vector, lift_section)
-                        weight_bending_diagram = AerostructuralLoadX57.compute_bending_moment_diagram(
-                            y_vector, weight_array)
-                        rbm_max = abs(root_bending_moment)
+                if abs(root_bending_moment) > rbm_max:
+                    rbm_max_conditions = [mass, load_factor]
+                    lift_bending_diagram = AerostructuralLoadX57.compute_bending_moment_diagram(y_vector, lift_section)
+                    weight_bending_diagram = AerostructuralLoadX57.compute_bending_moment_diagram(
+                        y_vector, weight_array)
+                    rbm_max = abs(root_bending_moment)
 
         additional_zeros = np.zeros(SPAN_MESH_POINT_LOADS - len(y_vector))
         lift_shear_diagram = np.concatenate([lift_shear_diagram, additional_zeros])
@@ -244,13 +234,11 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
 
         outputs["data:loads:max_shear:mass"] = shear_max_conditions[0]
         outputs["data:loads:max_shear:load_factor"] = shear_max_conditions[1]
-        outputs["data:loads:max_shear:cg_position"] = shear_max_conditions[2]
         outputs["data:loads:max_shear:lift_shear"] = lift_shear_diagram
         outputs["data:loads:max_shear:weight_shear"] = weight_shear_diagram
 
         outputs["data:loads:max_rbm:mass"] = rbm_max_conditions[0]
         outputs["data:loads:max_rbm:load_factor"] = rbm_max_conditions[1]
-        outputs["data:loads:max_rbm:cg_position"] = rbm_max_conditions[2]
         outputs["data:loads:max_rbm:lift_rbm"] = lift_bending_diagram
         outputs["data:loads:max_rbm:weight_rbm"] = weight_bending_diagram
 

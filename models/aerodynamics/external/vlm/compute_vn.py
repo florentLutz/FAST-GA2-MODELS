@@ -133,6 +133,7 @@ class ComputeVNvlm(VLMSimpleGeometry):
         
     def setup(self):
         super().setup()
+        nans_array = np.full(MACH_NB_PTS + 1, np.nan)
         self.add_input("data:TLAR:category", val=3.0)
         self.add_input("data:TLAR:level", val=1.0)
         self.add_input("data:weight:aircraft:MTOW", val=np.nan, units="kg")
@@ -140,6 +141,10 @@ class ComputeVNvlm(VLMSimpleGeometry):
         self.add_input("data:aerodynamics:aircraft:landing:CL_max", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean", val=np.nan)
         self.add_input("data:aerodynamics:wing:low_speed:CL_min_clean", val=np.nan)
+        self.add_input("data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector", val=nans_array, units="rad**-1",
+                       shape=MACH_NB_PTS + 1)
+        self.add_input("data:aerodynamics:aircraft:mach_interpolation:mach_vector", val=nans_array,
+                       shape=MACH_NB_PTS + 1)
         self.add_input("data:TLAR:v_cruise", val=np.nan, units="m/s")
         self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="m")
         if not(self.options["compute_cl_alpha"]):
@@ -164,8 +169,8 @@ class ComputeVNvlm(VLMSimpleGeometry):
         design_mass = inputs["data:weight:aircraft:MTOW"]
 
         design_vc = Atmosphere(cruise_altitude, altitude_in_feet=False).get_equivalent_airspeed(v_tas)
-        velocity_array, load_factor_array, _ = self.flight_domain(inputs, design_mass, cruise_altitude, design_vc,
-                                                                           design_n_ps=0.0, design_n_ng=0.0)
+        velocity_array, load_factor_array, _ = self.flight_domain(inputs, outputs, design_mass, cruise_altitude,
+                                                                  design_vc, design_n_ps=0.0, design_n_ng=0.0)
 
         if DOMAIN_PTS_NB < len(velocity_array):
             velocity_array = velocity_array[0:DOMAIN_PTS_NB-1]
@@ -180,7 +185,7 @@ class ComputeVNvlm(VLMSimpleGeometry):
         outputs["data:flight_domain:load_factor"] = np.array(load_factor_array)
 
 
-    def flight_domain(self, inputs, mass, altitude, design_vc, design_n_ps=0.0, design_n_ng=0.0):
+    def flight_domain(self, inputs, outputs, mass, altitude, design_vc, design_n_ps=0.0, design_n_ng=0.0):
 
         # Get necessary inputs
         wing_area = inputs["data:geometry:wing:area"]
@@ -228,11 +233,11 @@ class ComputeVNvlm(VLMSimpleGeometry):
         # square regression between both.
 
         if self.options["compute_cl_alpha"]:
-            v_interp = np.exp(np.linspace(np.log(Vs_1g_ps), np.log(1.4*float(Vh)), MACH_NB_PTS))
-            mach_interp = v_interp * math.sqrt(atm_0.density / atm.density) / atm.speed_of_sound
-            cl_alpha_interp = np.zeros(np.size(v_interp))
-            for idx in range(len(mach_interp)):
-                cl_alpha_interp[idx] = self.compute_cl_alpha_aircraft(inputs, altitude, mach_interp[idx], INPUT_AOA)
+            mach_interp = inputs["data:aerodynamics:aircraft:mach_interpolation:mach_vector"]
+            v_interp = []
+            for mach in mach_interp:
+                v_interp.append(float(mach * atm.speed_of_sound))
+            cl_alpha_interp = inputs["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"]
             cl_alpha_fct = interpolate.interp1d(v_interp, cl_alpha_interp, fill_value="extrapolate", kind="quadratic")
         else:
             v_interp = np.array([float(inputs["data:TLAR:v_approach"]), float(inputs["data:TLAR:v_cruise"])])
@@ -331,7 +336,7 @@ class ComputeVNvlm(VLMSimpleGeometry):
             # In case the gust line load factor is above the maneuvering load factor, we need to solve the difference
             # between both curve to be 0.0 to find intersect
             delta = lambda x: load_factor_gust_p(U_de_Vc, x) - load_factor_stall_p(x)
-            Vma_ps = max(optimize.fsolve(delta, np.array(1000.0))[0])
+            Vma_ps = max(optimize.fsolve(delta, np.array(1000.0)))
             n_ma_ps = load_factor_gust_p(U_de_Vc, Vma_ps)  # [-]
             velocity_array.append(float(Vma_ps))
             load_factor_array.append(float(n_ma_ps))
