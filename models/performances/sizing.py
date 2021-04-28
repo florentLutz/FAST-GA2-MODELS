@@ -22,7 +22,11 @@ from ..weight.cg import InFlightCGVariation
 from .takeoff import TakeOffPhase
 from .mission import _compute_taxi, _compute_climb, _compute_cruise, _compute_descent
 
+from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
+from fastoad.module_management.constants import ModelDomain
 
+
+@RegisterOpenMDAOSystem("fastga.performances.sizing", domain=ModelDomain.PERFORMANCE)
 class Sizing(om.Group):
     """
     Computes analytically the fuel mass necessary for each part of the flight cycle.

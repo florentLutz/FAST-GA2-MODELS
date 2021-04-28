@@ -20,9 +20,11 @@ import copy
 from scipy.constants import g
 import time
 
-from fastoad.utils.physics import Atmosphere
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
+from fastoad.model_base import Atmosphere
+from fastoad.model_base import FlightPoint
+from fastoad.model_base.propulsion import FuelEngineSet, IOMPropulsionWrapper
+from fastoad.module_management.constants import ModelDomain
+from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad.constants import EngineSetting
 
 from ..propulsion.fuel_propulsion.base import FuelEngineSet

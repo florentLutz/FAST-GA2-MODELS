@@ -18,7 +18,11 @@ import openmdao.api as om
 
 from . import UpdateVTArea, UpdateHTArea
 
+from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
+from fastoad.module_management.constants import ModelDomain
 
+
+@RegisterOpenMDAOSystem("fastga.handling_qualities.tail_sizing", domain=ModelDomain.HANDLING_QUALITIES)
 class UpdateTailAreas(om.Group):
     """
     Computes areas of vertical and horizontal tail.

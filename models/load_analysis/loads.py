@@ -17,7 +17,11 @@ from .aerostructural_loads import AerostructuralLoad
 from .structural_loads import StructuralLoads
 from .aerodynamic_loads import AerodynamicLoads
 
+from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
+from fastoad.module_management.constants import ModelDomain
 
+
+@RegisterOpenMDAOSystem("fastga.loads.legacy", domain=ModelDomain.OTHER)
 class Loads(om.Group):
 
     def initialize(self):

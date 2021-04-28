@@ -19,7 +19,11 @@ import numpy as np
 import openmdao.api as om
 from ..aerodynamics.aero_center import ComputeAeroCenter
 
+from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
+from fastoad.module_management.constants import ModelDomain
 
+
+@RegisterOpenMDAOSystem("fastga.handling_qualities.all_handling_qualities", domain=ModelDomain.HANDLING_QUALITIES)
 class ComputeStaticMargin(om.Group):
     """
     Calculate aero-center and global static margin

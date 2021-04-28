@@ -1,2 +1,0 @@
-A supprimer quand on comprendra Git
-En fait on y comprendra jamais rien

@@ -17,7 +17,11 @@ Computation of wing position
 import numpy as np
 import openmdao.api as om
 
+from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
+from fastoad.module_management.constants import ModelDomain
 
+
+@RegisterOpenMDAOSystem("fastga.loop.wing_area", domain=ModelDomain.OTHER)
 class UpdateWingPosition(om.ExplicitComponent):
 
     def setup(self):

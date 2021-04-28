@@ -19,7 +19,11 @@ import openmdao.api as om
 from .cg.cg import CG
 from .mass_breakdown import MassBreakdown
 
+from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
+from fastoad.module_management.constants import ModelDomain
 
+
+@RegisterOpenMDAOSystem("fastga.weight.legacy", domain=ModelDomain.WEIGHT)
 class Weight(om.Group):
     """
     Computes masses and Centers of Gravity for each part of the empty operating aircraft, among

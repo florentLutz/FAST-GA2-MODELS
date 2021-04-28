@@ -15,14 +15,14 @@ Estimation of static margin
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import numpy as np
 import openmdao.api as om
+from typing import Union, List, Optional, Tuple
+
 from ..aerodynamics.aero_center import ComputeAeroCenter
 from .compute_static_margin import _ComputeStaticMargin
-from .tail_sizing.compute_to_rotation_limit import ComputeTORotationLimit, _ComputeAeroCoeffTO
 from .tail_sizing.compute_to_rotation_limit import ComputeTORotationLimitGroup
 from .tail_sizing.compute_balked_landing_limit import ComputeBalkedLandingLimit
-from typing import Union, List, Optional, Tuple
+
 
 
 class ComputeHandlingQualities(om.Group):
@@ -40,30 +40,3 @@ class ComputeHandlingQualities(om.Group):
                            ComputeTORotationLimitGroup(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
         self.add_subsystem("balked_landing_limit",
                            ComputeBalkedLandingLimit(propulsion_id=self.options["propulsion_id"]), promotes=["*"])
-
-    @staticmethod
-    def get_io_names(
-            component: om.ExplicitComponent,
-            excludes: Optional[Union[str, List[str]]] = None,
-            iotypes: Optional[Union[str, Tuple[str]]] = ('inputs', 'outputs')) -> List[str]:
-        prob = om.Problem(model=component)
-        prob.setup()
-        data = []
-        if type(iotypes) == tuple:
-            data.extend(prob.model.list_inputs(out_stream=None))
-            data.extend(prob.model.list_outputs(out_stream=None))
-        else:
-            if iotypes == 'inputs':
-                data.extend(prob.model.list_inputs(out_stream=None))
-            else:
-                data.extend(prob.model.list_outputs(out_stream=None))
-        list_names = []
-        for idx in range(len(data)):
-            variable_name = data[idx][0]
-            if excludes is None:
-                list_names.append(variable_name)
-            else:
-                if variable_name not in list(excludes):
-                    list_names.append(variable_name)
-
-        return list_names

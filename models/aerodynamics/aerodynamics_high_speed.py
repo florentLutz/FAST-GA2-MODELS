@@ -28,7 +28,11 @@ from .external.vlm import ComputeAEROvlm
 from .external.openvsp import ComputeAEROopenvsp
 from .external.openvsp.compute_aero_slipstream import _ComputeSlipstreamOpenvsp
 
+from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
+from fastoad.module_management.constants import ModelDomain
 
+
+@RegisterOpenMDAOSystem("fastga.aerodynamics.highspeed.legacy", domain=ModelDomain.AERODYNAMICS)
 class AerodynamicsHighSpeed(Group):
     """
     Models for high speed aerodynamics
