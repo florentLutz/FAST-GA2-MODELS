@@ -47,7 +47,22 @@ class ComputeSlipstreamOpenvspX57(Group):
 class _ComputeSlipstreamOpenvspX57(OPENVSPSimpleGeometryDPX57):
 
     def setup(self):
-        super().setup()
+        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
+        self.add_input("data:geometry:wing:MAC:leading_edge:x:local", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:tip:y", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:tip:leading_edge:x:local", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:span", val=np.nan, units="m")
+        self.add_input("data:geometry:wing:sweep_0", val=np.nan, units="deg")
+        self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
+        self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
+
+        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="m")
+
         self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
 
         self.add_output("data:aerodynamics:slipstream:wing:prop_on:Y_vector", shape=SPAN_MESH_POINT,
