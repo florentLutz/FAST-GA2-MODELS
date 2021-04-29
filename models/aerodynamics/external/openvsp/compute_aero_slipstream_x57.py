@@ -16,10 +16,9 @@
 
 import numpy as np
 from openmdao.core.group import Group
-from fastoad import BundleLoader
-from fastoad.utils.physics import Atmosphere
+from fastoad.model_base import Atmosphere
 
-from .openvsp import OPENVSPSimpleGeometry, DEFAULT_WING_AIRFOIL
+from .openvsp import OPENVSPSimpleGeometryDPX57, DEFAULT_WING_AIRFOIL
 from ...constants import SPAN_MESH_POINT
 from ...components.compute_reynolds import ComputeUnitReynolds
 
@@ -45,31 +44,10 @@ class ComputeSlipstreamOpenvspX57(Group):
                            ), promotes=["*"])
 
 
-class _ComputeSlipstreamOpenvspX57(OPENVSPSimpleGeometry):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def initialize(self):
-        super().initialize()
+class _ComputeSlipstreamOpenvspX57(OPENVSPSimpleGeometryDPX57):
 
     def setup(self):
-        self.add_input("data:geometry:wing:area", val=np.nan, units="m**2")
-        self.add_input("data:geometry:wing:MAC:leading_edge:x:local", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:length", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:root:y", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:root:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:tip:y", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:tip:chord", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:tip:leading_edge:x:local", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:MAC:at25percent:x", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:span", val=np.nan, units="m")
-        self.add_input("data:geometry:wing:sweep_0", val=np.nan, units="deg")
-        self.add_input("data:geometry:fuselage:maximum_width", val=np.nan, units="m")
-        self.add_input("data:geometry:fuselage:maximum_height", val=np.nan, units="m")
-
-        self.add_input("data:mission:sizing:main_route:cruise:altitude", val=np.nan, units="m")
-
+        super().setup()
         self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
 
         self.add_output("data:aerodynamics:slipstream:wing:prop_on:Y_vector", shape=SPAN_MESH_POINT,
@@ -78,12 +56,10 @@ class _ComputeSlipstreamOpenvspX57(OPENVSPSimpleGeometry):
         self.add_output("data:aerodynamics:slipstream:wing:prop_on:CT_ref", shape=PROPELLER_NUMBER)
         self.add_output("data:aerodynamics:slipstream:wing:prop_on:CL")
         self.add_output("data:aerodynamics:slipstream:wing:prop_on:velocity", units="m/s")
-
         self.add_output("data:aerodynamics:slipstream:wing:prop_off:Y_vector", shape=SPAN_MESH_POINT,
                         units="m")
         self.add_output("data:aerodynamics:slipstream:wing:prop_off:CL_vector", shape=SPAN_MESH_POINT)
         self.add_output("data:aerodynamics:slipstream:wing:prop_off:CL")
-
         self.add_output("data:aerodynamics:slipstream:wing:only_prop:CL_vector", shape=SPAN_MESH_POINT)
 
 
@@ -121,7 +97,7 @@ class _ComputeSlipstreamOpenvspX57(OPENVSPSimpleGeometry):
 
         cl_diff = []
         for i in range(len(cl_vector_prop_on)):
-            cl_diff.append(round(cl_vector_prop_on[i]-cl_vector_prop_off[i],4))
+            cl_diff.append(round(cl_vector_prop_on[i]-cl_vector_prop_off[i], 4))
 
         outputs["data:aerodynamics:slipstream:wing:prop_on:Y_vector"] = y_vector_prop_on
         outputs["data:aerodynamics:slipstream:wing:prop_on:CL_vector"] = cl_vector_prop_on

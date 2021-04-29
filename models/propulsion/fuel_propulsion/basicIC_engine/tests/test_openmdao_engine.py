@@ -18,7 +18,7 @@ import numpy as np
 import openmdao.api as om
 from fastoad.constants import EngineSetting
 
-from .....tests.testing_utilities import run_system
+from models.tests.testing_utilities import run_system
 from ..openmdao import OMBasicICEngineComponent
 
 

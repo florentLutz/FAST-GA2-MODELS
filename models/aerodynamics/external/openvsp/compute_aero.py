@@ -27,7 +27,6 @@ INPUT_AOA = 10.0  # only one value given since calculation is done by default ar
 
 class ComputeAEROopenvsp(Group):
     def initialize(self):
-        self.options.declare("propulsion_id", default="", types=str)
         self.options.declare("low_speed_aero", default=False, types=bool)
         self.options.declare("compute_mach_interpolation", default=False, types=bool)
         self.options.declare("result_folder_path", default="", types=str)
@@ -40,7 +39,6 @@ class ComputeAEROopenvsp(Group):
                            promotes=["*"])
         self.add_subsystem("aero_openvsp",
                            _ComputeAEROopenvsp(
-                               propulsion_id=self.options["propulsion_id"],
                                low_speed_aero=self.options["low_speed_aero"],
                                compute_mach_interpolation=self.options["compute_mach_interpolation"],
                                result_folder_path=self.options["result_folder_path"],
@@ -91,7 +89,7 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             if self.options["compute_mach_interpolation"]:
                 self.add_output("data:aerodynamics:aircraft:mach_interpolation:mach_vector", shape=MACH_NB_PTS + 1)
                 self.add_output("data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector", shape=MACH_NB_PTS + 1,
-                            units="rad**-1")
+                                units="rad**-1")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -116,11 +114,10 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
         cl_X_htp, cl_alpha_htp, cl_alpha_htp_isolated, y_vector_htp, cl_vector_htp, coef_k_htp = self.compute_aero_coef(
             inputs, outputs, altitude, mach, INPUT_AOA)
 
-        if self.options["low_speed_aero"]:
-            pass
-        else:
-            if self.options["compute_mach_interpolation"]:
-                mach_interp, cl_alpha_interp = self.compute_cl_alpha_mach(inputs, outputs, INPUT_AOA, altitude, mach)
+        if not self.options["low_speed_aero"] and self.options["compute_mach_interpolation"]:
+            mach_interp, cl_alpha_interp = self.compute_cl_alpha_mach(inputs, outputs, INPUT_AOA, altitude, mach)
+            outputs["data:aerodynamics:aircraft:mach_interpolation:mach_vector"] = mach_interp
+            outputs["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"] = cl_alpha_interp
 
         # Defining outputs -----------------------------------------------------------------------------
         if self.options["low_speed_aero"]:
@@ -147,7 +144,3 @@ class _ComputeAEROopenvsp(OPENVSPSimpleGeometry):
             outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha'] = cl_alpha_htp
             outputs['data:aerodynamics:horizontal_tail:cruise:CL_alpha_isolated'] = cl_alpha_htp_isolated
             outputs["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"] = coef_k_htp
-            if self.options["compute_mach_interpolation"]:
-                outputs["data:aerodynamics:aircraft:mach_interpolation:mach_vector"] = mach_interp
-                outputs["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"] = cl_alpha_interp
-

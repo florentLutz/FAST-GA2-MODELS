@@ -15,23 +15,15 @@
 import numpy as np
 from openmdao.core.component import Component
 
-from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
+from fastoad.model_base.propulsion import IOMPropulsionWrapper
 from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad.openmdao.validity_checker import ValidityDomainChecker
 
-from ...propulsion import IPropulsion, BaseOMPropulsionComponent
+from models.propulsion.propulsion import IPropulsion, BaseOMPropulsionComponent
 from .basicIC_engine import BasicICEngine
 
 
-@RegisterPropulsion(
-    "fastga.wrapper.propulsion.basicIC_engine",
-    desc="""
-Parametric ICE engine-propeller model as OpenMDAO component.
-
-Implementation of basic scaled power propeller-engine model with fixed efficiency.
-For more information, see BasicICEngine class in FAST-OAD developer documentation.
-""",
-)
+@RegisterPropulsion("fastga.wrapper.propulsion.basicIC_engine")
 class OMBasicICEngineWrapper(IOMPropulsionWrapper):
     """
     Wrapper class of for basic IC engine model.

@@ -19,7 +19,7 @@ import numpy as np
 import math
 import openmdao.api as om
 from pandas import read_csv
-from importlib_resources import open_text
+from importlib.resources import open_text
 from typing import Union, Tuple, Optional
 from scipy import interpolate
 

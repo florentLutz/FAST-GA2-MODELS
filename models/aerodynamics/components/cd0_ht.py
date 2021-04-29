@@ -19,7 +19,7 @@ import math
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-from ...geometry.profiles.get_profile import get_profile
+from models.geometry.profiles.get_profile import get_profile
 
 
 class Cd0HorizontalTail(ExplicitComponent):

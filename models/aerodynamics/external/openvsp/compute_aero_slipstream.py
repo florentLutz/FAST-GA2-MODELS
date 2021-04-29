@@ -16,10 +16,9 @@
 
 import numpy as np
 from openmdao.core.group import Group
-from fastoad import BundleLoader
-from fastoad.utils.physics import Atmosphere
+from fastoad.model_base import Atmosphere
 
-from .openvsp import OPENVSPSimpleGeometry, DEFAULT_WING_AIRFOIL
+from .openvsp import OPENVSPSimpleGeometryDP, DEFAULT_WING_AIRFOIL
 from ...constants import SPAN_MESH_POINT
 from ...components.compute_reynolds import ComputeUnitReynolds
 
@@ -45,39 +44,23 @@ class ComputeSlipstreamOpenvsp(Group):
                            ), promotes=["*"])
 
 
-class _ComputeSlipstreamOpenvsp(OPENVSPSimpleGeometry):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._engine_wrapper = None
+class _ComputeSlipstreamOpenvsp(OPENVSPSimpleGeometryDP):
 
     def initialize(self):
-        self.options.declare("low_speed_aero", default=False, types=bool)
         super().initialize()
+        self.options.declare("low_speed_aero", default=False, types=bool)
 
     def setup(self):
         super().setup()
-        self._engine_wrapper = BundleLoader().instantiate_component(self.options["propulsion_id"])
-        self._engine_wrapper.setup(self)
         if self.options["low_speed_aero"]:
             self.add_input("data:aerodynamics:low_speed:mach", val=np.nan)
-
             self.add_input("data:aerodynamics:wing:low_speed:CL0_clean", val=np.nan)
             self.add_input("data:aerodynamics:wing:low_speed:CL_alpha", val=np.nan, units="deg**-1")
         else:
             self.add_input("data:aerodynamics:cruise:mach", val=np.nan)
-
             self.add_input("data:aerodynamics:wing:cruise:CL0_clean", val=np.nan)
             self.add_input("data:aerodynamics:wing:cruise:CL_alpha", val=np.nan, units="deg**-1")
-
         self.add_input("data:aerodynamics:wing:low_speed:CL_max_clean")
-
-        self.add_input("data:geometry:propulsion:propeller:diameter", val=np.nan, units="m")
-        self.add_input("data:geometry:propulsion:y_ratio", val=np.nan)
-        self.add_input("data:geometry:propulsion:count", val=np.nan)
-        self.add_input("data:geometry:propulsion:nacelle:length", val=np.nan, units="m")
-
-        self.add_input("data:propulsion:IC_engine:engine_rpm", val=np.nan, units="min**-1")
 
         if self.options["low_speed_aero"]:
             self.add_output("data:aerodynamics:slipstream:wing:low_speed:prop_on:Y_vector", shape=SPAN_MESH_POINT,
@@ -86,12 +69,10 @@ class _ComputeSlipstreamOpenvsp(OPENVSPSimpleGeometry):
             self.add_output("data:aerodynamics:slipstream:wing:low_speed:prop_on:CT_ref")
             self.add_output("data:aerodynamics:slipstream:wing:low_speed:prop_on:CL")
             self.add_output("data:aerodynamics:slipstream:wing:low_speed:prop_on:velocity", units="m/s")
-
             self.add_output("data:aerodynamics:slipstream:wing:low_speed:prop_off:Y_vector", shape=SPAN_MESH_POINT,
                             units="m")
             self.add_output("data:aerodynamics:slipstream:wing:low_speed:prop_off:CL_vector", shape=SPAN_MESH_POINT)
             self.add_output("data:aerodynamics:slipstream:wing:low_speed:prop_off:CL")
-
             self.add_output("data:aerodynamics:slipstream:wing:low_speed:only_prop:CL_vector", shape=SPAN_MESH_POINT)
         else:
             self.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:Y_vector", shape=SPAN_MESH_POINT,
@@ -100,12 +81,10 @@ class _ComputeSlipstreamOpenvsp(OPENVSPSimpleGeometry):
             self.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:CT_ref")
             self.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:CL")
             self.add_output("data:aerodynamics:slipstream:wing:cruise:prop_on:velocity", units="m/s")
-
             self.add_output("data:aerodynamics:slipstream:wing:cruise:prop_off:Y_vector", shape=SPAN_MESH_POINT,
                             units="m")
             self.add_output("data:aerodynamics:slipstream:wing:cruise:prop_off:CL_vector", shape=SPAN_MESH_POINT)
             self.add_output("data:aerodynamics:slipstream:wing:cruise:prop_off:CL")
-
             self.add_output("data:aerodynamics:slipstream:wing:cruise:only_prop:CL_vector", shape=SPAN_MESH_POINT)
 
     def check_config(self, logger):
@@ -160,11 +139,9 @@ class _ComputeSlipstreamOpenvsp(OPENVSPSimpleGeometry):
             outputs["data:aerodynamics:slipstream:wing:low_speed:prop_on:CT_ref"] = wing_rotor["ct"]
             outputs["data:aerodynamics:slipstream:wing:low_speed:prop_on:CL"] = wing_rotor["cl"]
             outputs["data:aerodynamics:slipstream:wing:low_speed:prop_on:velocity"] = velocity
-
             outputs["data:aerodynamics:slipstream:wing:low_speed:prop_off:Y_vector"] = y_vector_prop_off
             outputs["data:aerodynamics:slipstream:wing:low_speed:prop_off:CL_vector"] = cl_vector_prop_off
             outputs["data:aerodynamics:slipstream:wing:low_speed:prop_off:CL"] = wing["cl"]
-
             outputs["data:aerodynamics:slipstream:wing:low_speed:only_prop:CL_vector"] = cl_diff
         else:
             outputs["data:aerodynamics:slipstream:wing:cruise:prop_on:Y_vector"] = y_vector_prop_on
@@ -172,9 +149,7 @@ class _ComputeSlipstreamOpenvsp(OPENVSPSimpleGeometry):
             outputs["data:aerodynamics:slipstream:wing:cruise:prop_on:CT_ref"] = wing_rotor["ct"]
             outputs["data:aerodynamics:slipstream:wing:cruise:prop_on:CL"] = wing_rotor["cl"]
             outputs["data:aerodynamics:slipstream:wing:cruise:prop_on:velocity"] = velocity
-            
             outputs["data:aerodynamics:slipstream:wing:cruise:prop_off:Y_vector"] = y_vector_prop_off
             outputs["data:aerodynamics:slipstream:wing:cruise:prop_off:CL_vector"] = cl_vector_prop_off
             outputs["data:aerodynamics:slipstream:wing:cruise:prop_off:CL"] = wing["cl"]
-            
             outputs["data:aerodynamics:slipstream:wing:cruise:only_prop:CL_vector"] = cl_diff

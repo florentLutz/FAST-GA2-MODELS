@@ -21,13 +21,13 @@ from typing import Union, Sequence, Tuple, Optional
 from scipy.constants import g
 import warnings
 
-from fastoad.base.flight_point import FlightPoint
+from .exceptions import FastBasicICEngineInconsistentInputParametersError
+from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from models.propulsion.dict import DynamicAttributeDict, AddKeyAttributes
+
+from fastoad.model_base import FlightPoint, Atmosphere
 from fastoad.constants import EngineSetting
 from fastoad.exceptions import FastUnknownEngineSettingError
-from .exceptions import FastBasicICEngineInconsistentInputParametersError
-from ..base import AbstractFuelPropulsion
-from fastoad.utils.physics import Atmosphere
-from fastoad.base.dict import DynamicAttributeDict, AddKeyAttributes
 
 # Logger for this module
 _LOGGER = logging.getLogger(__name__)
@@ -142,7 +142,7 @@ class BasicICEngine(AbstractFuelPropulsion):
             self,
             mach: Union[float, Sequence],
             altitude: Union[float, Sequence],
-            engine_setting: Union[float, Sequence],
+            engine_setting: Union[EngineSetting, Sequence],
             thrust_is_regulated: Optional[Union[bool, Sequence]] = None,
             thrust_rate: Optional[Union[float, Sequence]] = None,
             thrust: Optional[Union[float, Sequence]] = None,

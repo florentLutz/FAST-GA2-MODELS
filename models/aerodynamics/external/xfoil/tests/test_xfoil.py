@@ -25,8 +25,8 @@ import warnings
 import pytest
 from openmdao.core.indepvarcomp import IndepVarComp
 
-from .....tests.testing_utilities import run_system
-from .....tests.xfoil_exe.get_xfoil import get_xfoil_path
+from models.tests.testing_utilities import run_system
+from models.tests.xfoil_exe.get_xfoil import get_xfoil_path
 from ..xfoil_polar import XfoilPolar, DEFAULT_2D_CL_MAX, DEFAULT_2D_CL_MIN, _DEFAULT_AIRFOIL_FILE
 from .. import resources
 

@@ -22,7 +22,7 @@ import openmdao.api as om
 from ..external.xfoil import XfoilPolar
 from ..constants import POLAR_POINT_COUNT, MACH_NB_PTS
 
-from fastoad.utils.physics import Atmosphere
+from fastoad.model_base import Atmosphere
 
 
 class ComputeMachInterpolation(om.Group):

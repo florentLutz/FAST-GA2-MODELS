@@ -19,9 +19,13 @@ import openmdao.api as om
 
 from .geom_components import ComputeTotalArea, ComputeFuselageGeometryBasic, ComputeFuselageGeometryCabinSizingFD, \
     ComputeHorizontalTailGeometryFD, ComputeNacelleGeometry, ComputeVerticalTailGeometryFD, ComputeWingGeometry
-from ..options import CABIN_SIZING_OPTION
+from models.options import CABIN_SIZING_OPTION
+
+from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
+from fastoad.module_management.constants import ModelDomain
 
 
+@RegisterOpenMDAOSystem("fastga.geometry.legacy", domain=ModelDomain.GEOMETRY)
 class GeometryFixedTailDistance(om.Group):
     """
     Computes geometric characteristics of the (tube-wing) aircraft:

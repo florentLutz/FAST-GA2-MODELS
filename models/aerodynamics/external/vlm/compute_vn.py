@@ -24,12 +24,12 @@ from scipy.constants import knot, foot, lbf
 import openmdao.api as om
 
 from .vlm import VLMSimpleGeometry
-from ....propulsion.fuel_propulsion.base import FuelEngineSet
+from models.propulsion.fuel_propulsion.base import FuelEngineSet
 
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
+# noinspection PyProtectedMember
+from fastoad.module_management._bundle_loader import BundleLoader
+from fastoad.model_base import Atmosphere, FlightPoint
 from fastoad.constants import EngineSetting
-from fastoad.utils.physics import Atmosphere
 
 INPUT_AOA = 10.0  # only one value given since calculation is done by default around 0.0!
 MACH_NB_PTS = 5  # number of points for cl_alpha_aircraft fitting along mach axis
@@ -168,7 +168,9 @@ class ComputeVNvlm(VLMSimpleGeometry):
         cruise_altitude = inputs["data:mission:sizing:main_route:cruise:altitude"]
         design_mass = inputs["data:weight:aircraft:MTOW"]
 
-        design_vc = Atmosphere(cruise_altitude, altitude_in_feet=False).get_equivalent_airspeed(v_tas)
+        atm = Atmosphere(cruise_altitude, altitude_in_feet=False)
+        atm.true_airspeed = v_tas
+        design_vc = atm.equivalent_airspeed
         velocity_array, load_factor_array, _ = self.flight_domain(inputs, outputs, design_mass, cruise_altitude,
                                                                   design_vc, design_n_ps=0.0, design_n_ng=0.0)
 
@@ -184,7 +186,7 @@ class ComputeVNvlm(VLMSimpleGeometry):
         outputs["data:flight_domain:velocity"] = np.array(velocity_array)
         outputs["data:flight_domain:load_factor"] = np.array(load_factor_array)
 
-
+    # noinspection PyUnusedLocal
     def flight_domain(self, inputs, outputs, mass, altitude, design_vc, design_n_ps=0.0, design_n_ng=0.0):
 
         # Get necessary inputs

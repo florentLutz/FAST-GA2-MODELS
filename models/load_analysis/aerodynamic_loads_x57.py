@@ -19,8 +19,7 @@ import numpy as np
 
 from .aerostructural_loads_x57 import AerostructuralLoadX57, SPAN_MESH_POINT_LOADS
 from ..aerodynamics.constants import SPAN_MESH_POINT
-from fastoad.utils.physics.atmosphere import Atmosphere
-from ..aerodynamics.lift_equilibrium import AircraftEquilibrium
+from fastoad.model_base.atmosphere import Atmosphere
 
 
 class AerodynamicLoadsX57(AerostructuralLoadX57):

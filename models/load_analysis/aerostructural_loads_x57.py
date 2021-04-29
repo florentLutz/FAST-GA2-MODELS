@@ -16,15 +16,15 @@ Computes the aerostructural loads on the wing of the aircraft
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
-
 import numpy as np
+from scipy.integrate import trapz
+from scipy.interpolate import interp1d
 
 from ..aerodynamics.constants import SPAN_MESH_POINT, MACH_NB_PTS
 from ..aerodynamics.external.openvsp.compute_vn import ComputeVNopenvsp
-from fastoad.utils.physics.atmosphere import Atmosphere
-from scipy.integrate import trapz
-from scipy.interpolate import interp1d
-from ..aerodynamics.lift_equilibrium import AircraftEquilibrium
+
+from fastoad.model_base.atmosphere import Atmosphere
+
 
 NB_POINTS_POINT_MASS = 5
 # MUST BE AN EVEN NUMBER

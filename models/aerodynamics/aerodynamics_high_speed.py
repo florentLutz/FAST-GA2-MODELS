@@ -82,7 +82,6 @@ class AerodynamicsHighSpeed(Group):
                                        result_folder_path=self.options["result_folder_path"],
                                        wing_airfoil_file=self.options["wing_airfoil_file"],
                                        htp_airfoil_file=self.options["htp_airfoil_file"],
-                                       propulsion_id=self.options["propulsion_id"],
                                    ), promotes=["*"])
             else:
                 self.add_subsystem("aero_openvsp",
@@ -92,7 +91,6 @@ class AerodynamicsHighSpeed(Group):
                                        result_folder_path=self.options["result_folder_path"],
                                        wing_airfoil_file=self.options["wing_airfoil_file"],
                                        htp_airfoil_file=self.options["htp_airfoil_file"],
-                                       propulsion_id=self.options["propulsion_id"],
                                    ), promotes=["*"])
                 self.add_subsystem("mach_interpolation_roskam",
                                    ComputeMachInterpolation(

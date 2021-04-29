@@ -16,7 +16,6 @@ Estimation of static margin
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import openmdao.api as om
-from typing import Union, List, Optional, Tuple
 
 from ..aerodynamics.aero_center import ComputeAeroCenter
 from .compute_static_margin import _ComputeStaticMargin
@@ -24,7 +23,11 @@ from .tail_sizing.compute_to_rotation_limit import ComputeTORotationLimitGroup
 from .tail_sizing.compute_balked_landing_limit import ComputeBalkedLandingLimit
 
 
+from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
+from fastoad.module_management.constants import ModelDomain
 
+
+@RegisterOpenMDAOSystem("fastga.handling_qualities.all_handling_qualities", domain=ModelDomain.HANDLING_QUALITIES)
 class ComputeHandlingQualities(om.Group):
     """
     Calculate static margins and maneuver limits

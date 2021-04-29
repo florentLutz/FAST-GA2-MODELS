@@ -17,14 +17,14 @@ import warnings
 import math
 import openmdao.api as om
 import copy
+
 from scipy.constants import g
 import time
 
-from fastoad.model_base import Atmosphere
-from fastoad.model_base import FlightPoint
-from fastoad.model_base.propulsion import FuelEngineSet, IOMPropulsionWrapper
-from fastoad.module_management.constants import ModelDomain
-from fastoad.module_management.service_registry import RegisterPropulsion
+from fastoad.model_base import Atmosphere, FlightPoint
+from fastoad.model_base.propulsion import FuelEngineSet
+# noinspection PyProtectedMember
+from fastoad.module_management._bundle_loader import BundleLoader
 from fastoad.constants import EngineSetting
 
 from ..propulsion.fuel_propulsion.base import FuelEngineSet
@@ -196,7 +196,8 @@ class _compute_climb(AircraftEquilibrium):
         v_tas = max(mach * atm.speed_of_sound, 1.3*vs1)
         mach = v_tas/atm.speed_of_sound
         # Define specific time step ~POINTS_NB_CLIMB points for calculation (with ground conditions)
-        cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t, (0.5 * atm.density * v_tas ** 2), False)
+        cl_wing, cl_htp_only, cl_elevator, _ = self.found_cl_repartition(inputs, 1.0, mass_t,
+                                                                         (0.5 * atm.density * v_tas ** 2), False)
         cd = cd0 + coef_k_wing * cl_wing ** 2 + coef_k_htp * (cl_htp_only + cl_elevator) ** 2
         flight_point = FlightPoint(
             mach=mach, altitude=SAFETY_HEIGHT, engine_setting=EngineSetting.CLIMB,

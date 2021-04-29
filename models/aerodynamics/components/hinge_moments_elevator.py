@@ -21,7 +21,7 @@ import numpy as np
 import scipy.interpolate as inter
 
 from openmdao.core.explicitcomponent import ExplicitComponent
-from fastoad.utils.physics import Atmosphere
+from fastoad.model_base import Atmosphere
 
 
 class Compute2DHingeMomentsTail(ExplicitComponent):

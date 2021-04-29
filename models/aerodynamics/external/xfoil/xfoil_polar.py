@@ -27,12 +27,13 @@ from typing import Tuple
 
 import numpy as np
 from fastoad.models.aerodynamics.external.xfoil import xfoil699
-from fastoad.utils.resource_management.copy import copy_resource
-from importlib_resources import path
+# noinspection PyProtectedMember
+from fastoad._utils.resource_management.copy import copy_resource
+from importlib.resources import path
 from openmdao.components.external_code_comp import ExternalCodeComp
 from openmdao.utils.file_wrap import InputFileGenerator
 from ...constants import POLAR_POINT_COUNT
-from ....geometry.profiles.get_profile import get_profile
+from models.geometry.profiles.get_profile import get_profile
 
 from . import resources as local_resources
 

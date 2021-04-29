@@ -30,18 +30,18 @@ import time
 
 from fastoad.io import VariableIO
 from fastoad.module_management.service_registry import RegisterPropulsion
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
-from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
-from scipy import integrate
+# noinspection PyProtectedMember
+from fastoad.module_management._bundle_loader import BundleLoader
+from fastoad.model_base import FlightPoint
+from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
+from models.tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 from ..external.xfoil import resources
 from ..external.openvsp.compute_aero_slipstream_x57 import ComputeSlipstreamOpenvspX57
 
-from ...tests.xfoil_exe.get_xfoil import get_xfoil_path
-from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
-from ...propulsion.propulsion import IPropulsion
+from models.tests.xfoil_exe.get_xfoil import get_xfoil_path
+from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from models.propulsion.propulsion import IPropulsion
 
 from ..external.vlm.compute_aero import DEFAULT_WING_AIRFOIL, DEFAULT_HTP_AIRFOIL
 from ..constants import SPAN_MESH_POINT, POLAR_POINT_COUNT
@@ -50,7 +50,7 @@ RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
 xfoil_path = None if system() == "Windows" else get_xfoil_path()
 
 XML_FILE = "maxwell_x57.xml"
-ENGINE_WRAPPER = "test.wrapper.aerodynamics.beechcraft.dummy_engine"
+ENGINE_WRAPPER = "test.wrapper.aerodynamics.nasa.dummy_engine"
 
 
 class DummyEngine(AbstractFuelPropulsion):
@@ -77,7 +77,7 @@ class DummyEngine(AbstractFuelPropulsion):
 
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
         flight_points.thrust = 1800.0
-        flight_points['sfc'] = 0.0
+        flight_points.sfc = 0.0
 
     def compute_weight(self) -> float:
         return 0.0

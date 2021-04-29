@@ -18,8 +18,9 @@
 import numpy as np
 import warnings
 from openmdao.core.explicitcomponent import ExplicitComponent
-from ...propulsion.fuel_propulsion.base import FuelEngineSet
-from fastoad import BundleLoader
+from models.propulsion.fuel_propulsion.base import FuelEngineSet
+# noinspection PyProtectedMember
+from fastoad.module_management._bundle_loader import BundleLoader
 
 
 class Cd0Nacelle(ExplicitComponent):

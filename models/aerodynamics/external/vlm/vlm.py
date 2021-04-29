@@ -26,9 +26,9 @@ import warnings
 import pandas as pd
 import logging
 
-from fastoad.utils.physics import Atmosphere
+from fastoad.model_base.atmosphere import Atmosphere
 
-from ....geometry.profiles.get_profile import get_profile
+from models.geometry.profiles.get_profile import get_profile
 from ...constants import SPAN_MESH_POINT, POLAR_POINT_COUNT, MACH_NB_PTS
 
 DEFAULT_NX = 19

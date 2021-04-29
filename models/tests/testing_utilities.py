@@ -16,22 +16,25 @@ Convenience functions for helping tests
 
 import logging
 import os.path as pth
+import os
 import openmdao.api as om
 from typing import Union, List
 import time
+from openmdao.core.system import System
+from copy import deepcopy
 
 from fastoad.io import VariableIO
-from fastoad.openmdao.types import SystemSubclass
-from fastoad.openmdao.utils import get_unconnected_input_names
-from fastoad.module_management import OpenMDAOSystemRegistry
+# noinspection PyProtectedMember
+from fastoad.module_management.service_registry import _RegisterOpenMDAOService
 from fastoad.openmdao.variables import VariableList
 from fastoad.io.configuration.configuration import AutoUnitsDefaultGroup
+import fastoad.cmd.api as api
 
 _LOGGER = logging.getLogger(__name__)
 
 
 def run_system(
-    component: SystemSubclass, input_vars: om.IndepVarComp, setup_mode="auto", add_solvers=False, check=False
+    component: System, input_vars: om.IndepVarComp, setup_mode="auto", add_solvers=False, check=False
 ):
     """ Runs and returns an OpenMDAO problem with provided component and data"""
     problem = om.Problem()
@@ -45,15 +48,17 @@ def run_system(
 
     if check:
         print('\n')
+
     problem.setup(mode=setup_mode, check=check)
-    missing, _ = get_unconnected_input_names(problem, _LOGGER)
-    assert not missing, "These inputs are not provided: %s" % missing
+    variables = VariableList.from_unconnected_inputs(problem)
+    assert not variables, "These inputs are not provided: %s" % variables.names()
 
     problem.run_model()
 
     return problem
 
 
+# FIXME: problem to be solved on the register
 def register_wrappers():
     """ Register all the wrappers from models """
     path, folder_name = pth.dirname(__file__), None
@@ -61,7 +66,14 @@ def register_wrappers():
     while folder_name != "models":
         unsplit_path = path
         path, folder_name = pth.split(path)
-    OpenMDAOSystemRegistry.explore_folder(unsplit_path)
+    for directory in os.listdir(unsplit_path):
+        if pth.isdir(pth.join(unsplit_path, directory)) and not ('.' in directory):
+            # noinspection PyBroadException
+            try:
+                _RegisterOpenMDAOService.explore_folder(pth.join(unsplit_path, directory))
+            except:
+                pass
+    # api._get_simple_system_list()
 
 
 def get_indep_var_comp(var_names: List[str], test_file: str, xml_file_name: str) -> om.IndepVarComp:
@@ -73,6 +85,34 @@ def get_indep_var_comp(var_names: List[str], test_file: str, xml_file_name: str)
     return ivc
 
 
+class VariableListLocal(VariableList):
+
+    @classmethod
+    def from_system(cls, system: System) -> "VariableList":
+        """
+        Creates a VariableList instance containing inputs and outputs of a an OpenMDAO System.
+        The inputs (is_input=True) correspond to the variables of IndepVarComp
+        components and all the unconnected variables.
+
+        Warning: setup() must NOT have been called.
+
+        In the case of a group, if variables are promoted, the promoted name
+        will be used. Otherwise, the absolute name will be used.
+
+        :param system: OpenMDAO Component instance to inspect
+        :return: VariableList instance
+        """
+
+        problem = om.Problem()
+        if isinstance(system, om.Group):
+            problem.model = deepcopy(system)
+        else:
+            # problem.model has to be a group
+            problem.model.add_subsystem("comp", deepcopy(system), promotes=["*"])
+        problem.setup()
+        return VariableListLocal.from_problem(problem, use_initial_values=True)
+
+
 def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
     """ Reads input variables from a component/problem and return as a list """
     register_wrappers()
@@ -80,7 +120,7 @@ def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
         new_component = AutoUnitsDefaultGroup()
         new_component.add_subsystem("system", component, promotes=['*'])
         component = new_component
-    variables = VariableList.from_system(component)
+    variables = VariableListLocal.from_system(component)
     input_names = [var.name for var in variables if var.is_input]
 
     return input_names

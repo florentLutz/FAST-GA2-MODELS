@@ -21,7 +21,7 @@ from .geom_components import ComputeTotalArea, ComputeFuselageGeometryBasic, Com
     ComputeHorizontalTailGeometryFL, ComputeNacelleGeometry, ComputeVerticalTailGeometryFL, ComputeWingGeometry
 from .geom_components import ComputeTotalArea, ComputeFuselageGeometryBasic, ComputeFuselageGeometryCabinSizingFD, \
     ComputeHorizontalTailGeometryFD, ComputeNacelleGeometry, ComputeVerticalTailGeometryFD, ComputeWingGeometry
-from ..options import CABIN_SIZING_OPTION
+from models.options import CABIN_SIZING_OPTION
 
 from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
 from fastoad.module_management.constants import ModelDomain
