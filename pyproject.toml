@@ -42,6 +42,7 @@ classifiers = [
 # doing again the commit including changes in docs/requirements.txt will succeed.
 python = "^3.7"
 fast-oad = "^1.0.2"
+pyfmi = "^2.8.5"
 
 
 [tool.poetry.dev-dependencies]
