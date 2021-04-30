@@ -16,7 +16,7 @@ Main components for mass breakdown
 
 import openmdao.api as om
 
-from fastoad.models.options import PAYLOAD_FROM_NPAX
+from models.options import PAYLOAD_FROM_NPAX
 from .a_airframe import (
     ComputeWingWeight,
     ComputeFuselageWeight,

@@ -20,10 +20,10 @@ import openmdao.api as om
 from scipy.constants import g
 from typing import Union, List, Optional, Tuple
 
-from fastoad.utils.physics import Atmosphere
-from fastoad import BundleLoader
-from fastoad.models.propulsion.fuel_propulsion.base import FuelEngineSet
-from fastoad.base.flight_point import FlightPoint
+from fastoad.model_base import Atmosphere, FlightPoint
+from fastoad.model_base.propulsion import FuelEngineSet
+# noinspection PyProtectedMember
+from fastoad.module_management._bundle_loader import BundleLoader
 from fastoad.constants import EngineSetting
 
 _ANG_VEL = 12 * math.pi / 180  # 12 deg/s (typical for light aircraft)

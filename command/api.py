@@ -19,18 +19,22 @@ import os.path as pth
 import os
 import types
 import copy
-from importlib_resources import path
+from importlib.resources import path
 from typing import Union, List
 from openmdao.core.explicitcomponent import ExplicitComponent
 from openmdao.core.implicitcomponent import ImplicitComponent
 from openmdao.core.group import Group
 from openmdao.utils.file_wrap import InputFileGenerator
+from openmdao.core.system import System
 import openmdao.api as om
+from copy import deepcopy
 
-from fastoad.module_management import OpenMDAOSystemRegistry
+# noinspection PyProtectedMember
+from fastoad.module_management.service_registry import _RegisterOpenMDAOService
 from fastoad.openmdao.variables import VariableList
 from fastoad.cmd.exceptions import FastFileExistsError
 from fastoad.openmdao.problem import FASTOADProblem
+from fastoad.io import DataFile, IVariableIOFormatter
 from fastoad.io.xml import VariableXmlStandardFormatter
 from fastoad.io import VariableIO
 from fastoad.io.configuration.configuration import AutoUnitsDefaultGroup
@@ -104,6 +108,23 @@ def overwrite_models_path(configuration_file_path: str, module: types.ModuleType
     configuration_file.close()
 
 
+def write_needed_inputs(
+        problem: FASTOADProblem,
+        xml_file_path: str,
+        source_formatter: IVariableIOFormatter = None):
+    variables = DataFile(xml_file_path)
+    variables.update(
+        VariableList.from_unconnected_inputs(problem, with_optional_inputs=True),
+        add_variables=True,
+    )
+    if xml_file_path:
+        ref_vars = DataFile(xml_file_path, source_formatter)
+        variables.update(ref_vars)
+        for var in variables:
+            var.is_input = True
+    variables.save()
+
+
 def generate_block_analysis(
         system: Union[ExplicitComponent, ImplicitComponent, Group],
         var_inputs: List,
@@ -129,9 +150,8 @@ def generate_block_analysis(
             group = AutoUnitsDefaultGroup()
             group.add_subsystem('system', system, promotes=["*"])
             problem = FASTOADProblem(group)
-        problem.input_file_path = xml_file_path
         problem.setup()
-        problem.write_needed_inputs(None, VariableXmlStandardFormatter())
+        write_needed_inputs(problem, xml_file_path, VariableXmlStandardFormatter())
         raise Exception('Input .xml file not found, a default file has been created with default NaN values, '
                         'but no function is returned!\nConsider defining proper values before second execution!')
 
@@ -200,14 +220,42 @@ def generate_block_analysis(
             return patched_function
 
 
+class VariableListLocal(VariableList):
+
+    @classmethod
+    def from_system(cls, system: System) -> "VariableList":
+        """
+        Creates a VariableList instance containing inputs and outputs of a an OpenMDAO System.
+        The inputs (is_input=True) correspond to the variables of IndepVarComp
+        components and all the unconnected variables.
+
+        Warning: setup() must NOT have been called.
+
+        In the case of a group, if variables are promoted, the promoted name
+        will be used. Otherwise, the absolute name will be used.
+
+        :param system: OpenMDAO Component instance to inspect
+        :return: VariableList instance
+        """
+
+        problem = om.Problem()
+        if isinstance(system, om.Group):
+            problem.model = deepcopy(system)
+        else:
+            # problem.model has to be a group
+            problem.model.add_subsystem("comp", deepcopy(system), promotes=["*"])
+        problem.setup()
+        return VariableListLocal.from_problem(problem, use_initial_values=True)
+
+
 def list_variables(component: Union[om.ExplicitComponent, om.Group]) -> list:
     """ Reads all variables from a component/problem and return as a list """
-    register_wrappers()
+    # register_wrappers()
     if isinstance(component, om.Group):
         new_component = AutoUnitsDefaultGroup()
         new_component.add_subsystem("system", component, promotes=['*'])
         component = new_component
-    variables = VariableList.from_system(component)
+    variables = VariableListLocal.from_system(component)
 
     return variables
 
@@ -216,4 +264,4 @@ def register_wrappers():
     """ Register all the wrappers from models """
     path_name, folder_name = pth.split(pth.dirname(__file__))
     path_name = pth.join(path_name, "models")
-    OpenMDAOSystemRegistry.explore_folder(path_name)
+    _RegisterOpenMDAOService.explore_folder(path_name)

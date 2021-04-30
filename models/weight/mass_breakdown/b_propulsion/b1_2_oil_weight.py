@@ -20,8 +20,9 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 
 from ....propulsion.fuel_propulsion.base import FuelEngineSet
 
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
+# noinspection PyProtectedMember
+from fastoad.module_management._bundle_loader import BundleLoader
+from fastoad.model_base import FlightPoint
 from fastoad.constants import EngineSetting
 
 

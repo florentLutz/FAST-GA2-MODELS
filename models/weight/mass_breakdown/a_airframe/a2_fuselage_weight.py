@@ -18,7 +18,7 @@ import numpy as np
 import openmdao.api as om
 import math
 
-from fastoad.utils.physics import Atmosphere
+from fastoad.model_base import Atmosphere
 
 
 class ComputeFuselageWeight(om.ExplicitComponent):

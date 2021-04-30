@@ -16,14 +16,14 @@ Estimation of the position of the CG that limits balked landing, adaptation of t
 
 import numpy as np
 import math
-import scipy.optimize as optimize
 import scipy.interpolate as inter
 import openmdao.api as om
 from scipy.constants import g
-from fastoad.utils.physics import Atmosphere
-from fastoad import BundleLoader
-from fastoad.models.propulsion.fuel_propulsion.base import FuelEngineSet
-from fastoad.base.flight_point import FlightPoint
+
+from fastoad.model_base import Atmosphere, FlightPoint
+from fastoad.model_base.propulsion import FuelEngineSet
+# noinspection PyProtectedMember
+from fastoad.module_management._bundle_loader import BundleLoader
 from fastoad.constants import EngineSetting
 
 

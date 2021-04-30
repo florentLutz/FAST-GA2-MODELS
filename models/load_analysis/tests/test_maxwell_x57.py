@@ -14,21 +14,17 @@ Test load_analysis module
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os.path as pth
 import pandas as pd
 import numpy as np
 from openmdao.core.component import Component
 import pytest
 from typing import Union
 
-from fastoad.io import VariableIO
-from fastoad.utils.physics import Atmosphere
 from fastoad.module_management.service_registry import RegisterPropulsion
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
-from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
+from fastoad.model_base import FlightPoint, Atmosphere
+from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs, Timer
+from ...tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ..aerostructural_loads_x57 import AerostructuralLoadX57
 from ..structural_loads_x57 import StructuralLoadsX57
@@ -36,7 +32,7 @@ from ..aerodynamic_loads_x57 import AerodynamicLoadsX57
 from ...propulsion.propulsion import IPropulsion
 
 XML_FILE = "maxwell_x57.xml"
-ENGINE_WRAPPER = "test.wrapper.performances.cirrus.dummy_engine"
+ENGINE_WRAPPER = "test.wrapper.load_analysis.nasa.dummy_engine"
 
 
 class DummyEngine(AbstractFuelPropulsion):
@@ -68,8 +64,7 @@ class DummyEngine(AbstractFuelPropulsion):
             flight_points.thrust = max_thrust * np.array(flight_points.thrust_rate)
         sfc_pmax = 8.5080e-08  # fixed whatever the thrust ratio, sfc for ONE 130kW engine !
         sfc = sfc_pmax * flight_points.thrust_rate * mach * Atmosphere(altitude).speed_of_sound
-
-        flight_points['sfc'] = sfc
+        flight_points.sfc = sfc
 
     def compute_weight(self) -> float:
         return 0.0
@@ -80,11 +75,11 @@ class DummyEngine(AbstractFuelPropulsion):
     def compute_drag(self, mach, unit_reynolds, l0_wing):
         return 0.0
 
+    # noinspection PyMethodMayBeStatic
     def compute_sl_thrust(self) -> float:
         return 220.0
 
 
-@RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
         component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
@@ -95,10 +90,11 @@ class DummyEngineWrapper(IOMPropulsionWrapper):
         return DummyEngine()
 
 
-BundleLoader().context.install_bundle(__name__).start()
+RegisterPropulsion(ENGINE_WRAPPER)(DummyEngineWrapper)
 
 
 def test_compute_shear_stress():
+
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(AerostructuralLoadX57()), __file__, XML_FILE)
     y_vector = np.array(
@@ -131,13 +127,13 @@ def test_compute_shear_stress():
          0.1141, 0.1704, 0.0053, -0.0109, 0.0654, 0.1618, 0.0208, -0.0486, -0.0233, 0.1395, 0.05, -0.0616, -0.0225,
          0.173, 0.174, -0.0087, -0.025, -0.0363, 0.1426, 0.1145, -0.0966, -0.1327, -0.1526, -0.1463, -0.121, -0.0979, 0,
          0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-
     ivc.add_output("data:aerodynamics:wing:low_speed:CL_vector", cl_vector)
     ivc.add_output("data:aerodynamics:wing:low_speed:chord_vector", chord_vector, units="m")
     ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_vector, units="m")
     ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:Y_vector", y_vector_prop_on, units="m")
     ivc.add_output("data:aerodynamics:slipstream:wing:only_prop:CL_vector", cl_vector_only_prop, units="m")
-    register_wrappers()
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(AerostructuralLoadX57(), ivc)
     shear_max_mass_condition = problem.get_val("data:loads:max_shear:mass", units="kg")
     assert shear_max_mass_condition == pytest.approx(1361., abs=1e-1)
@@ -152,6 +148,7 @@ def test_compute_shear_stress():
 
 
 def test_compute_root_bending_moment():
+
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(AerostructuralLoadX57()), __file__, XML_FILE)
     y_vector = np.array(
@@ -184,14 +181,13 @@ def test_compute_root_bending_moment():
          0.1141, 0.1704, 0.0053, -0.0109, 0.0654, 0.1618, 0.0208, -0.0486, -0.0233, 0.1395, 0.05, -0.0616, -0.0225,
          0.173, 0.174, -0.0087, -0.025, -0.0363, 0.1426, 0.1145, -0.0966, -0.1327, -0.1526, -0.1463, -0.121, -0.0979, 0,
          0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-
     ivc.add_output("data:aerodynamics:wing:low_speed:CL_vector", cl_vector)
     ivc.add_output("data:aerodynamics:wing:low_speed:chord_vector", chord_vector, units="m")
     ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_vector, units="m")
     ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:Y_vector", y_vector_prop_on, units="m")
     ivc.add_output("data:aerodynamics:slipstream:wing:only_prop:CL_vector", cl_vector_only_prop, units="m")
 
-    register_wrappers()
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(AerostructuralLoadX57(), ivc)
     max_rbm_mass_condition = problem.get_val("data:loads:max_rbm:mass", units="kg")
     assert max_rbm_mass_condition == pytest.approx(1361., abs=1e-1)
@@ -206,13 +202,13 @@ def test_compute_root_bending_moment():
 
 
 def test_compute_mass_distribution_x57():
+
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(StructuralLoadsX57()), __file__, XML_FILE)
     load_factor_shear = 4.0
     ivc.add_output("data:loads:max_shear:load_factor", load_factor_shear)
     load_factor_rbm = 4.0
     ivc.add_output("data:loads:max_rbm:load_factor", load_factor_rbm)
-
     y_vector = np.array(
         [0.04619, 0.13856, 0.23093, 0.3233, 0.41567, 0.50804, 0.60041, 0.71159, 0.84215, 0.97345, 1.10541, 1.23795,
          1.37098, 1.50444, 1.63824, 1.77229, 1.90652, 2.04083, 2.17515, 2.3094, 2.44348, 2.57731, 2.71082, 2.84392,
@@ -226,7 +222,7 @@ def test_compute_mass_distribution_x57():
     ivc.add_output("data:aerodynamics:wing:low_speed:chord_vector", chord_vector, units="m")
     ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_vector, units="m")
 
-    register_wrappers()
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(StructuralLoadsX57(), ivc)
     point_mass_array = problem.get_val("data:loads:structure:ultimate:force_distribution:point_mass", units="N/m")
     point_mass_result = np.array([-0., -0., -0., -0., -0., -0., -0., -0., -0., -0., -0., -0., -0., -0., -0., -0., -0.,
@@ -263,6 +259,7 @@ def test_compute_mass_distribution_x57():
 
 
 def test_compute_structure_shear():
+
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(StructuralLoadsX57()), __file__, XML_FILE)
     load_factor_shear = 4.0
@@ -282,7 +279,7 @@ def test_compute_structure_shear():
     ivc.add_output("data:aerodynamics:wing:low_speed:chord_vector", chord_vector, units="m")
     ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_vector, units="m")
 
-    register_wrappers()
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(StructuralLoadsX57(), ivc)
     point_mass_array = problem.get_val("data:loads:structure:ultimate:shear:point_mass", units="N")
     point_mass_result = np.array([-3684.64, -3684.64, -3684.64, -3684.64, -3684.64, -3684.64, -3684.64, -3684.64,
@@ -323,6 +320,7 @@ def test_compute_structure_shear():
 
 
 def test_compute_structure_bending():
+
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(StructuralLoadsX57()), __file__, XML_FILE)
     load_factor_shear = 4.0
@@ -342,7 +340,7 @@ def test_compute_structure_bending():
     ivc.add_output("data:aerodynamics:wing:low_speed:chord_vector", chord_vector, units="m")
     ivc.add_output("data:aerodynamics:wing:low_speed:Y_vector", y_vector, units="m")
 
-    register_wrappers()
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(StructuralLoadsX57(), ivc)
     point_mass_array = problem.get_val("data:loads:structure:ultimate:root_bending:point_mass", units="N*m")
     point_mass_result = np.array([-13647.72, -13477.53, -13137.18, -12796.83, -12456.48, -12116.13,
@@ -381,7 +379,6 @@ def test_compute_structure_bending():
                                  -81.63, -48.7, -24.54, -8.76, -1., -0.99,
                                  -0.97, -0.68, -0.44, -0.25, -0.12, -0.11,
                                  0., 0., 0., 0.])
-
     assert np.max(np.abs(wing_mass_result - wing_mass_array)) <= 1e-1
     fuel_mass_array = problem.get_val("data:loads:structure:ultimate:root_bending:fuel", units="N*m")
     fuel_mass_result = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
@@ -390,11 +387,11 @@ def test_compute_structure_bending():
                                  0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                                  0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                                  0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
-
     assert np.max(np.abs(fuel_mass_result - fuel_mass_array)) <= 1e-1
 
 
 def test_compute_lift_distribution():
+
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(AerodynamicLoadsX57()), __file__, XML_FILE)
     load_factor_shear = 4.0
@@ -441,7 +438,7 @@ def test_compute_lift_distribution():
     ivc.add_output("data:aerodynamics:slipstream:wing:only_prop:CL_vector", cl_vector_only_prop)
     ivc.add_output("data:aerodynamics:slipstream:wing:prop_on:Y_vector", y_vector_prop_on, units="m")
 
-    register_wrappers()
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(AerodynamicLoadsX57(), ivc)
     lift_array = problem.get_val("data:loads:aerodynamic:ultimate:force_distribution", units="N/m")
     lift_result = np.array([8341.73, 8116.07, 8077.58, 8061.97, 8045.4, 8036.28, 7965.16,

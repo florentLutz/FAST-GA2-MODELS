@@ -134,7 +134,7 @@ class BasicICEngine(AbstractFuelPropulsion):
             flight_points.thrust_rate,
             flight_points.thrust,
         )
-        flight_points['sfc'] = sfc
+        flight_points.sfc = sfc
         flight_points.thrust_rate = thrust_rate
         flight_points.thrust = thrust
 

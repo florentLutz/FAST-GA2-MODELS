@@ -18,8 +18,6 @@ import numpy as np
 import openmdao.api as om
 import math
 
-from fastoad.utils.physics import Atmosphere
-
 
 class ComputeWingWeight(om.ExplicitComponent):
     """

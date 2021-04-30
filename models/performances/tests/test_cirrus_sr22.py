@@ -23,13 +23,11 @@ import pytest
 from typing import Union
 
 from fastoad.io import VariableIO
-from fastoad.utils.physics import Atmosphere
 from fastoad.module_management.service_registry import RegisterPropulsion
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
-from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
+from fastoad.model_base import FlightPoint, Atmosphere
+from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
+from ...tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 from ...weight.cg import InFlightCGVariation
 from ..takeoff import TakeOffPhase, _v2, _vr_from_v2, _vloff_from_v2, _simulate_takeoff
 from ..mission import _compute_taxi, _compute_climb, _compute_cruise, _compute_descent
@@ -70,8 +68,7 @@ class DummyEngine(AbstractFuelPropulsion):
             flight_points.thrust = max_thrust * np.array(flight_points.thrust_rate)
         sfc_pmax = 8.5080e-08  # fixed whatever the thrust ratio, sfc for ONE 130kW engine !
         sfc = sfc_pmax * flight_points.thrust_rate * mach * Atmosphere(altitude).speed_of_sound
-
-        flight_points['sfc'] = sfc
+        flight_points.sfc = sfc
 
     def compute_weight(self) -> float:
         return 0.0
@@ -82,11 +79,7 @@ class DummyEngine(AbstractFuelPropulsion):
     def compute_drag(self, mach, unit_reynolds, l0_wing):
         return 0.0
 
-    def compute_sl_thrust(self) -> float:
-        return 5417.0
 
-
-@RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
         component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
@@ -97,7 +90,8 @@ class DummyEngineWrapper(IOMPropulsionWrapper):
         return DummyEngine()
 
 
-BundleLoader().context.install_bundle(__name__).start()
+RegisterPropulsion(ENGINE_WRAPPER)(DummyEngineWrapper)
+
 
 def test_v2():
     """ Tests safety speed """
@@ -106,7 +100,6 @@ def test_v2():
     ivc = get_indep_var_comp(list_inputs(_v2(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     problem = run_system(_v2(propulsion_id=ENGINE_WRAPPER), ivc)
     v2 = problem.get_val("v2:speed", units="m/s")
     assert v2 == pytest.approx(43.18, abs=1e-2)
@@ -123,7 +116,6 @@ def test_vloff():
     ivc.add_output("v2:angle", 7.538, units='deg')
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     problem = run_system(_vloff_from_v2(propulsion_id=ENGINE_WRAPPER), ivc)
     vloff = problem.get_val("vloff:speed", units="m/s")
     assert vloff == pytest.approx(42.39, abs=1e-2)
@@ -140,7 +132,7 @@ def test_vr():
     ivc.add_output("vloff:angle", 7.538, units='deg')
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
+
     problem = run_system(_vr_from_v2(propulsion_id=ENGINE_WRAPPER), ivc)
     vr = problem.get_val("vr:speed", units="m/s")
     assert vr == pytest.approx(36.27, abs=1e-2)
@@ -155,7 +147,6 @@ def test_simulate_takeoff():
     ivc.add_output("v2:angle", 7.538, units='deg')
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     problem = run_system(_simulate_takeoff(propulsion_id=ENGINE_WRAPPER), ivc)
     vr = problem.get_val("data:mission:sizing:takeoff:VR", units='m/s')
     assert vr == pytest.approx(36.27, abs=1e-2)
@@ -180,7 +171,8 @@ def test_takeoff_phase_connections():
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     ivc = reader.read().to_ivc()
-    register_wrappers()
+
+    # Run problem and check obtained value(s) is/(are) correct
     # noinspection PyTypeChecker
     problem = run_system(TakeOffPhase(propulsion_id=ENGINE_WRAPPER), ivc)
     vr = problem.get_val("data:mission:sizing:takeoff:VR", units='m/s')
@@ -207,7 +199,6 @@ def test_compute_taxi():
                              __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     problem = run_system(_compute_taxi(propulsion_id=ENGINE_WRAPPER, taxi_out=True), ivc)
     fuel_mass = problem.get_val("data:mission:sizing:taxi_out:fuel", units="kg")
     assert fuel_mass == pytest.approx(0.192, abs=1e-2)  # result strongly dependent on the defined Thrust limit
@@ -225,7 +216,7 @@ def test_compute_taxi():
 def test_compute_climb():
     """ Tests climb phase """
 
-    # Run problem and check obtained value(s) is/(are) correct
+    # Research independent input value in .xml file
     group = Group()
     group.add_subsystem("in_flight_cg_variation", InFlightCGVariation(), promotes=["*"])
     group.add_subsystem("descent", _compute_climb(propulsion_id=ENGINE_WRAPPER), promotes=["*"])
@@ -233,7 +224,8 @@ def test_compute_climb():
     ivc.add_output("data:mission:sizing:taxi_out:fuel", 0.50, units="kg")
     ivc.add_output("data:mission:sizing:takeoff:fuel", 0.29, units="kg")
     ivc.add_output("data:mission:sizing:initial_climb:fuel", 0.07, units="kg")
-    register_wrappers()
+
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(group, ivc)
     v_cas = problem.get_val("data:mission:sizing:main_route:climb:v_cas", units="kn")
     assert v_cas == pytest.approx(71.5, abs=1)
@@ -243,6 +235,7 @@ def test_compute_climb():
     assert distance == pytest.approx(16.648, abs=1e-2)
     duration = problem.get_val("data:mission:sizing:main_route:climb:duration", units="min")
     assert duration == pytest.approx(5.645, abs=1e-2)
+
 
 def test_compute_cruise():
     """ Tests cruise phase """
@@ -260,7 +253,6 @@ def test_compute_cruise():
     ivc.add_output("data:mission:sizing:main_route:descent:distance", 0.0, units="km")
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     problem = run_system(group, ivc)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:cruise:fuel", units="kg")
     assert fuel_mass == pytest.approx(155.003, abs=1e-1)
@@ -283,7 +275,6 @@ def test_compute_descent():
     ivc.add_output("data:mission:sizing:main_route:cruise:fuel", 188.05, units="kg")
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     problem = run_system(group, ivc)
     fuel_mass = problem.get_val("data:mission:sizing:main_route:descent:fuel", units="kg")
     assert fuel_mass == pytest.approx(0.863, abs=1e-2)
@@ -302,7 +293,6 @@ def test_loop_cruise_distance():
     ivc = reader.read().to_ivc()
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     # noinspection PyTypeChecker
     problem = run_system(Sizing(propulsion_id=ENGINE_WRAPPER), ivc)
     m_total = problem.get_val("data:mission:sizing:fuel", units="kg")

@@ -208,8 +208,8 @@ class AerostructuralLoad(ComputeVNopenvsp):
 
             y_vector, weight_array_orig = self.compute_relief_force(inputs, y_vector_orig, chord_vector,
                                                                     wing_mass, fuel_mass)
-
-            cruise_v_keas = atm.get_equivalent_airspeed(cruise_v_tas)
+            atm.true_airspeed = cruise_v_tas
+            cruise_v_keas = atm.equivalent_airspeed
 
             if self.options["use_openvsp"]:
                 flight_domain_calculator = ComputeVNopenvsp(compute_cl_alpha=True)
@@ -222,7 +222,8 @@ class AerostructuralLoad(ComputeVNopenvsp):
 
             load_factor_list = np.array([max(load_factor_array), min(load_factor_array)])
 
-            v_c_tas = atm.get_true_airspeed(v_c)
+            atm.equivalent_airspeed = v_c
+            v_c_tas = atm.true_airspeed
             dynamic_pressure = 1. / 2. * atm.density * v_c_tas ** 2.0
 
             for load_factor in load_factor_list:
@@ -450,6 +451,7 @@ class AerostructuralLoad(ComputeVNopenvsp):
                     # For now 80% size reduction in the fuel tank capacity due to the landing gear
                     fuel_weight_distribution[i] = fuel_weight_distribution[i] * 0.2
             if engine_config == 1.0:
+                y_eng = y_ratio * semi_span
                 for i in np.where(abs(y_vector - y_eng) <= nacelle_width / 2.):
                     # For now 50% size reduction in the fuel tank capacity due to the engine
                     fuel_weight_distribution[i] = fuel_weight_distribution[i] * 0.5

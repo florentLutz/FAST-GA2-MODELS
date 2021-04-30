@@ -30,12 +30,10 @@ import time
 
 from fastoad.io import VariableIO
 from fastoad.module_management.service_registry import RegisterPropulsion
-# noinspection PyProtectedMember
-from fastoad.module_management._bundle_loader import BundleLoader
 from fastoad.model_base import FlightPoint
 from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from models.tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
+from models.tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 from ..components.cd0 import Cd0
 from ..external.xfoil import XfoilPolar
 from ..external.xfoil import resources
@@ -103,7 +101,6 @@ class DummyEngine(AbstractFuelPropulsion):
         return 0.0
 
 
-@RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
         component.add_input("data:propulsion:IC_engine:max_power", np.nan, units="W")
@@ -127,7 +124,7 @@ class DummyEngineWrapper(IOMPropulsionWrapper):
         return DummyEngine(**engine_params)
 
 
-BundleLoader().context.install_bundle(__name__).start()
+RegisterPropulsion(ENGINE_WRAPPER)(DummyEngineWrapper)
 
 
 def _create_tmp_directory() -> TemporaryDirectory:
@@ -206,8 +203,6 @@ def test_cd0_high_speed():
     ivc.add_output("data:aerodynamics:cruise:mach", 0.2457)
     ivc.add_output("data:aerodynamics:cruise:unit_reynolds", 4571770, units="m**-1")
 
-    # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     # noinspection PyTypeChecker
     problem = run_system(Cd0(propulsion_id=ENGINE_WRAPPER), ivc)
     cd0_wing = problem["data:aerodynamics:wing:cruise:CD0"]
@@ -237,8 +232,6 @@ def test_cd0_low_speed():
     ivc.add_output("data:aerodynamics:low_speed:mach", 0.1149)  # correction to compensate old version conversion error
     ivc.add_output("data:aerodynamics:low_speed:unit_reynolds", 2613822, units="m**-1")  # correction to ...
 
-    # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     # noinspection PyTypeChecker
     problem = run_system(Cd0(propulsion_id=ENGINE_WRAPPER, low_speed_aero=True), ivc)
     cd0_wing = problem["data:aerodynamics:wing:low_speed:CD0"]
@@ -748,7 +741,6 @@ def test_cnbeta():
 
 
 def test_slipstream_openvsp_cruise():
-    register_wrappers()
 
     # Create result temporary directory
     results_folder = _create_tmp_directory()
@@ -794,7 +786,6 @@ def test_slipstream_openvsp_cruise():
 
 
 def test_slipstream_openvsp_low_speed():
-    register_wrappers()
 
     # Create result temporary directory
     results_folder = _create_tmp_directory()
@@ -866,7 +857,6 @@ def test_high_speed_connection():
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
-    register_wrappers()
 
     # Run problem with VLM
     # noinspection PyTypeChecker
@@ -887,7 +877,6 @@ def test_low_speed_connection():
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
-    register_wrappers()
 
     # Run problem with VLM
     # noinspection PyTypeChecker
@@ -899,6 +888,7 @@ def test_low_speed_connection():
 
 
 def test_v_n_diagram_vlm():
+
     # load all inputs
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
@@ -954,8 +944,6 @@ def test_v_n_diagram_vlm():
     input_vars.add_output("data:aerodynamics:aircraft:mach_interpolation:mach_vector",
                           [0., 0.15, 0.217, 0.28, 0.339, 0.395])
 
-    register_wrappers()
-
     # Run problem with VLM and check obtained value(s) is/(are) correct
     # noinspection PyTypeChecker
     problem = run_system(ComputeVNvlmNoVH(propulsion_id=ENGINE_WRAPPER, compute_cl_alpha=True), input_vars)
@@ -976,6 +964,7 @@ def test_v_n_diagram_vlm():
 
 
 def test_v_n_diagram_openvsp():
+
     # load all inputs
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
@@ -991,8 +980,6 @@ def test_v_n_diagram_openvsp():
     input_vars.add_output("data:aerodynamics:cruise:mach", 0.21)
     input_vars.add_output("data:aerodynamics:wing:cruise:induced_drag_coefficient", 0.048)
     input_vars.add_output("data:aerodynamics:aircraft:cruise:CD0", 0.016)
-
-    register_wrappers()
 
     # Run problem with VLM and check obtained value(s) is/(are) correct
     # noinspection PyTypeChecker

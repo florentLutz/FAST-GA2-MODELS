@@ -16,7 +16,7 @@ Estimation of life support systems weight
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-from fastoad.utils.physics import Atmosphere
+from fastoad.model_base import Atmosphere
 
 
 class ComputeLifeSupportSystemsWeight(ExplicitComponent):

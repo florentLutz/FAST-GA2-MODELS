@@ -20,12 +20,11 @@ from typing import Union
 
 from fastoad.io import VariableIO
 from fastoad.module_management.service_registry import RegisterPropulsion
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
+from fastoad.model_base import FlightPoint
+from fastoad.model_base.propulsion import IOMPropulsionWrapper
 from fastoad.constants import EngineSetting
-from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
+from ...tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 from ..compute_static_margin import ComputeStaticMargin
 from ..tail_sizing import UpdateVTArea, UpdateHTArea
 from ..tail_sizing.compute_to_rotation_limit import ComputeTORotationLimitGroup
@@ -55,7 +54,7 @@ class DummyEngine(AbstractFuelPropulsion):
             flight_points.thrust = 560.0
         else:
             flight_points.thrust = 0.0
-        flight_points['sfc'] = 0.0
+        flight_points.sfc = 0.0
 
     def compute_weight(self) -> float:
         return 0.0
@@ -69,11 +68,11 @@ class DummyEngine(AbstractFuelPropulsion):
     def get_consumed_mass(self, flight_point: FlightPoint, time_step: float) -> float:
         return 0.0
 
+    # noinspection PyMethodMayBeStatic
     def compute_sl_thrust(self) -> float:
         return 5417.0
 
 
-@RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
         component.add_input("data:TLAR:v_cruise", np.nan, units="m/s")
@@ -84,7 +83,7 @@ class DummyEngineWrapper(IOMPropulsionWrapper):
         return DummyEngine()
 
 
-BundleLoader().context.install_bundle(__name__).start()
+RegisterPropulsion(ENGINE_WRAPPER)(DummyEngineWrapper)
 
 
 def test_compute_static_margin():
@@ -94,13 +93,12 @@ def test_compute_static_margin():
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
 
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeStaticMargin(), input_vars)
     stick_fixed_static_margin = problem["data:handling_qualities:stick_fixed_static_margin"]
     assert stick_fixed_static_margin == pytest.approx(0.0479, rel=1e-2)
-
     free_elevator_factor = problem["data:aerodynamics:cruise:neutral_point:free_elevator_factor"]
     assert free_elevator_factor == pytest.approx(0.7217, rel=1e-2)
-
     stick_free_static_margin = problem["data:handling_qualities:stick_free_static_margin"]
     assert stick_free_static_margin == pytest.approx(-0.0253, rel=1e-2)
 
@@ -112,11 +110,11 @@ def test_compute_to_rotation_limit():
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
 
+    # Run problem and check obtained value(s) is/(are) correct
+    # noinspection PyTypeChecker
     problem = run_system(ComputeTORotationLimitGroup(propulsion_id=ENGINE_WRAPPER), input_vars)
-
     x_cg_rotation_limit = problem["data:handling_qualities:to_rotation_limit:x"]
     assert x_cg_rotation_limit == pytest.approx(1.9355, rel=1e-2)
-
     x_cg_ratio_rotation_limit = problem["data:handling_qualities:to_rotation_limit:MAC_position"]
     assert x_cg_ratio_rotation_limit == pytest.approx(-0.3451, rel=1e-2)
 
@@ -128,11 +126,10 @@ def test_compute_balked_landing():
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
 
+    # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeBalkedLandingLimit(propulsion_id=ENGINE_WRAPPER), input_vars)
-
     x_cg_balked_landing_limit = problem["data:handling_qualities:balked_landing_limit:x"]
     assert x_cg_balked_landing_limit == pytest.approx(2.0738, rel=1e-2)
-
     x_cg_ratio_balked_landing_limit = problem["data:handling_qualities:balked_landing_limit:MAC_position"]
     assert x_cg_ratio_balked_landing_limit == pytest.approx(-0.23, rel=1e-2)
 
@@ -147,7 +144,6 @@ def test_update_vt_area():
     input_vars.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.0599)
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     problem = run_system(UpdateVTArea(propulsion_id=ENGINE_WRAPPER), input_vars)
     vt_area = problem.get_val("data:geometry:vertical_tail:area", units="m**2")
     assert vt_area == pytest.approx(1.751, abs=1e-2)  # old-version obtained value 2.4m²
@@ -160,6 +156,7 @@ def test_update_ht_area():
     # noinspection PyTypeChecker
     ivc = get_indep_var_comp(list_inputs(UpdateHTArea(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
 
+    # Run problem and check obtained value(s) is/(are) correct
     # noinspection PyTypeChecker
     problem = run_system(UpdateHTArea(propulsion_id=ENGINE_WRAPPER), ivc)
     ht_area = problem.get_val("data:geometry:horizontal_tail:area", units="m**2")

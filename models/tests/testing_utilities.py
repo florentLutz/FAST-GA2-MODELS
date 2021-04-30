@@ -28,7 +28,6 @@ from fastoad.io import VariableIO
 from fastoad.module_management.service_registry import _RegisterOpenMDAOService
 from fastoad.openmdao.variables import VariableList
 from fastoad.io.configuration.configuration import AutoUnitsDefaultGroup
-import fastoad.cmd.api as api
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,7 +72,6 @@ def register_wrappers():
                 _RegisterOpenMDAOService.explore_folder(pth.join(unsplit_path, directory))
             except:
                 pass
-    # api._get_simple_system_list()
 
 
 def get_indep_var_comp(var_names: List[str], test_file: str, xml_file_name: str) -> om.IndepVarComp:
@@ -115,7 +113,7 @@ class VariableListLocal(VariableList):
 
 def list_inputs(component: Union[om.ExplicitComponent, om.Group]) -> list:
     """ Reads input variables from a component/problem and return as a list """
-    register_wrappers()
+    # register_wrappers()
     if isinstance(component, om.Group):
         new_component = AutoUnitsDefaultGroup()
         new_component.add_subsystem("system", component, promotes=['*'])

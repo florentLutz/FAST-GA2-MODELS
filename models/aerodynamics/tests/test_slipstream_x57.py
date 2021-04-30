@@ -17,7 +17,6 @@ Test module for aerodynamics groups
 import os.path as pth
 import os
 import pandas as pd
-import openmdao.api as om
 from openmdao.core.component import Component
 import numpy as np
 from platform import system
@@ -26,16 +25,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import pytest
 from typing import Union
-import time
+# import time
 
-from fastoad.io import VariableIO
 from fastoad.module_management.service_registry import RegisterPropulsion
-# noinspection PyProtectedMember
-from fastoad.module_management._bundle_loader import BundleLoader
 from fastoad.model_base import FlightPoint
 from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from models.tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
+from models.tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 from ..external.xfoil import resources
 from ..external.openvsp.compute_aero_slipstream_x57 import ComputeSlipstreamOpenvspX57
 
@@ -44,7 +40,6 @@ from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from models.propulsion.propulsion import IPropulsion
 
 from ..external.vlm.compute_aero import DEFAULT_WING_AIRFOIL, DEFAULT_HTP_AIRFOIL
-from ..constants import SPAN_MESH_POINT, POLAR_POINT_COUNT
 
 RESULTS_FOLDER = pth.join(pth.dirname(__file__), "results")
 xfoil_path = None if system() == "Windows" else get_xfoil_path()
@@ -95,7 +90,6 @@ class DummyEngine(AbstractFuelPropulsion):
         return 0.0
 
 
-@RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
         component.add_input("data:propulsion:IC_engine:max_power", np.nan, units="W")
@@ -119,7 +113,7 @@ class DummyEngineWrapper(IOMPropulsionWrapper):
         return DummyEngine(**engine_params)
 
 
-BundleLoader().context.install_bundle(__name__).start()
+RegisterPropulsion(ENGINE_WRAPPER)(DummyEngineWrapper)
 
 
 def _create_tmp_directory() -> TemporaryDirectory:
@@ -166,7 +160,6 @@ def clear_polar_results():
 
 
 def test_slipstream_openvsp():
-    register_wrappers()
 
     # Create result temporary directory
     results_folder = _create_tmp_directory()
@@ -178,13 +171,13 @@ def test_slipstream_openvsp():
         result_folder_path=results_folder.name,
     )), __file__, XML_FILE)
     # Run problem and check obtained value(s) is/(are) correct
-    start = time.time()
+    # start = time.time()
     # noinspection PyTypeChecker
     problem = run_system(ComputeSlipstreamOpenvspX57(propulsion_id=ENGINE_WRAPPER,
                                                      result_folder_path=results_folder.name,
                                                      ), ivc)
-    stop = time.time()
-    duration_1st_run = stop - start
+    # stop = time.time()
+    # duration_1st_run = stop - start
     y_vector_prop_on = problem.get_val("data:aerodynamics:slipstream:wing:prop_on:Y_vector", units="m")
     y_result_prop_on = np.array([0.04, 0.13, 0.22, 0.3, 0.39, 0.48, 0.57, 0.68, 0.81, 0.94, 1.07,
                                  1.21, 1.34, 1.48, 1.61, 1.75, 1.88, 2.02, 2.15, 2.29, 2.42, 2.56,

@@ -20,7 +20,7 @@ import math
 import warnings
 
 from .profile import Profile
-from ...aerodynamics import resources
+from models.aerodynamics import resources
 
 
 def get_profile(

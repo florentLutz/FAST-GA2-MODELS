@@ -22,11 +22,10 @@ from typing import Union
 import numpy as np
 
 from fastoad.module_management.service_registry import RegisterPropulsion
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
-from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
+from fastoad.model_base import FlightPoint
+from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
+from ...tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 
 from ..geom_components.fuselage import (
     ComputeFuselageGeometryBasic,
@@ -106,7 +105,6 @@ class DummyEngine(AbstractFuelPropulsion):
         return 0.0
 
 
-@RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
         component.add_input("data:propulsion:IC_engine:max_power", np.nan, units="W")
@@ -130,7 +128,7 @@ class DummyEngineWrapper(IOMPropulsionWrapper):
         return DummyEngine(**engine_params)
 
 
-BundleLoader().context.install_bundle(__name__).start()
+RegisterPropulsion(ENGINE_WRAPPER)(DummyEngineWrapper)
 
 
 def test_compute_vt_chords():
@@ -273,7 +271,6 @@ def test_compute_ht_wet_area():
     ivc = get_indep_var_comp(list_inputs(ComputeHTWetArea()), __file__, XML_FILE)
 
     # Run problem and check obtained value(s) is/(are) correct
-    register_wrappers()
     problem = run_system(ComputeHTWetArea(), ivc)
     wet_area = problem.get_val("data:geometry:horizontal_tail:wet_area", units="m**2")
     assert wet_area == pytest.approx(4.62, abs=1e-2)

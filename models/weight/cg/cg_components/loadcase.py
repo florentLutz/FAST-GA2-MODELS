@@ -22,10 +22,10 @@ from scipy.constants import g
 
 from ....propulsion.fuel_propulsion.base import FuelEngineSet
 
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
+# noinspection PyProtectedMember
+from fastoad.module_management._bundle_loader import BundleLoader
+from fastoad.model_base import FlightPoint, Atmosphere
 from fastoad.constants import EngineSetting
-from fastoad.utils.physics import Atmosphere
 
 
 class ComputeGroundCGCase(ExplicitComponent):

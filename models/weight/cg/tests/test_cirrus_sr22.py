@@ -23,9 +23,8 @@ from typing import Union
 
 from fastoad.io import VariableIO
 from fastoad.module_management.service_registry import RegisterPropulsion
-from fastoad import BundleLoader
-from fastoad.base.flight_point import FlightPoint
-from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
+from fastoad.model_base import FlightPoint
+from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
 from ....tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 from ..cg import CG
@@ -36,14 +35,14 @@ from ..cg_components.c_systems import ComputePowerSystemsCG, ComputeLifeSupportC
 from ..cg_components.d_furniture import ComputePassengerSeatsCG
 from ..cg_components.payload import ComputePayloadCG
 from ..cg_components.loadcase import ComputeGroundCGCase, ComputeFlightCGCase
-from ..cg_components.ratio_aft import ComputeCGRatioAft, ComputeZCG
+from ..cg_components.ratio_aft import ComputeCGRatioAft
 from ..cg_components.max_cg_ratio import ComputeMaxMinCGratio
 from ..cg_components.update_mlg import UpdateMLG
 from ....propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ....propulsion.propulsion import IPropulsion
 
 XML_FILE = "cirrus_sr22.xml"
-ENGINE_WRAPPER = "test.wrapper.cg.beechcraft.dummy_engine"
+ENGINE_WRAPPER = "test.wrapper.cg.cirrus.dummy_engine"
 
 
 class DummyEngine(AbstractFuelPropulsion):
@@ -70,7 +69,7 @@ class DummyEngine(AbstractFuelPropulsion):
 
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
         flight_points.thrust = 5417.0
-        flight_points['sfc'] = 0.0
+        flight_points.sfc = 0.0
 
     def compute_weight(self) -> float:
         return 331.88
@@ -85,7 +84,6 @@ class DummyEngine(AbstractFuelPropulsion):
         return 0.0
 
 
-@RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
     def setup(self, component: Component):
         component.add_input("data:propulsion:IC_engine:max_power", np.nan, units="W")
@@ -109,7 +107,7 @@ class DummyEngineWrapper(IOMPropulsionWrapper):
         return DummyEngine(**engine_params)
 
 
-BundleLoader().context.install_bundle(__name__).start()
+RegisterPropulsion(ENGINE_WRAPPER)(DummyEngineWrapper)
 
 
 def test_compute_cg_wing():
@@ -279,6 +277,7 @@ def test_compute_cg_payload():
     x_cg_front_fret = problem.get_val("data:weight:payload:front_fret:CG:x", units="m")
     assert x_cg_front_fret == pytest.approx(0.0, abs=1e-2)
 
+
 def test_compute_cg_ratio_aft():
     """ Tests computation of center of gravity with aft estimation """
 
@@ -375,6 +374,7 @@ def test_update_mlg():
     cg_a51 = problem.get_val("data:weight:airframe:landing_gear:main:CG:x", units="m")
     assert cg_a51 == pytest.approx(3.052, abs=1e-2)
 
+
 def test_complete_cg():
     """ Run computation of all models """
 
@@ -396,4 +396,3 @@ def test_complete_cg():
     assert z_cg_empty_ac == pytest.approx(1.266, abs=1e-3)
     z_cg_b1 = problem.get_val("data:weight:propulsion:engine:CG:z", units="m")
     assert z_cg_b1 == pytest.approx(1.255, abs=1e-2)
-
