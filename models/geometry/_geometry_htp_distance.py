@@ -25,7 +25,6 @@ from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
 from fastoad.module_management.constants import ModelDomain
 
 
-@RegisterOpenMDAOSystem("fastga.geometry.legacy", domain=ModelDomain.GEOMETRY)
 class GeometryFixedTailDistance(om.Group):
     """
     Computes geometric characteristics of the (tube-wing) aircraft:
