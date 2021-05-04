@@ -128,13 +128,13 @@ def test_oad_process_wing_positioning(cleanup):
         # noinspection PyTypeChecker
         assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1042.877, atol=1)
     else:
-        assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 255.0, atol=1)
+        assert_allclose(problem.get_val("data:mission:sizing:fuel", units="kg"), 218., atol=1)
         # noinspection PyTypeChecker
-        assert_allclose(problem["data:handling_qualities:stick_fixed_static_margin"], 0.1500, atol=1e-2)
+        assert_allclose(problem["data:handling_qualities:stick_fixed_static_margin"], 0.15, atol=1e-2)
         # noinspection PyTypeChecker
-        assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1777.71776501, atol=1)
+        assert_allclose(problem.get_val("data:weight:aircraft:MTOW", units="kg"), 1721., atol=1)
         # noinspection PyTypeChecker
-        assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1132.541, atol=1)
+        assert_allclose(problem.get_val("data:weight:aircraft:OWE", units="kg"), 1113., atol=1)
 
 
 def _check_weight_performance_loop(problem):
