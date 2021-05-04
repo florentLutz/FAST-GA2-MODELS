@@ -16,7 +16,7 @@ Estimation of engine and associated component weight
 
 import numpy as np
 from openmdao.core.explicitcomponent import ExplicitComponent
-from ....propulsion.fuel_propulsion.base import FuelEngineSet
+from models.propulsion.fuel_propulsion.base import FuelEngineSet
 # noinspection PyProtectedMember
 from fastoad.module_management._bundle_loader import BundleLoader
 

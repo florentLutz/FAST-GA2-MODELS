@@ -18,7 +18,7 @@ import numpy as np
 from scipy.constants import lbf
 from openmdao.core.explicitcomponent import ExplicitComponent
 
-from ....propulsion.fuel_propulsion.base import FuelEngineSet
+from models.propulsion.fuel_propulsion.base import FuelEngineSet
 
 # noinspection PyProtectedMember
 from fastoad.module_management._bundle_loader import BundleLoader

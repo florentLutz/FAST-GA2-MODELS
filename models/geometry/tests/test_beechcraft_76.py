@@ -58,7 +58,7 @@ from ..geom_components.vt.components import (
 )
 from ..geom_components.nacelle.compute_nacelle import ComputeNacelleGeometry
 from ..geom_components import ComputeTotalArea
-from .. import GeometryFixedFuselage, GeometryFixedTailDistance
+from ..geometry import GeometryFixedFuselage, GeometryFixedTailDistance
 from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from models.propulsion.propulsion import IPropulsion
 

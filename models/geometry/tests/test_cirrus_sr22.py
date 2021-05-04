@@ -25,7 +25,7 @@ from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad.model_base import FlightPoint
 from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
+from models.tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 
 from ..geom_components.fuselage import (
     ComputeFuselageGeometryBasic,
@@ -58,9 +58,9 @@ from ..geom_components.vt.components import (
 )
 from ..geom_components.nacelle.compute_nacelle import ComputeNacelleGeometry
 from ..geom_components import ComputeTotalArea
-from .. import GeometryFixedFuselage, GeometryFixedTailDistance
-from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
-from ...propulsion.propulsion import IPropulsion
+from ..geometry import GeometryFixedFuselage, GeometryFixedTailDistance
+from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from models.propulsion.propulsion import IPropulsion
 
 XML_FILE = "cirrus_sr22.xml"
 ENGINE_WRAPPER = "test.wrapper.geometry.cirrus.dummy_engine"

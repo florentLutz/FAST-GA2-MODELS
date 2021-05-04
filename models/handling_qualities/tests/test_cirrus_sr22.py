@@ -24,13 +24,14 @@ from fastoad.model_base import FlightPoint
 from fastoad.model_base.propulsion import IOMPropulsionWrapper
 from fastoad.constants import EngineSetting
 
-from ...tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
+from models.tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 from ..compute_static_margin import ComputeStaticMargin
-from ..tail_sizing import UpdateVTArea, UpdateHTArea
+from ..tail_sizing.update_vt_area import UpdateVTArea
+from ..tail_sizing.update_ht_area import UpdateHTArea
 from ..tail_sizing.compute_to_rotation_limit import ComputeTORotationLimitGroup
 from ..tail_sizing.compute_balked_landing_limit import ComputeBalkedLandingLimit
-from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
-from ...propulsion.propulsion import IPropulsion
+from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from models.propulsion.propulsion import IPropulsion
 
 XML_FILE = "cirrus_sr22.xml"
 ENGINE_WRAPPER = "test.wrapper.handling_qualities.cirrus.dummy_engine"

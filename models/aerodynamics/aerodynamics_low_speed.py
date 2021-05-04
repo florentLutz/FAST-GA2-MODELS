@@ -23,6 +23,7 @@ from .components.high_lift_aero import ComputeDeltaHighLift
 
 from .external.vlm import ComputeAEROvlm
 from .external.openvsp import ComputeAEROopenvsp
+# noinspection PyProtectedMember
 from .external.openvsp.compute_aero_slipstream import _ComputeSlipstreamOpenvsp
 
 from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
@@ -40,8 +41,8 @@ class AerodynamicsLowSpeed(Group):
         self.options.declare("use_openvsp", default=False, types=bool)
         self.options.declare("compute_slipstream", default=False, types=bool)
         self.options.declare("result_folder_path", default="", types=str)
-        self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
-        self.options.declare('htp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
+        self.options.declare('wing_airfoil', default="naca23012.af", types=str, allow_none=True)
+        self.options.declare('htp_airfoil', default="naca0012.af", types=str, allow_none=True)
 
     # noinspection PyTypeChecker
     def setup(self):
@@ -50,8 +51,8 @@ class AerodynamicsLowSpeed(Group):
                                ComputeAEROvlm(
                                    low_speed_aero=True,
                                    result_folder_path=self.options["result_folder_path"],
-                                   wing_airfoil_file=self.options["wing_airfoil_file"],
-                                   htp_airfoil_file=self.options["htp_airfoil_file"],
+                                   wing_airfoil_file=self.options["wing_airfoil"],
+                                   htp_airfoil_file=self.options["htp_airfoil"],
                                ), promotes=["*"])
         else:
             self.add_subsystem("aero_openvsp",
@@ -59,14 +60,14 @@ class AerodynamicsLowSpeed(Group):
                                    low_speed_aero=True,
                                    compute_mach_interpolation=False,
                                    result_folder_path=self.options["result_folder_path"],
-                                   wing_airfoil_file=self.options["wing_airfoil_file"],
-                                   htp_airfoil_file=self.options["htp_airfoil_file"],
+                                   wing_airfoil_file=self.options["wing_airfoil"],
+                                   htp_airfoil_file=self.options["htp_airfoil"],
                                ), promotes=["*"])
         self.add_subsystem("Cd0_all",
                            Cd0(
                                low_speed_aero=True,
-                               wing_airfoil_file=self.options["wing_airfoil_file"],
-                               htp_airfoil_file=self.options["htp_airfoil_file"],
+                               wing_airfoil_file=self.options["wing_airfoil"],
+                               htp_airfoil_file=self.options["htp_airfoil"],
                                propulsion_id=self.options["propulsion_id"],
                            ), promotes=["*"])
         self.add_subsystem("high_lift", ComputeDeltaHighLift(), promotes=["*"])
@@ -75,6 +76,6 @@ class AerodynamicsLowSpeed(Group):
             self.add_subsystem("aero_slipstream_openvsp",
                                _ComputeSlipstreamOpenvsp(propulsion_id=self.options["propulsion_id"],
                                                          result_folder_path=self.options["result_folder_path"],
-                                                         wing_airfoil_file=self.options["wing_airfoil_file"],
+                                                         wing_airfoil_file=self.options["wing_airfoil"],
                                                          low_speed_aero=True,
                                                          ), promotes=["*"])

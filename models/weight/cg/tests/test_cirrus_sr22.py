@@ -26,7 +26,7 @@ from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad.model_base import FlightPoint
 from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from ....tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
+from models.tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
 from ..cg import CG
 from ..cg_components.a_airframe import ComputeWingCG, ComputeFuselageCG, ComputeTailCG, ComputeFlightControlCG, \
     ComputeLandingGearCG
@@ -38,8 +38,8 @@ from ..cg_components.loadcase import ComputeGroundCGCase, ComputeFlightCGCase
 from ..cg_components.ratio_aft import ComputeCGRatioAft
 from ..cg_components.max_cg_ratio import ComputeMaxMinCGratio
 from ..cg_components.update_mlg import UpdateMLG
-from ....propulsion.fuel_propulsion.base import AbstractFuelPropulsion
-from ....propulsion.propulsion import IPropulsion
+from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from models.propulsion.propulsion import IPropulsion
 
 XML_FILE = "cirrus_sr22.xml"
 ENGINE_WRAPPER = "test.wrapper.cg.cirrus.dummy_engine"

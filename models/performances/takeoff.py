@@ -25,7 +25,7 @@ from fastoad.model_base.propulsion import FuelEngineSet
 from fastoad.module_management._bundle_loader import BundleLoader
 from fastoad.constants import EngineSetting
 
-from ..propulsion.fuel_propulsion.base import FuelEngineSet
+from models.propulsion.fuel_propulsion.base import FuelEngineSet
 
 ALPHA_LIMIT = 13.5 * math.pi / 180.0  # Limit angle to touch tail on ground in rad
 ALPHA_RATE = 3.0 * math.pi / 180.0  # Angular rotation speed in rad/s

@@ -18,7 +18,7 @@ Computes the aerodynamic loads on the wing of the aircraft in the most stringent
 import numpy as np
 
 from .aerostructural_loads_x57 import AerostructuralLoadX57, SPAN_MESH_POINT_LOADS
-from ..aerodynamics.constants import SPAN_MESH_POINT
+from models.aerodynamics.constants import SPAN_MESH_POINT
 from fastoad.model_base.atmosphere import Atmosphere
 
 

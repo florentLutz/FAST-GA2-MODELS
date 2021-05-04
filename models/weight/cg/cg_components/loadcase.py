@@ -20,7 +20,7 @@ from openmdao.core.explicitcomponent import ExplicitComponent
 import scipy.optimize as optimize
 from scipy.constants import g
 
-from ....propulsion.fuel_propulsion.base import FuelEngineSet
+from models.propulsion.fuel_propulsion.base import FuelEngineSet
 
 # noinspection PyProtectedMember
 from fastoad.module_management._bundle_loader import BundleLoader

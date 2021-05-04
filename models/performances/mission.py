@@ -27,9 +27,9 @@ from fastoad.model_base.propulsion import FuelEngineSet
 from fastoad.module_management._bundle_loader import BundleLoader
 from fastoad.constants import EngineSetting
 
-from ..propulsion.fuel_propulsion.base import FuelEngineSet
+from models.propulsion.fuel_propulsion.base import FuelEngineSet
 from .takeoff import SAFETY_HEIGHT
-from ..aerodynamics import AircraftEquilibrium
+from models.aerodynamics.lift_equilibrium import AircraftEquilibrium
 
 POINTS_NB_CLIMB = 100
 POINTS_NB_CRUISE = 500

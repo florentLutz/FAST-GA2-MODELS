@@ -19,7 +19,7 @@ import numpy as np
 from scipy.integrate import trapz
 
 from .aerostructural_loads_x57 import AerostructuralLoadX57, SPAN_MESH_POINT_LOADS
-from ..aerodynamics.constants import SPAN_MESH_POINT
+from models.aerodynamics.constants import SPAN_MESH_POINT
 
 
 class StructuralLoadsX57(AerostructuralLoadX57):

@@ -18,7 +18,7 @@
 import openmdao.api as om
 import numpy as np
 
-from ..weight.cg import InFlightCGVariation
+from models.weight.cg.cg_variation import InFlightCGVariation
 from .takeoff import TakeOffPhase
 from .mission import _compute_taxi, _compute_climb, _compute_cruise, _compute_descent
 

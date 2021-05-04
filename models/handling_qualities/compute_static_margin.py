@@ -17,7 +17,7 @@ Estimation of static margin
 
 import numpy as np
 import openmdao.api as om
-from ..aerodynamics.aero_center import ComputeAeroCenter
+from models.aerodynamics.aero_center import ComputeAeroCenter
 
 from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
 from fastoad.module_management.constants import ModelDomain

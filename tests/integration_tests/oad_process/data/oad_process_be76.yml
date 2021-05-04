@@ -2,8 +2,7 @@ title: Sample OAD Process applied to beechcraft
 
 # List of folder paths where user added custom registered OpenMDAO components
 module_folders:
-    # - ../../../../models
-    - D:/a.reysset/Documents/Github/FAST-GA2-MODELS/models
+    - ../../../../models/
 
 
 # Input and output files
@@ -22,7 +21,7 @@ model:
     aerodynamics_highspeed:
         id: fastga.aerodynamics.highspeed.legacy
         propulsion_id: fastga.wrapper.propulsion.basicIC_engine
-        wing_airfoil_file : naca63_415.af
+        wing_airfoil : naca63_415.af
         result_folder_path : D:/tmp
         use_openvsp : true
         compute_mach_interpolation : false
@@ -30,7 +29,8 @@ model:
     aerodynamics_lowspeed:
         id: fastga.aerodynamics.lowspeed.legacy
         propulsion_id: fastga.wrapper.propulsion.basicIC_engine
-        result_folder_path : D:/tmp
+        wing_airfoil : naca63_415.af
+        result_folder_path : 'D:/tmp'
         use_openvsp : true
         compute_slipstream : false
     weight:
@@ -48,6 +48,6 @@ model:
         static_margin:
             id: fastga.handling_qualities.static_margin
     wing_position:
-        id: fastoad.loop.wing_position
+        id: fastga.loop.wing_position
     wing_area:
         id: fastga.loop.wing_area

@@ -23,6 +23,7 @@ import time
 from openmdao.core.system import System
 from copy import deepcopy
 
+
 from fastoad.io import VariableIO
 # noinspection PyProtectedMember
 from fastoad.module_management.service_registry import _RegisterOpenMDAOService

@@ -24,12 +24,12 @@ from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad.model_base import FlightPoint, Atmosphere
 from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
-from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from models.tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
+from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ..aerostructural_loads import AerostructuralLoad
 from ..structural_loads import StructuralLoads
 from ..aerodynamic_loads import AerodynamicLoads
-from ...propulsion.propulsion import IPropulsion
+from models.propulsion.propulsion import IPropulsion
 
 XML_FILE = "beechcraft_76.xml"
 ENGINE_WRAPPER = "test.wrapper.load_analysis.beechcraft.dummy_engine"

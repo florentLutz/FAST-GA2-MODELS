@@ -20,9 +20,9 @@ import numpy as np
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
-from ..aerodynamics.constants import SPAN_MESH_POINT, MACH_NB_PTS
-from ..aerodynamics.external.openvsp.compute_vn import ComputeVNopenvsp
-from ..aerodynamics.external.vlm.compute_vn import ComputeVNvlm
+from models.aerodynamics.constants import SPAN_MESH_POINT, MACH_NB_PTS
+from models.aerodynamics.external.openvsp.compute_vn import ComputeVNopenvsp
+from models.aerodynamics.external.vlm.compute_vn import ComputeVNvlm
 
 from fastoad.model_base.atmosphere import Atmosphere
 

@@ -18,7 +18,7 @@ Computes the structural loads on the wing of the aircraft in the most stringent 
 import numpy as np
 
 from .aerostructural_loads import AerostructuralLoad, SPAN_MESH_POINT_LOADS
-from ..aerodynamics.constants import SPAN_MESH_POINT
+from models.aerodynamics.constants import SPAN_MESH_POINT
 
 
 class StructuralLoads(AerostructuralLoad):

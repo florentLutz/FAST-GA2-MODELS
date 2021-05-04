@@ -27,13 +27,13 @@ from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad.model_base import FlightPoint, Atmosphere
 from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
-from ...weight.cg import InFlightCGVariation
+from models.tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
+from models.weight.cg.cg_variation import InFlightCGVariation
 from ..takeoff import TakeOffPhase, _v2, _vr_from_v2, _vloff_from_v2, _simulate_takeoff
 from ..mission import _compute_taxi, _compute_climb, _compute_cruise, _compute_descent
 from ..sizing import Sizing
-from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
-from ...propulsion.propulsion import IPropulsion
+from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from models.propulsion.propulsion import IPropulsion
 
 XML_FILE = "beechcraft_76.xml"
 ENGINE_WRAPPER = "test.wrapper.performances.beechcraft.dummy_engine"

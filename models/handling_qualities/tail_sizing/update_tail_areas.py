@@ -16,7 +16,8 @@ Computation of tail areas w.r.t. HQ criteria
 
 import openmdao.api as om
 
-from . import UpdateVTArea, UpdateHTArea
+from .update_ht_area import UpdateHTArea
+from .update_vt_area import UpdateVTArea
 
 from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
 from fastoad.module_management.constants import ModelDomain

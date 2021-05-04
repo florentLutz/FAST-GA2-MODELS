@@ -38,8 +38,8 @@ from ..cg_components.loadcase import ComputeGroundCGCase, ComputeFlightCGCase
 from ..cg_components.ratio_aft import ComputeCGRatioAft
 from ..cg_components.max_cg_ratio import ComputeMaxMinCGratio
 from ..cg_components.update_mlg import UpdateMLG
-from ....propulsion.fuel_propulsion.base import AbstractFuelPropulsion
-from ....propulsion.propulsion import IPropulsion
+from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from models.propulsion.propulsion import IPropulsion
 
 XML_FILE = "beechcraft_76.xml"
 ENGINE_WRAPPER = "test.wrapper.cg.beechcraft.dummy_engine"

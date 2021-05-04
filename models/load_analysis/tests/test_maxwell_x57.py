@@ -24,12 +24,12 @@ from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad.model_base import FlightPoint, Atmosphere
 from fastoad.model_base.propulsion import IOMPropulsionWrapper
 
-from ...tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
-from ...propulsion.fuel_propulsion.base import AbstractFuelPropulsion
+from models.tests.testing_utilities import run_system, get_indep_var_comp, list_inputs
+from models.propulsion.fuel_propulsion.base import AbstractFuelPropulsion
 from ..aerostructural_loads_x57 import AerostructuralLoadX57
 from ..structural_loads_x57 import StructuralLoadsX57
 from ..aerodynamic_loads_x57 import AerodynamicLoadsX57
-from ...propulsion.propulsion import IPropulsion
+from models.propulsion.propulsion import IPropulsion
 
 XML_FILE = "maxwell_x57.xml"
 ENGINE_WRAPPER = "test.wrapper.load_analysis.nasa.dummy_engine"
