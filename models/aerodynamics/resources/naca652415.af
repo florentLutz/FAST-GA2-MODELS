@@ -1,8 +1,8 @@
 AIRFOIL FILE
 NACA 65(2)-415
-0
-26
-26
+0	Sym Flag (0 - No, 1 - Yes)
+26	Num Pnts Upper
+26	Num Pnts Lower
   0.000000  0.000000
   0.003130  0.012080
   0.005420  0.014800

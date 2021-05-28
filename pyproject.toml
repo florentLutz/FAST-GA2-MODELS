@@ -3,7 +3,7 @@ line-length = 100
 
 [tool.poetry]
 name = "FAST-OAD-GA"
-version = "0.0.0"
+version = "0.1.0"
 description = "FAST-OAD-GA is a framework for performing rapid Overall Aircraft Design for General Aircraft"
 readme = "README.md"
 authors = [
@@ -42,6 +42,9 @@ classifiers = [
 # doing again the commit including changes in docs/requirements.txt will succeed.
 python = "^3.7"
 fast-oad = "^1.0.2"
+
+[tool.poetry.plugins."fastoad_model"]
+"internal_models" = "fastga"
 
 
 [tool.poetry.dev-dependencies]

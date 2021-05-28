@@ -23,7 +23,7 @@ from fastoad.module_management.service_registry import RegisterOpenMDAOSystem
 from fastoad.module_management.constants import ModelDomain
 
 
-@RegisterOpenMDAOSystem("fastga.loop.wing_area", domain=ModelDomain.OTHER)
+@RegisterOpenMDAOSystem("fastga.loop.wing_area", domain=ModelDomain.GEOMETRY)
 class UpdateWingArea(om.Group):
     """
     Computes needed wing area to:

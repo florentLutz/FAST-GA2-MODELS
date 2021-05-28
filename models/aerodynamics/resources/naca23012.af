@@ -1,8 +1,8 @@
  AIRFOIL FILE 
  NACA 23012
- 0
- 31
- 31
+ 0	Sym Flag (0 - No, 1 - Yes)
+ 31	Num Pnts Upper
+ 31	Num Pnts Lower
  0.00000  0.00000  
  0.00015  0.00956 
  0.00628  0.02030
