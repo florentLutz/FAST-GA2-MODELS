@@ -53,8 +53,6 @@ class FuelEngineSet(AbstractFuelPropulsion):
         self.engine = engine
         self.engine_count = engine_count
 
-
-
     def compute_flight_points(self, flight_points: Union[FlightPoint, pd.DataFrame]):
 
         if isinstance(flight_points, FlightPoint):
@@ -69,7 +67,11 @@ class FuelEngineSet(AbstractFuelPropulsion):
         flight_points.sfc = flight_points_per_engine.sfc
         flight_points.thrust = flight_points_per_engine.thrust * self.engine_count
         flight_points.thrust_rate = flight_points_per_engine.thrust_rate
-      
+
+    def compute_max_power(self, flight_points: Union[FlightPoint, pd.DataFrame]):
+
+        return self.engine.compute_max_power(flight_points)
+
     def compute_weight(self):
 
         return self.engine.compute_weight()*self.engine_count

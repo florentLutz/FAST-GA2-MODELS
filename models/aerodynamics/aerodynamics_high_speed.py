@@ -42,6 +42,7 @@ class AerodynamicsHighSpeed(Group):
         self.options.declare("result_folder_path", default="", types=str)
         self.options.declare('wing_airfoil_file', default="naca23012.af", types=str, allow_none=True)
         self.options.declare('htp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
+        self.options.declare('vtp_airfoil_file', default="naca0012.af", types=str, allow_none=True)
 
     # noinspection PyTypeChecker
     def setup(self):

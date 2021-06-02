@@ -14,7 +14,10 @@
 from .compute_cl_extreme import ComputeExtremeCL
 from .compute_reynolds import ComputeUnitReynolds
 from .compute_cnbeta_fuselage import ComputeCnBetaFuselage
+from .compute_cy_rudder import ComputeCyDeltaRudder
 from .compute_L_D_max import ComputeLDMax
 from .high_lift_aero import ComputeDeltaHighLift
 from .hinge_moments_elevator import Compute2DHingeMomentsTail, Compute3DHingeMomentsTail
 from .mach_interpolation import ComputeMachInterpolation
+from .clalpha_vt import ComputeClalphaVT
+from .airfoil_lift_curve_slope import ComputeAirfoilLiftCurveSlope

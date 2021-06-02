@@ -105,6 +105,9 @@ class DummyEngine(AbstractFuelPropulsion):
     def get_consumed_mass(self, flight_point: FlightPoint, time_step: float) -> float:
         return 0.0
 
+    def compute_max_power(self, flight_points: Union[FlightPoint, pd.DataFrame]) -> float:
+        return 0.0
+
 
 @RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
@@ -167,7 +170,7 @@ def test_compute_vt_mac():
     vt_z0 = problem.get_val("data:geometry:vertical_tail:MAC:z", units="m")
     assert vt_z0 == pytest.approx(0.799, abs=1e-3)
     vt_lp = problem.get_val("data:geometry:vertical_tail:MAC:at25percent:x:from_wingMAC25", units="m")
-    assert vt_lp == pytest.approx(3.333, abs=1e-3)
+    assert vt_lp == pytest.approx(3.733, abs=1e-3)
 
 
 def test_compute_vt_sweep():

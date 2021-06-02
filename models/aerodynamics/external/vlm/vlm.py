@@ -649,7 +649,7 @@ class VLMSimpleGeometry(om.ExplicitComponent):
                 if j == 0:
                     y2[self.nx * self.ny + (i * self.ny + j)] = 0
                     x2[self.nx * self.ny + (i * self.ny + j)] = x_panel[i, 0] + 0.25 * (
-                                x_panel[i + 1, 0] - x_panel[i, 0])
+                            x_panel[i + 1, 0] - x_panel[i, 0])
                 else:
                     x2[self.nx * self.ny + (i * self.ny + j)] = x_panel[i, self.ny + j] \
                                                                 + 0.25 * (x_panel[i + 1, self.ny + j] - x_panel[

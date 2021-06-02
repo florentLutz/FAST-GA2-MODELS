@@ -54,12 +54,12 @@ class ComputeExtremeCL(Group):
         self.add_subsystem("wing_root_polar",
                            XfoilPolar(
                                airfoil_file=self.options["wing_airfoil_file"],
-                               symmetrical=True,
+                               symmetrical=False,
                            ), promotes=[])
         self.add_subsystem("wing_tip_polar",
                            XfoilPolar(
                                airfoil_file=self.options["wing_airfoil_file"],
-                               symmetrical=True,
+                               symmetrical=False,
                            ), promotes=[])
         self.add_subsystem("htp_root_polar",
                            XfoilPolar(
@@ -170,7 +170,6 @@ class ComputeWing3DExtremeCL(ExplicitComponent):
         cl0 = inputs["data:aerodynamics:wing:low_speed:CL0_clean"]
         y_interp = inputs["data:aerodynamics:wing:low_speed:Y_vector"]
         cl_interp = inputs["data:aerodynamics:wing:low_speed:CL_vector"]
-
         y_interp, cl_interp = self._reshape_curve(y_interp, cl_interp)
         y_vect = np.linspace(max(y_root, min(y_interp)), min(y_tip, max(y_interp)), SPAN_MESH_POINT)
         cl_xfoil_max = np.interp(y_vect, np.array([y_root, y_tip]), np.array([cl_max_2d_root, cl_max_2d_tip]))
@@ -178,9 +177,8 @@ class ComputeWing3DExtremeCL(ExplicitComponent):
         cl_curve = np.maximum(
             np.interp(y_vect, y_interp, cl_interp), 1e-12 * np.ones(np.size(y_vect))
         )  # avoid divide by 0
-        cl_max_clean = cl0 * np.min(cl_xfoil_max/cl_curve)
+        cl_max_clean = cl0 * np.min(cl_xfoil_max / cl_curve)
         cl_min_clean = cl0 * np.max(cl_xfoil_min / cl_curve)
-        
         outputs["data:aerodynamics:wing:low_speed:CL_max_clean"] = cl_max_clean
         outputs["data:aerodynamics:wing:low_speed:CL_min_clean"] = cl_min_clean
 

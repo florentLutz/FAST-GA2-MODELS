@@ -85,6 +85,9 @@ class DummyEngine(AbstractFuelPropulsion):
     def compute_sl_thrust(self) -> float:
         return 5417.0
 
+    def compute_max_power(self, flight_points: Union[FlightPoint, pd.DataFrame]) -> float:
+        return 0.0
+
 
 @RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):

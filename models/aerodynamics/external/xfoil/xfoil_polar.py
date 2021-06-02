@@ -74,7 +74,7 @@ class XfoilPolar(ExternalCodeComp):
         self.options.declare(OPTION_RESULT_FOLDER_PATH, default="", types=str)
         self.options.declare(OPTION_RESULT_POLAR_FILENAME, default="polar_result.txt", types=str)
         self.options.declare(OPTION_ALPHA_START, default=0.0, types=float)
-        self.options.declare(OPTION_ALPHA_END, default=20.0, types=float)
+        self.options.declare(OPTION_ALPHA_END, default=18.0, types=float)
         self.options.declare(OPTION_ITER_LIMIT, default=100, types=int)
         self.options.declare('symmetrical', default=False, types=bool)
 
@@ -101,7 +101,6 @@ class XfoilPolar(ExternalCodeComp):
         # Get inputs and initialise outputs
         mach = round(float(inputs["xfoil:mach"]) * 1e4) / 1e4
         reynolds = round(float(inputs["xfoil:reynolds"]))
-
         # Search if data already stored for this profile and mach with reynolds values bounding current value.
         # If so, use linear interpolation with the nearest upper/lower reynolds
         no_file = True
@@ -204,7 +203,7 @@ class XfoilPolar(ExternalCodeComp):
             self.options["external_output_files"] = [tmp_result_file_path]
             super().compute(inputs, outputs)
 
-            if self.options['symmetrical']:
+            if not self.options['symmetrical']:
                 result_array_p = self._read_polar(tmp_result_file_path)
                 os.remove(self.stdin)
                 os.remove(self.stdout)
@@ -218,7 +217,7 @@ class XfoilPolar(ExternalCodeComp):
                 result_array_n = self._read_polar(tmp_result_file_path)
             else:
                 result_array_p = self._read_polar(tmp_result_file_path)
-                result_array_n = result_array_p
+                result_array_n = self._get_result_array_n_sym(result_array_p)
 
             # Post-processing --------------------------------------------------------------------------
             cl_max_2d, error = self._get_max_cl(result_array_p["alpha"], result_array_p["CL"])
@@ -366,6 +365,21 @@ class XfoilPolar(ExternalCodeComp):
         _LOGGER.error("XFOIL results file not found")
         return np.array([])
 
+    @staticmethod
+    def _get_result_array_n_sym(result_array_p):
+        """
+        :param result_array_p: the data_file containing the results from the positive simulation
+        :return: numpy array with XFoil polar results
+        """
+        result_array_n = np.copy(result_array_p)
+        result_array_n["alpha"] = -1. * result_array_p["alpha"]
+        result_array_n["CL"] = -1. * result_array_p["CL"]
+        result_array_n["CM"] = -1. * result_array_p["CM"]
+        result_array_n["Top_Xtr"] = result_array_p["Bot_Xtr"]
+        result_array_n["Bot_Xtr"] = result_array_p["Top_Xtr"]
+
+        return result_array_n
+
     def _get_max_cl(self, alpha: np.ndarray, lift_coeff: np.ndarray) -> Tuple[float, bool]:
         """
 
@@ -380,7 +394,7 @@ class XfoilPolar(ExternalCodeComp):
                 lift_fct = lambda x: (lift_coeff[1] - lift_coeff[0]) / (alpha[1] - alpha[0]) * (x - alpha[0]) \
                                      + lift_coeff[0]
                 delta = np.abs((lift_coeff - lift_fct(alpha)) / (lift_coeff + 1e-12 * (lift_coeff == 0.0)))
-                return max(lift_coeff[delta <= 0.1]), False
+                return max(lift_coeff[delta <= 0.3]), False
 
         _LOGGER.warning("2D CL max not found, les than 50% of angle range computed: using default value {}".format(
             DEFAULT_2D_CL_MAX))
@@ -400,7 +414,7 @@ class XfoilPolar(ExternalCodeComp):
                 lift_fct = lambda x: (lift_coeff[1] - lift_coeff[0]) / (alpha[1] - alpha[0]) * (x - alpha[0]) \
                                      + lift_coeff[0]
                 delta = np.abs(lift_coeff - lift_fct(alpha)) / np.abs(lift_coeff + 1e-12 * (lift_coeff == 0.0))
-                return min(lift_coeff[delta <= 0.1]), False
+                return min(lift_coeff[delta <= 0.3]), False
 
         _LOGGER.warning("2D CL min not found, les than 50% of angle range computed: using default value {}".format(
             DEFAULT_2D_CL_MIN))

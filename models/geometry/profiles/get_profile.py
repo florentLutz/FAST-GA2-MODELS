@@ -37,10 +37,11 @@ def get_profile(
 
     profile = Profile()
     x_z = genfromtxt(pth.join(resources.__path__[0], file_name))
+
     profile.set_points(x_z["x"], x_z["z"])
 
     if thickness_ratio:
-        if abs(profile.thickness_ratio - thickness_ratio)/thickness_ratio > 0.01:
+        if abs(profile.thickness_ratio - thickness_ratio) / thickness_ratio > 0.01:
             warnings.warn('The airfoil thickness ratio from file ' + pth.join(resources.__path__[0], file_name)
                           + ' differs from user defined input data:geometry:wing:thickness_ratio!')
         profile.thickness_ratio = thickness_ratio

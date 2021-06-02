@@ -72,6 +72,9 @@ class DummyEngine(AbstractFuelPropulsion):
     def compute_sl_thrust(self) -> float:
         return 5417.0
 
+    def compute_max_power(self, flight_points: Union[FlightPoint, pd.DataFrame]) -> float:
+        return 0.0
+
 
 @RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
@@ -141,16 +144,22 @@ def test_update_vt_area():
     """ Tests computation of the vertical tail area """
 
     # Research independent input value in .xml file
-    reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
-    reader.path_separator = ":"
-    input_vars = reader.read().to_ivc()
+    input_vars = get_indep_var_comp(list_inputs(UpdateVTArea(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
+    input_vars.add_output("data:weight:aircraft:OWE", 1039.139, units="kg")
+    input_vars.add_output("data:weight:aircraft:payload", 355.0, units="kg")
     input_vars.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.0599)
+    input_vars.add_output("data:aerodynamics:rudder:low_speed:Cy_delta_r", 1.3536, units="rad**-1")
+    input_vars.add_output("data:aerodynamics:vertical_tail:low_speed:CL_alpha", 2.634, units="rad**-1")
+    input_vars.add_output("data:geometry:cabin:length", 2.86, units="m")
+    input_vars.add_output("data:geometry:fuselage:front_length", 1.559, units="m")
+    input_vars.add_output("data:geometry:fuselage:rear_length", 3.15, units="m")
+    input_vars.add_output("data:geometry:fuselage:maximum_height", 1.41, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()
     problem = run_system(UpdateVTArea(propulsion_id=ENGINE_WRAPPER), input_vars)
     vt_area = problem.get_val("data:geometry:vertical_tail:area", units="m**2")
-    assert vt_area == pytest.approx(1.751, abs=1e-2)  # old-version obtained value 2.4m²
+    assert vt_area == pytest.approx(1.916, abs=1e-2)  # old-version obtained value 2.4m²
 
 
 def test_update_ht_area():

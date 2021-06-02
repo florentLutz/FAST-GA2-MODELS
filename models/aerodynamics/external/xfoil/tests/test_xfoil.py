@@ -52,8 +52,8 @@ def test_compute():
         alpha_start=0.0, alpha_end=15.0, iter_limit=100, symmetrical=True, xfoil_exe_path=xfoil_path
     )
     problem = run_system(xfoil_comp, ivc)
-    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.31, 1e-2)
-    assert problem["xfoil:CL_min_2D"] == pytest.approx(-0.59, 1e-2)
+    assert problem["xfoil:CL_max_2D"] == pytest.approx(1.28, 1e-2)
+    assert problem["xfoil:CL_min_2D"] == pytest.approx(-1.28, 1e-2)
     assert not pth.exists(XFOIL_RESULTS)
 
     # Deactivate warnings for wished crash of xfoil

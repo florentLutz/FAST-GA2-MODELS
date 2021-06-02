@@ -17,8 +17,8 @@
 	<data>
 		<TLAR>
 			<NPAX_design>2.0<!--top-level requirement: number of passengers for the design mission, assuming a classic eco/business class repartition--></NPAX_design>
-			<luggage_mass_design units="kg">20.<!--top-level requirement: luggage mass per passenger for the design mission--></luggage_mass_design>
-			<range units="NM">890.0</range>
+			<luggage_mass_design units="kg">35.<!--top-level requirement: luggage mass per passenger for the design mission--></luggage_mass_design>
+			<range units="NM">860.0</range>
 			<v_approach units="kn">79.0<!--top-level requirement: approach speed--></v_approach>
 			<v_cruise units="kn">160.0<!--top-level requirement: cruise speed--></v_cruise>
 			<v_limit units="kn">202.6<!--top-level requirement: limit speed--></v_limit>
@@ -34,13 +34,13 @@
 				<aisle_width units="m">0.0<!--cabin aisle width--></aisle_width>
 				<seats>
 					<pilot>
-						<length units="m">0.75<!--pilot seats length--></length>
+						<length units="m">0.85<!--pilot seats length--></length>
 						<width units="m">0.565<!--pilot seats width--></width>
 					</pilot>
 					<passenger>
 						<NPAX_max>2.0<!--maximum seating capability of the aircraft--></NPAX_max>
 						<count_by_row>3.0<!--passenger seats per row--></count_by_row>
-						<length units="m">0.8<!--passenger seats length--></length>
+						<length units="m">0.9<!--passenger seats length--></length>
 						<width units="m">0.40<!--passenger seats width--></width>
 					</passenger>
 				</seats>
@@ -53,14 +53,14 @@
 				<MAC>
 					<at25percent>
 						<x>
-							<from_wingMAC25 units="m">3.91<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
+							<from_wingMAC25 units="m">4.0<!--distance along X between 25% MAC of wing and 25% MAC of horizontal tail--></from_wingMAC25>
 						</x>
 					</at25percent>
 				</MAC>
-				<area units="m**2">2.75<!--horizontal tail area--></area>
+				<area units="m**2">2.492636949478184<!--horizontal tail area--></area>
 				<sweep_25 units="deg">4.0<!--sweep angle at 25% chord of horizontal tail--></sweep_25>
 				<taper_ratio>0.613<!--taper ratio of horizontal tail--></taper_ratio>
-				<thickness_ratio>0.12<!--thickness ratio of horizontal tail--></thickness_ratio>
+				<thickness_ratio>0.10<!--thickness ratio of horizontal tail--></thickness_ratio>
 				<elevator_chord_ratio>0.30<!--ratio between elevator chord and tail chord--></elevator_chord_ratio>
 			</horizontal_tail>
 			<landing_gear>
@@ -79,19 +79,23 @@
 						</x>
 					</at25percent>
 				</MAC>
-				<area units="m**2">1.51<!--vertical tail area--></area>
+				<area units="m**2">1.9456206937712917<!--vertical tail area--></area>
 				<aspect_ratio>2.0<!--aspect ratio of vertical tail--></aspect_ratio>
 				<sweep_25 units="deg">10.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
 				<taper_ratio>0.502<!--taper ratio of vertical tail--></taper_ratio>
-				<thickness_ratio>0.12<!--thickness ratio of vertical tail--></thickness_ratio>
+				<thickness_ratio>0.1<!--thickness ratio of vertical tail--></thickness_ratio>
+				<rudder>
+					<chord_ratio>0.25</chord_ratio>
+					<max_deflection units="deg">20.0</max_deflection>
+				</rudder>
 			</vertical_tail>
 			<wing>
 				<MAC>
 					<at25percent>
-						<x units="m">2.65<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
+						<x units="m">2.80<!--X-position of the 25% of mean aerodynamic chord of wing w.r.t. aircraft nose (drives position of wing along fuselage)--></x>
 					</at25percent>
 				</MAC>
-				<area units="m**2">13.46<!--wing reference area--></area>
+				<area units="m**2">13.897613983508176<!--wing reference area--></area>
 				<aspect_ratio>10.12<!--wing aspect ratio--></aspect_ratio>
 				<kink>
 					<span_ratio>0.0<!--ratio (Y-position of kink)/(semi-span)--></span_ratio>
@@ -122,6 +126,7 @@
 				<fuel units="kg">0.0</fuel>
 				<landing>
 					<elevator_angle units="deg">-25.0<!--elevator maximum angle during landing phase in sizing mission--></elevator_angle>
+					<target_sideslip units="deg">15.0<!--desired sideslip angle for a crosswind landing--></target_sideslip>
 				</landing>
 				<main_route>
 					<climb>
@@ -163,6 +168,13 @@
 					<range>0.22<!--distance between front position and aft position of CG, as ratio of mean aerodynamic chord (allows to have front position of CG, as currently, FAST-OAD estimates only the aft position of CG)--></range>
 				</CG>
 			</aircraft>
+			<airframe>
+				<landing_gear>
+					<front>
+						<weight_ratio>0.075<!--ratio of the weight supported by the front landing gear over the one supported by the main landing gear--></weight_ratio>
+					</front>
+				</landing_gear>
+			</airframe>
 		</weight>
 	</settings>
 </FASTOAD_model>

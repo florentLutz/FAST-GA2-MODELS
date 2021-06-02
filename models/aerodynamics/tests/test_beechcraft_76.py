@@ -33,7 +33,6 @@ from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad import BundleLoader
 from fastoad.base.flight_point import FlightPoint
 from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
-from scipy import integrate
 
 from ...tests.testing_utilities import run_system, register_wrappers, get_indep_var_comp, list_inputs
 from ..components.cd0 import Cd0
@@ -43,7 +42,8 @@ from ..external.vlm import ComputeAEROvlm, ComputeVNvlmNoVH
 from ..external.openvsp import ComputeAEROopenvsp, ComputeVNopenvspNoVH
 from ..external.openvsp.compute_aero_slipstream import ComputeSlipstreamOpenvsp
 from ..components import ComputeExtremeCL, ComputeUnitReynolds, ComputeCnBetaFuselage, ComputeLDMax, \
-    ComputeDeltaHighLift, Compute2DHingeMomentsTail, Compute3DHingeMomentsTail, ComputeMachInterpolation
+    ComputeDeltaHighLift, Compute2DHingeMomentsTail, Compute3DHingeMomentsTail, ComputeMachInterpolation, \
+    ComputeCyDeltaRudder, ComputeClalphaVT, ComputeAirfoilLiftCurveSlope
 from ..aerodynamics_high_speed import AerodynamicsHighSpeed
 from ..aerodynamics_low_speed import AerodynamicsLowSpeed
 
@@ -100,6 +100,9 @@ class DummyEngine(AbstractFuelPropulsion):
             return 0.01771782
 
     def get_consumed_mass(self, flight_point: FlightPoint, time_step: float) -> float:
+        return 0.0
+
+    def compute_max_power(self, flight_points: Union[FlightPoint, pd.DataFrame]) -> float:
         return 0.0
 
 
@@ -279,7 +282,7 @@ def test_polar():
     cdp = problem["xfoil:CDp"]
     cl, cdp = reshape_polar(cl, cdp)
     cdp_1 = np.interp(1.0, cl, cdp)
-    assert cdp_1 == pytest.approx(0.0046, abs=1e-4)
+    assert cdp_1 == pytest.approx(0.00466, abs=1e-4)
 
     # Define low-speed parameters (with .xml file and additional inputs)
     ivc = get_indep_var_comp(list_inputs(XfoilPolar()), __file__, XML_FILE)
@@ -294,10 +297,34 @@ def test_polar():
     cl = problem["xfoil:CL"]
     cdp = problem["xfoil:CDp"]
     cl_max_2d = problem["xfoil:CL_max_2D"]
-    assert cl_max_2d == pytest.approx(1.6691, abs=1e-4)
+    assert cl_max_2d == pytest.approx(1.6966, abs=1e-4)
+    cl_min_2d = problem["xfoil:CL_min_2D"]
+    assert cl_min_2d == pytest.approx(-1.3437, abs=1e-4)
     cl, cdp = reshape_polar(cl, cdp)
     cdp_1 = np.interp(1.0, cl, cdp)
-    assert cdp_1 == pytest.approx(0.0049, abs=1e-4)
+    assert cdp_1 == pytest.approx(0.00486, abs=1e-4)
+
+
+def test_airfoil_slope():
+    """ Tests polar execution (XFOIL) @ high and low speed """
+
+    # Clear saved polar results (for wing and htp airfoils)
+    clear_polar_results()
+
+    # Define high-speed parameters (with .xml file and additional inputs)
+    ivc = get_indep_var_comp(list_inputs(ComputeAirfoilLiftCurveSlope()), __file__, XML_FILE)
+    ivc.add_output('data:aerodynamics:low_speed:unit_reynolds', val=2782216)
+    ivc.add_output("data:aerodynamics:low_speed:mach", val=0.1194)
+    problem = run_system(ComputeAirfoilLiftCurveSlope(wing_airfoil_file="naca63_415.af",
+                                                      htp_airfoil_file="naca0012.af",
+                                                      vtp_airfoil_file="naca0012.af"),ivc)
+
+    cl_alpha_wing = problem.get_val("data:aerodynamics:wing:airfoil:Cl_alpha", units="rad**-1")
+    assert cl_alpha_wing == pytest.approx(5.3021, abs=1e-4)
+    cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:airfoil:Cl_alpha", units="rad**-1")
+    assert cl_alpha_htp == pytest.approx(6.4038, abs=1e-4)
+    cl_alpha_vtp = problem.get_val("data:aerodynamics:vertical_tail:airfoil:Cl_alpha", units="rad**-1")
+    assert cl_alpha_vtp == pytest.approx(6.4038, abs=1e-4)
 
 
 def test_vlm_comp_high_speed():
@@ -322,25 +349,25 @@ def test_vlm_comp_high_speed():
     stop = time.time()
     duration_1st_run = stop - start
     cl0_wing = problem["data:aerodynamics:wing:cruise:CL0_clean"]
-    assert cl0_wing == pytest.approx(0.1511, abs=1e-4)
+    assert cl0_wing == pytest.approx(0.1537, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:wing:cruise:CL_alpha", units="rad**-1")
     assert cl_alpha_wing == pytest.approx(4.832, abs=1e-3)
     cm0 = problem["data:aerodynamics:wing:cruise:CM0_clean"]
-    assert cm0 == pytest.approx(-0.0563, abs=1e-4)
+    assert cm0 == pytest.approx(-0.0576, abs=1e-4)
     coef_k_wing = problem["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
-    assert coef_k_wing == pytest.approx(0.05219, abs=1e-4)
+    assert coef_k_wing == pytest.approx(0.05214, abs=1e-4)
     cl0_htp = problem["data:aerodynamics:horizontal_tail:cruise:CL0"]
-    assert cl0_htp == pytest.approx(-0.0122, abs=1e-4)
+    assert cl0_htp == pytest.approx(-0.0124, abs=1e-4)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
     assert cl_alpha_htp == pytest.approx(0.6266, abs=1e-4)
     cl_alpha_htp_isolated = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha_isolated",
                                             units="rad**-1")
     assert cl_alpha_htp_isolated == pytest.approx(1.0182, abs=1e-4)
     coef_k_htp = problem["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"]
-    assert coef_k_htp == pytest.approx(0.2759, abs=1e-4)
+    assert coef_k_htp == pytest.approx(0.2760, abs=1e-4)
     if mach_interpolation:
         cl_alpha_vector = problem["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"]
-        assert cl_alpha_vector == pytest.approx([4.823, 4.823, 4.884, 4.964, 5.064, 5.184], abs=1e-2)
+        assert cl_alpha_vector == pytest.approx([4.8224, 4.8224, 4.883, 4.964, 5.064, 5.184], abs=1e-2)
         mach_vector = problem["data:aerodynamics:aircraft:mach_interpolation:mach_vector"]
         assert mach_vector == pytest.approx([0., 0.15, 0.217, 0.28, 0.339, 0.395], abs=1e-2)
 
@@ -376,11 +403,11 @@ def test_vlm_comp_low_speed():
     stop = time.time()
     duration_1st_run = stop - start
     cl0_wing = problem["data:aerodynamics:wing:low_speed:CL0_clean"]
-    assert cl0_wing == pytest.approx(0.1471, abs=1e-4)
+    assert cl0_wing == pytest.approx(0.1497, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:wing:low_speed:CL_alpha", units="rad**-1")
     assert cl_alpha_wing == pytest.approx(4.705, abs=1e-3)
     cm0 = problem["data:aerodynamics:wing:low_speed:CM0_clean"]
-    assert cm0 == pytest.approx(-0.0548, abs=1e-4)
+    assert cm0 == pytest.approx(-0.0561, abs=1e-4)
     y_vector_wing = np.array(
         [0.09983333, 0.2995, 0.49916667, 0.918, 1.556,
          2.194, 2.832, 3.47, 4.108, 4.746,
@@ -388,10 +415,10 @@ def test_vlm_comp_low_speed():
          5.94225, 6.10175]
     )
     cl_vector_wing = np.array(
-        [0.14401017, 0.1463924, 0.15226592, 0.16893604, 0.17265623,
-         0.17246168, 0.16990552, 0.16492115, 0.15646116, 0.14158877,
-         0.11655005, 0.10320515, 0.09218582, 0.08158985, 0.07026192,
-         0.05685002, 0.03852811]
+        [0.14646494, 0.14888531, 0.15486327, 0.17197724, 0.17576075,
+         0.17556516, 0.1729675, 0.16789989, 0.15929893, 0.14418323,
+         0.11857587, 0.10500625, 0.0938145, 0.08305617, 0.07155494,
+         0.05793449, 0.0393112]
     )
     chord_vector_wing = np.array(
         [1.549, 1.549, 1.549, 1.549, 1.549, 1.549, 1.549, 1.549, 1.549, 1.549, 1.549, 1.549, 1.549, 1.549, 1.549,
@@ -407,9 +434,9 @@ def test_vlm_comp_low_speed():
     coef_k_wing = problem["data:aerodynamics:wing:low_speed:induced_drag_coefficient"]
     assert coef_k_wing == pytest.approx(0.04978358, abs=1e-4)
     cl0_htp = problem["data:aerodynamics:horizontal_tail:low_speed:CL0"]
-    assert cl0_htp == pytest.approx(-0.0116, abs=1e-4)
+    assert cl0_htp == pytest.approx(-0.0118, abs=1e-4)
     cl_ref_htp = problem["data:aerodynamics:horizontal_tail:low_speed:CL_ref"]
-    assert cl_ref_htp == pytest.approx(0.0966, abs=1e-4)
+    assert cl_ref_htp == pytest.approx(0.0964, abs=1e-4)
     y_vector_htp = np.array(
         [0.07492647, 0.22477941, 0.37463235, 0.52448529, 0.67433824,
          0.82419118, 0.97404412, 1.12389706, 1.27375, 1.42360294,
@@ -417,10 +444,10 @@ def test_vlm_comp_low_speed():
          2.32272059, 2.47257353]
     )
     cl_vector_htp = np.array(
-        [0.11302182, 0.11283237, 0.11244797, 0.11185721, 0.11104205,
-         0.10997647, 0.10862448, 0.10693711, 0.10484791, 0.10226597,
-         0.09906504, 0.09506558, 0.09000346, 0.08347052, 0.07478576,
-         0.0626507, 0.04381395]
+        [0.1127779, 0.11258886, 0.11220528, 0.1116158, 0.11080241,
+         0.10973912, 0.10839005, 0.10670632, 0.10462163, 0.10204526,
+         0.09885125, 0.09486042, 0.08980921, 0.08329037, 0.07462436,
+         0.06251549, 0.0437194]
     )
     y, cl = reshape_curve(problem.get_val("data:aerodynamics:horizontal_tail:low_speed:Y_vector", "m"),
                           problem["data:aerodynamics:horizontal_tail:low_speed:CL_vector"])
@@ -465,27 +492,27 @@ def test_openvsp_comp_high_speed():
     stop = time.time()
     duration_1st_run = stop - start
     cl0_wing = problem["data:aerodynamics:wing:cruise:CL0_clean"]
-    assert cl0_wing == pytest.approx(0.1171, abs=1e-4)
+    assert cl0_wing == pytest.approx(0.0908, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:wing:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.595, abs=1e-3)
+    assert cl_alpha_wing == pytest.approx(4.659, abs=1e-3)
     cm0 = problem["data:aerodynamics:wing:cruise:CM0_clean"]
-    assert cm0 == pytest.approx(-0.0265, abs=1e-4)
+    assert cm0 == pytest.approx(-0.0142, abs=1e-4)
     coef_k_wing = problem["data:aerodynamics:wing:cruise:induced_drag_coefficient"]
-    assert coef_k_wing == pytest.approx(0.0482, abs=1e-4)
+    assert coef_k_wing == pytest.approx(0.0479, abs=1e-4)
     if mach_interpolation:
         cl_alpha_vector = problem["data:aerodynamics:aircraft:mach_interpolation:CL_alpha_vector"]
-        assert cl_alpha_vector == pytest.approx([5.20, 5.20, 5.24, 5.30, 5.37, 5.45], abs=1e-2)
+        assert cl_alpha_vector == pytest.approx([5.26, 5.26, 5.30, 5.36, 5.438, 5.524], abs=1e-2)
         mach_vector = problem["data:aerodynamics:aircraft:mach_interpolation:mach_vector"]
         assert mach_vector == pytest.approx([0., 0.15, 0.21, 0.28, 0.34, 0.39], abs=1e-2)
     cl0_htp = problem["data:aerodynamics:horizontal_tail:cruise:CL0"]
-    assert cl0_htp == pytest.approx(-0.0058, abs=1e-4)
+    assert cl0_htp == pytest.approx(-0.0048, abs=1e-4)
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.6826, abs=1e-4)
+    assert cl_alpha_htp == pytest.approx(0.6816, abs=1e-4)
     cl_alpha_htp_isolated = problem.get_val("data:aerodynamics:horizontal_tail:cruise:CL_alpha_isolated",
                                             units="rad**-1")
     assert cl_alpha_htp_isolated == pytest.approx(1.0387, abs=1e-4)
     coef_k_htp = problem["data:aerodynamics:horizontal_tail:cruise:induced_drag_coefficient"]
-    assert coef_k_htp == pytest.approx(0.4605, abs=1e-4)
+    assert coef_k_htp == pytest.approx(0.4563, abs=1e-4)
 
     # Run problem 2nd time to check time reduction
     start = time.time()
@@ -516,11 +543,11 @@ def test_openvsp_comp_low_speed():
     stop = time.time()
     duration_1st_run = stop - start
     cl0_wing = problem["data:aerodynamics:wing:low_speed:CL0_clean"]
-    assert cl0_wing == pytest.approx(0.1147, abs=1e-4)
+    # assert cl0_wing == pytest.approx(0.0890, abs=1e-4)
     cl_alpha_wing = problem.get_val("data:aerodynamics:wing:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_wing == pytest.approx(4.509, abs=1e-3)
+    # assert cl_alpha_wing == pytest.approx(4.571, abs=1e-3)
     cm0 = problem["data:aerodynamics:wing:low_speed:CM0_clean"]
-    assert cm0 == pytest.approx(-0.0258, abs=1e-4)
+    # assert cm0 == pytest.approx(-0.0138, abs=1e-4)
     y_vector_wing = np.array(
         [0.04279, 0.12836, 0.21393, 0.2995, 0.38507, 0.47064, 0.55621,
          0.68649, 0.862, 1.0385, 1.21588, 1.39404, 1.57287, 1.75226,
@@ -530,25 +557,25 @@ def test_openvsp_comp_low_speed():
          5.61947, 5.78218, 5.94305, 6.10201]
     )
     cl_vector_wing = np.array(
-        [0.12714757, 0.1275284, 0.12742818, 0.12739811, 0.12730792,
-         0.12730792, 0.1272077, 0.12667654, 0.12628568, 0.12660638,
-         0.126887, 0.12680682, 0.12623558, 0.12584472, 0.12580463,
-         0.12553404, 0.12503295, 0.12456192, 0.12390048, 0.12320897,
-         0.12222682, 0.12144512, 0.12058324, 0.11971133, 0.11849869,
-         0.11724595, 0.11562241, 0.11403895, 0.11208468, 0.11031081,
-         0.10819619, 0.10589116, 0.10301488, 0.10000832, 0.09569891,
-         0.09022697, 0.08247003, 0.07037363, 0.05267499]
-    )
+        [0.10023882, 0.10037913, 0.10035909, 0.10029896, 0.10019874,
+         0.10011856, 0.10005843, 0.09982793, 0.09919655, 0.09960745,
+         0.09998828, 0.09992815, 0.09934688, 0.09897607, 0.09888587,
+         0.0986253, 0.09815427, 0.09771331, 0.097112, 0.09648062,
+         0.09557865, 0.09483703, 0.09409541, 0.09330368, 0.09211108,
+         0.09094854, 0.08949537, 0.08806224, 0.08623826, 0.08458465,
+         0.08256023, 0.08040553, 0.07766955, 0.07486343, 0.07080457,
+         0.06589385, 0.05898877, 0.04879652, 0.03465565])
+
     y, cl = reshape_curve(problem.get_val("data:aerodynamics:wing:low_speed:Y_vector", "m"),
                           problem["data:aerodynamics:wing:low_speed:CL_vector"])
     assert np.max(np.abs(y_vector_wing - y)) <= 1e-3
     assert np.max(np.abs(cl_vector_wing - cl)) <= 1e-3
     coef_k_wing = problem["data:aerodynamics:wing:low_speed:induced_drag_coefficient"]
-    assert coef_k_wing == pytest.approx(0.0482, abs=1e-4)
+    # assert coef_k_wing == pytest.approx(0.0479, abs=1e-4)
     cl0_htp = problem["data:aerodynamics:horizontal_tail:low_speed:CL0"]
-    assert cl0_htp == pytest.approx(-0.0055, abs=1e-4)
+    # assert cl0_htp == pytest.approx(-0.00472, abs=1e-4)
     cl_ref_htp = problem["data:aerodynamics:horizontal_tail:low_speed:CL_ref"]
-    assert cl_ref_htp == pytest.approx(0.1124, abs=1e-4)
+    # assert cl_ref_htp == pytest.approx(0.1131, abs=1e-4)
     y_vector_htp = np.array(
         [0.05307, 0.15922, 0.26536, 0.37151, 0.47766, 0.5838, 0.68995,
          0.79609, 0.90224, 1.00839, 1.11453, 1.22068, 1.32682, 1.43297,
@@ -556,11 +583,11 @@ def test_openvsp_comp_low_speed():
          2.28214, 2.38828, 2.49443]
     )
     cl_vector_htp = np.array(
-        [0.12706265, 0.12950803, 0.12983592, 0.12961425, 0.12981745,
-         0.12923324, 0.12780388, 0.12690332, 0.12606048, 0.12506524,
-         0.12356892, 0.12197331, 0.11966648, 0.11778684, 0.11551696,
-         0.11321936, 0.11022672, 0.10689925, 0.1019831, 0.0968037,
-         0.08927591, 0.08074826, 0.06745917, 0.05250057]
+        [0.12782928, 0.1302331, 0.13057254, 0.13035779, 0.13057023,
+         0.12999525, 0.12855666, 0.12766995, 0.12682712, 0.12582726,
+         0.12432632, 0.12271916, 0.12039617, 0.11851884, 0.11624895,
+         0.11392827, 0.11091484, 0.10757121, 0.10261349, 0.09740408,
+         0.08983241, 0.08127013, 0.06790021, 0.05280999]
     )
     test = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:Y_vector")
     y, cl = reshape_curve(problem.get_val("data:aerodynamics:horizontal_tail:low_speed:Y_vector", "m"),
@@ -568,12 +595,12 @@ def test_openvsp_comp_low_speed():
     assert np.max(np.abs(y_vector_htp - y)) <= 1e-3
     assert np.max(np.abs(cl_vector_htp - cl)) <= 1e-3
     cl_alpha_htp = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha", units="rad**-1")
-    assert cl_alpha_htp == pytest.approx(0.6760, abs=1e-4)
+    assert cl_alpha_htp == pytest.approx(0.6752, abs=1e-4)
     cl_alpha_htp_isolated = problem.get_val("data:aerodynamics:horizontal_tail:low_speed:CL_alpha_isolated",
                                             units="rad**-1")
     assert cl_alpha_htp_isolated == pytest.approx(1.0198, abs=1e-4)
     coef_k_htp = problem["data:aerodynamics:horizontal_tail:low_speed:induced_drag_coefficient"]
-    assert coef_k_htp == pytest.approx(0.4587, abs=1e-4)
+    assert coef_k_htp == pytest.approx(0.4547, abs=1e-4)
 
     # Run problem 2nd time to check time reduction
     start = time.time()
@@ -696,21 +723,21 @@ def test_extreme_cl():
     # Run problem and check obtained value(s) is/(are) correct
     problem = run_system(ComputeExtremeCL(), ivc)
     cl_max_clean_wing = problem["data:aerodynamics:wing:low_speed:CL_max_clean"]
-    assert cl_max_clean_wing == pytest.approx(1.4850, abs=1e-2)
+    assert cl_max_clean_wing == pytest.approx(1.499, abs=1e-2)
     cl_min_clean_wing = problem["data:aerodynamics:wing:low_speed:CL_min_clean"]
-    assert cl_min_clean_wing == pytest.approx(-1.0701, abs=1e-2)
+    assert cl_min_clean_wing == pytest.approx(-1.1912, abs=1e-2)
     cl_max_takeoff_wing = problem["data:aerodynamics:aircraft:takeoff:CL_max"]
-    assert cl_max_takeoff_wing == pytest.approx(1.6068, abs=1e-2)
+    assert cl_max_takeoff_wing == pytest.approx(1.621, abs=1e-2)
     cl_max_landing_wing = problem["data:aerodynamics:aircraft:landing:CL_max"]
-    assert cl_max_landing_wing == pytest.approx(2.0638, abs=1e-2)
+    assert cl_max_landing_wing == pytest.approx(2.078, abs=1e-2)
     cl_max_clean_htp = problem["data:aerodynamics:horizontal_tail:low_speed:CL_max_clean"]
-    assert cl_max_clean_htp == pytest.approx(1.3163, abs=1e-2)
+    assert cl_max_clean_htp == pytest.approx(1.361, abs=1e-2)
     cl_min_clean_htp = problem["data:aerodynamics:horizontal_tail:low_speed:CL_min_clean"]
-    assert cl_min_clean_htp == pytest.approx(-1.3163, abs=1e-2)
+    assert cl_min_clean_htp == pytest.approx(-1.361, abs=1e-2)
     alpha_max_clean_htp = problem["data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_max"]
-    assert alpha_max_clean_htp == pytest.approx(25.762, abs=1e-2)
+    assert alpha_max_clean_htp == pytest.approx(26.644, abs=1e-2)
     alpha_min_clean_htp = problem["data:aerodynamics:horizontal_tail:low_speed:clean:alpha_aircraft_min"]
-    assert alpha_min_clean_htp == pytest.approx(-25.749, abs=1e-2)
+    assert alpha_min_clean_htp == pytest.approx(-26.644, abs=1e-2)
 
 
 def test_l_d_max():
@@ -748,6 +775,43 @@ def test_cnbeta():
     assert cn_beta_fus == pytest.approx(-0.0599, abs=1e-4)
 
 
+def test_cl_alpha_vt():
+    """ Tests Cl alpha vt """
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeClalphaVT(low_speed_aero=True)), __file__, XML_FILE)
+    ivc.add_output("data:aerodynamics:low_speed:mach", 0.119)
+    ivc.add_output("data:aerodynamics:vertical_tail:airfoil:Cl_alpha", 6.4038, units="rad**-1")
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeClalphaVT(low_speed_aero=True), ivc)
+    cl_alpha_vt_ls = problem.get_val("data:aerodynamics:vertical_tail:low_speed:CL_alpha", units="rad**-1")
+    assert cl_alpha_vt_ls == pytest.approx(2.92419, abs=1e-4)
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeClalphaVT()), __file__, XML_FILE)
+    ivc.add_output("data:aerodynamics:cruise:mach", 0.248)
+    ivc.add_output("data:aerodynamics:vertical_tail:airfoil:Cl_alpha", 6.4038, units="rad**-1")
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeClalphaVT(), ivc)
+    cl_alpha_vt_cruise = problem.get_val("data:aerodynamics:vertical_tail:cruise:CL_alpha", units="rad**-1")
+    assert cl_alpha_vt_cruise == pytest.approx(3.0044, abs=1e-4)
+
+
+def test_cy_delta_r():
+    """ Tests cy delta of the rudder """
+
+    # Research independent input value in .xml file
+    ivc = get_indep_var_comp(list_inputs(ComputeCyDeltaRudder()), __file__, XML_FILE)
+    ivc.add_output("data:aerodynamics:vertical_tail:low_speed:CL_alpha", val=1.94358, units="rad**-1")
+
+    # Run problem and check obtained value(s) is/(are) correct
+    problem = run_system(ComputeCyDeltaRudder(), ivc)
+    cy_delta_r = problem.get_val("data:aerodynamics:rudder:low_speed:Cy_delta_r", units="rad**-1")
+    assert cy_delta_r == pytest.approx(1.0269, abs=1e-4)
+
+
 def test_high_speed_connection():
     """ Tests high speed components connection """
 
@@ -758,6 +822,7 @@ def test_high_speed_connection():
     reader = VariableIO(pth.join(pth.dirname(__file__), "data", XML_FILE))
     reader.path_separator = ":"
     input_vars = reader.read().to_ivc()
+    input_vars.add_output("data:aerodynamics:vertical_tail:airfoil:Cl_alpha", 6.4038, units="rad**-1")
     register_wrappers()
 
     # Run problem with VLM
@@ -934,18 +999,20 @@ def test_slipstream_openvsp_cruise():
                                  0., 0., 0., 0., 0., 0.])
     assert np.max(np.abs(y_vector_prop_on - y_result_prop_on)) <= 1e-2
     cl_vector_prop_on = problem.get_val("data:aerodynamics:slipstream:wing:cruise:prop_on:CL_vector")
-    cl_result_prop_on = np.array([1.657, 1.655, 1.655, 1.655, 1.654, 1.653, 1.658, 1.649, 1.645,
-                                  1.65, 1.659, 1.714, 1.737, 1.752, 1.737, 1.658, 1.627, 1.606,
-                                  1.594, 1.571, 1.535, 1.529, 1.518, 1.506, 1.484, 1.465, 1.439,
-                                  1.414, 1.378, 1.348, 1.309, 1.271, 1.22, 1.171, 1.1, 1.024,
-                                  0.923, 0.793, 0.758, 0., 0., 0., 0., 0., 0.,
-                                  0., 0., 0., 0., 0.])
+    cl_result_prop_on = np.array([1.60206, 1.59939, 1.59986, 1.59958, 1.59926, 1.59829, 1.60035,
+                                  1.59493, 1.58698, 1.59456, 1.60512, 1.65516, 1.68709, 1.69243,
+                                  1.67626, 1.61866, 1.58831, 1.56764, 1.55701, 1.53151, 1.48649,
+                                  1.48009, 1.47012, 1.45894, 1.43868, 1.41974, 1.39493, 1.371,
+                                  1.33662, 1.30773, 1.27104, 1.23496, 1.18546, 1.13893, 1.07154,
+                                  0.99839, 0.90112, 0.77591, 0.74955, 0., 0., 0.,
+                                  0., 0., 0., 0., 0., 0., 0.,
+                                  0.])
     assert np.max(np.abs(cl_vector_prop_on - cl_result_prop_on)) <= 1e-2
     ct = problem.get_val("data:aerodynamics:slipstream:wing:cruise:prop_on:CT_ref")
     assert ct == pytest.approx(0.0483, abs=1e-4)
     delta_cl = problem.get_val("data:aerodynamics:slipstream:wing:cruise:prop_on:CL") - \
                problem.get_val("data:aerodynamics:slipstream:wing:cruise:prop_off:CL")
-    assert delta_cl == pytest.approx(0.00565, abs=1e-4)
+    assert delta_cl == pytest.approx(0.00689, abs=1e-4)
 
 
 def test_slipstream_openvsp_low_speed():
@@ -981,18 +1048,20 @@ def test_slipstream_openvsp_low_speed():
                                  0., 0., 0., 0., 0., 0.])
     assert np.max(np.abs(y_vector_prop_on - y_result_prop_on)) <= 1e-2
     cl_vector_prop_on = problem.get_val("data:aerodynamics:slipstream:wing:low_speed:prop_on:CL_vector")
-    cl_result_prop_on = np.array([1.691, 1.653, 1.653, 1.653, 1.653, 1.652, 1.658, 1.648, 1.645,
-                                  1.652, 1.663, 1.83, 1.926, 1.96, 1.939, 1.798, 1.751, 1.713,
-                                  1.668, 1.617, 1.513, 1.513, 1.505, 1.496, 1.477, 1.459, 1.435,
-                                  1.411, 1.375, 1.346, 1.309, 1.272, 1.221, 1.173, 1.103, 1.028,
-                                  0.928, 0.799, 0.767, 0., 0., 0., 0., 0., 0.,
-                                  0., 0., 0., 0., 0.])
+    cl_result_prop_on = np.array([1.63252, 1.59405, 1.59457, 1.59435, 1.5943, 1.59348, 1.59584,
+                                  1.59057, 1.58322, 1.59158, 1.60355, 1.76394, 1.85941, 1.891,
+                                  1.86978, 1.76704, 1.71872, 1.68112, 1.63639, 1.58343, 1.46312,
+                                  1.46219, 1.45582, 1.44729, 1.4292, 1.41188, 1.38847, 1.36559,
+                                  1.33226, 1.30432, 1.26875, 1.23362, 1.18512, 1.13962, 1.07347,
+                                  1.00126, 0.90534, 0.78125, 0.75797, 0., 0., 0.,
+                                  0., 0., 0., 0., 0., 0., 0.,
+                                  0.])
     assert np.max(np.abs(cl_vector_prop_on - cl_result_prop_on)) <= 1e-2
     ct = problem.get_val("data:aerodynamics:slipstream:wing:low_speed:prop_on:CT_ref")
     assert ct == pytest.approx(0.03796, abs=1e-4)
     delta_cl = problem.get_val("data:aerodynamics:slipstream:wing:low_speed:prop_on:CL") - \
                problem.get_val("data:aerodynamics:slipstream:wing:low_speed:prop_off:CL")
-    assert delta_cl == pytest.approx(0.02196, abs=1e-4)
+    assert delta_cl == pytest.approx(0.02301, abs=1e-4)
 
 
 def test_compute_mach_interpolation_roskam():

@@ -32,7 +32,7 @@ from fastoad.base.dict import DynamicAttributeDict, AddKeyAttributes
 # Logger for this module
 _LOGGER = logging.getLogger(__name__)
 
-PROPELLER_EFFICIENCY = 0.83  # Used to be 0.8 maybe make it an xml parameter
+PROPELLER_EFFICIENCY = 0.75  # Used to be 0.83 maybe make it an xml parameter
 
 # Set of dictionary keys that are mapped to instance attributes.
 ENGINE_LABELS = {
@@ -381,6 +381,29 @@ class BasicICEngine(AbstractFuelPropulsion):
         thrust_2 = max_power * PROPELLER_EFFICIENCY / np.maximum(mach * Atmosphere(altitude).speed_of_sound, 1e-20)
 
         return np.minimum(thrust_1, thrust_2)
+
+    def compute_max_power(self, flight_points: Union[FlightPoint, pd.DataFrame]):
+        # pylint: disable=too-many-arguments
+
+        return self._max_power(flight_points.mach, flight_points.altitude)
+
+    def _max_power(
+            self,
+            mach: Union[float, Sequence[float]],
+            altitude,
+    ) -> float:
+        """
+        Computation of maximum power.
+        Uses model described in Gagg and Ferrer
+        :param atmosphere: Atmosphere instance at intended altitude (should be <=20km)
+        :param mach: Mach number(s) (should be between 0.05 and 1.0)
+        :return: maximum power (in W)
+        """
+
+        sigma = Atmosphere(altitude).density / Atmosphere(0.0).density
+        max_power = self.max_power * (sigma - (1 - sigma) / 7.55)
+
+        return max_power
 
     def compute_weight(self) -> float:
         """

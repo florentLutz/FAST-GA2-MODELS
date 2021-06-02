@@ -21,6 +21,7 @@ from typing import Union
 from fastoad.io import VariableIO
 from fastoad.module_management.service_registry import RegisterPropulsion
 from fastoad import BundleLoader
+from fastoad.utils.physics.atmosphere import Atmosphere
 from fastoad.base.flight_point import FlightPoint
 from fastoad.constants import EngineSetting
 from fastoad.models.propulsion.propulsion import IOMPropulsionWrapper
@@ -82,6 +83,9 @@ class DummyEngine(AbstractFuelPropulsion):
     def get_consumed_mass(self, flight_point: FlightPoint, time_step: float) -> float:
         return 0.0
 
+    def compute_max_power(self, flight_points: Union[FlightPoint, pd.DataFrame]) -> float:
+        return self.max_power * Atmosphere(flight_points.altitude).density / 1.225
+
 
 @RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
@@ -116,7 +120,15 @@ def test_update_vt_area():
     # Research independent input value in .xml file
     ivc = get_indep_var_comp(list_inputs(UpdateVTArea(propulsion_id=ENGINE_WRAPPER)), __file__, XML_FILE)
     ivc.add_output("data:weight:aircraft:CG:aft:MAC_position", 0.364924)
+    ivc.add_output("data:weight:aircraft:OWE", 1125.139, units="kg")
+    ivc.add_output("data:weight:aircraft:payload", 390.0, units="kg")
     ivc.add_output("data:aerodynamics:fuselage:cruise:CnBeta", -0.0599)
+    ivc.add_output("data:aerodynamics:rudder:low_speed:Cy_delta_r", 1.6412, units="rad**-1")
+    ivc.add_output("data:aerodynamics:vertical_tail:low_speed:CL_alpha", 2.9967, units="rad**-1")
+    ivc.add_output("data:geometry:cabin:length", 3.096, units="m")
+    ivc.add_output("data:geometry:fuselage:front_length", 1.87, units="m")
+    ivc.add_output("data:geometry:fuselage:rear_length", 3.55, units="m")
+    ivc.add_output("data:geometry:fuselage:maximum_height", 1.3378, units="m")
 
     # Run problem and check obtained value(s) is/(are) correct
     register_wrappers()

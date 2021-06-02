@@ -26,8 +26,8 @@
 		</TLAR>
 		<geometry>
 			<flap>
-				<chord_ratio>0.10<!--mean value of (flap chord)/(section chord)--></chord_ratio>
-				<span_ratio>0.61<!--ratio (width of flaps)/(total span)--></span_ratio>
+				<chord_ratio>0.15<!--mean value of (flap chord)/(section chord)--></chord_ratio>
+				<span_ratio>0.67<!--ratio (width of flaps)/(total span)--></span_ratio>
 			</flap>
 			<flap_type>1.0<!--0=plain flap / 1=flap simple slotted--></flap_type>
 			<cabin>
@@ -76,10 +76,14 @@
 			</propulsion>
 			<vertical_tail>
 				<area units="m**2">2.653<!--vertical tail area--></area>
-				<aspect_ratio>1.2<!--aspect ratio of vertical tail--></aspect_ratio>
+				<aspect_ratio>1.5<!--aspect ratio of vertical tail--></aspect_ratio>
 				<sweep_25 units="deg">30.0<!--sweep angle at 25% chord of vertical tail--></sweep_25>
-				<taper_ratio>0.62<!--taper ratio of vertical tail--></taper_ratio>
+				<taper_ratio>0.9<!--taper ratio of vertical tail--></taper_ratio>
 				<thickness_ratio>0.1<!--thickness ratio of vertical tail--></thickness_ratio>
+				<rudder>
+					<chord_ratio>0.4</chord_ratio>
+					<max_deflection units="deg">30.0</max_deflection>
+				</rudder>
 			</vertical_tail>
 			<wing>
 				<MAC>
@@ -123,6 +127,7 @@
 				<fuel units="kg">0.0</fuel>
 				<landing>
 					<elevator_angle units="deg">-25.0<!--elevator maximum angle during landing phase in sizing mission--></elevator_angle>
+					<target_sideslip units="deg">12.0<!--desired sideslip angle for a crosswind landing--></target_sideslip>
 				</landing>
 				<main_route>
 					<climb>
@@ -167,7 +172,7 @@
 			<airframe>
 				<landing_gear>
 					<front>
-						<weight_ratio>0.20<!--ratio of the weight supported by the front landing gear over the one supported by the main landing gear--></weight_ratio>
+						<weight_ratio>0.275<!--ratio of the weight supported by the front landing gear over the one supported by the main landing gear--></weight_ratio>
 					</front>
 				</landing_gear>
 			</airframe>

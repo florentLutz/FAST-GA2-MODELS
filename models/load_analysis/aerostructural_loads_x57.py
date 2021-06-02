@@ -318,6 +318,8 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
                     y_vector, chord_vector, point_mass_array, y_eng, eng_mass, inputs)
                 test = 1.0
 
+        y_eng_array = y_ratio_vec * semi_span
+
         # Computing and adding the lg weight
         # Overturn angle set as a fixed value, it is recommended to take over 25° and check that we can fit both LG in
         # the fuselage
@@ -339,6 +341,12 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
 
         reajust_struct = trapz(struct_weight_distribution, y_vector)
 
+        in_eng_nacelle = np.full(len(y_vector), False)
+        for y_eng in y_eng_array:
+            for i in np.where(abs(y_vector - y_eng) <= nacelle_width / 2.):
+                in_eng_nacelle[i] = True
+        where_engine = np.where(in_eng_nacelle)
+
         if distribution_type == 1.0:
             Y = y_vector / semi_span
             fuel_weight_distribution = 4. / np.pi * np.sqrt(1. - Y ** 2.0)
@@ -350,7 +358,7 @@ class AerostructuralLoadX57(ComputeVNopenvsp):
                     # For now 80% size reduction in the fuel tank capacity due to the landing gear
                     fuel_weight_distribution[i] = fuel_weight_distribution[i] * 0.2
             if engine_config == 1.0:
-                for i in np.where(abs(y_vector - y_eng) <= nacelle_width / 2.):
+                for i in where_engine:
                     # For now 50% size reduction in the fuel tank capacity due to the engine
                     fuel_weight_distribution[i] = fuel_weight_distribution[i] * 0.5
 

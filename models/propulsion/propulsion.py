@@ -94,6 +94,14 @@ class IPropulsion(ABC):
         """
 
     @abstractmethod
+    def compute_max_power(self, flight_points: Union[FlightPoint, pd.DataFrame]):
+        """
+        Computes max available power on one engine.
+
+        :return: the maximum available power in W
+        """
+
+    @abstractmethod
     def compute_dimensions(self) -> (float, float, float, float):
         """
         Computes propulsion dimensions.

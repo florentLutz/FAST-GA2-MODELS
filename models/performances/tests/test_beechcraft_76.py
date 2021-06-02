@@ -94,6 +94,9 @@ class DummyEngine(AbstractFuelPropulsion):
     def compute_drag(self, mach, unit_reynolds, l0_wing):
         return 0.0
 
+    def compute_max_power(self, flight_points: Union[FlightPoint, pd.DataFrame]) -> float:
+        return 0.0
+
 
 @RegisterPropulsion(ENGINE_WRAPPER)
 class DummyEngineWrapper(IOMPropulsionWrapper):
